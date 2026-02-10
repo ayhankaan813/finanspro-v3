@@ -1,0 +1,644 @@
+// FinansPro V3 Database Schema
+// Double-Entry Ledger System with Commission Management
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTH ====================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password_hash String
+  name          String
+  role          UserRole  @default(USER)
+  is_active     Boolean   @default(true)
+  last_login_at DateTime?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Audit relations
+  audit_logs        AuditLog[]
+  adjustments_made  Adjustment[]   @relation("AdjustmentRequestedBy")
+  adjustments_reviewed Adjustment[] @relation("AdjustmentReviewedBy")
+
+  @@index([email])
+  @@index([is_active])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+// ==================== SITE (Casino) ====================
+
+model Site {
+  id          String  @id @default(uuid())
+  name        String
+  code        String  @unique
+  description String?
+  is_active   Boolean @default(true)
+
+  // Commission rates for this site
+  site_partners        SitePartner[]
+  commission_rates     CommissionRate[]
+  delivery_commissions DeliveryCommission[]
+  transactions         Transaction[]
+
+  // Account relation
+  account Account?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@index([code])
+  @@index([is_active])
+  @@map("sites")
+}
+
+// ==================== PARTNER (Komisyoncu) ====================
+
+model Partner {
+  id          String  @id @default(uuid())
+  name        String
+  code        String  @unique
+  description String?
+  is_active   Boolean @default(true)
+
+  // Relations
+  site_partners    SitePartner[]
+  commission_rates CommissionRate[]
+
+  // Account relation
+  account Account?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@index([code])
+  @@index([is_active])
+  @@map("partners")
+}
+
+// ==================== SITE-PARTNER RELATIONSHIP ====================
+
+model SitePartner {
+  id         String  @id @default(uuid())
+  site_id    String
+  partner_id String
+  is_active  Boolean @default(true)
+
+  // Validity period
+  effective_from  DateTime  @default(now())
+  effective_until DateTime?
+
+  // Relations
+  site    Site    @relation(fields: [site_id], references: [id])
+  partner Partner @relation(fields: [partner_id], references: [id])
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@unique([site_id, partner_id])
+  @@index([is_active])
+  @@map("site_partners")
+}
+
+// ==================== FINANCIER (Finansör) ====================
+
+model Financier {
+  id          String  @id @default(uuid())
+  name        String
+  code        String  @unique
+  description String?
+  is_active   Boolean @default(true)
+
+  // Relations
+  commission_rates CommissionRate[]
+  blocks           FinancierBlock[]
+
+  // Account relation
+  account Account?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@index([code])
+  @@index([is_active])
+  @@map("financiers")
+}
+
+// ==================== FINANCIER BLOCK (Bloke Takip) ====================
+
+model FinancierBlock {
+  id           String   @id @default(uuid())
+  financier_id String
+  amount       Decimal  @db.Decimal(15, 2)
+  reason       String?
+
+  // Timing
+  started_at     DateTime  @default(now())
+  resolved_at    DateTime?
+  estimated_days Int? // ML prediction
+
+  // Relations
+  financier Financier @relation(fields: [financier_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([financier_id])
+  @@index([resolved_at])
+  @@map("financier_blocks")
+}
+
+// ==================== EXTERNAL PARTY (Dış Kişi) ====================
+
+model ExternalParty {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  phone       String?
+  email       String?
+  is_active   Boolean @default(true)
+
+  // Account relation
+  account Account?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@index([is_active])
+  @@map("external_parties")
+}
+
+// ==================== ACCOUNT (Cari Hesap) ====================
+
+model Account {
+  id          String     @id @default(uuid())
+  entity_type EntityType
+  entity_id   String     @unique
+
+  // Balance (CAN BE NEGATIVE for Partners!)
+  balance Decimal @default(0) @db.Decimal(15, 2)
+
+  // For Financiers: blocked amount
+  blocked_amount Decimal @default(0) @db.Decimal(15, 2)
+
+  // Credit limit (optional)
+  credit_limit Decimal @default(0) @db.Decimal(15, 2)
+
+  // Separate FK fields for each entity type (only one will be set)
+  site_id           String? @unique
+  partner_id        String? @unique
+  financier_id      String? @unique
+  external_party_id String? @unique
+
+  // Entity relations
+  site           Site?          @relation(fields: [site_id], references: [id])
+  partner        Partner?       @relation(fields: [partner_id], references: [id])
+  financier      Financier?     @relation(fields: [financier_id], references: [id])
+  external_party ExternalParty? @relation(fields: [external_party_id], references: [id])
+
+  // Ledger entries
+  ledger_entries LedgerEntry[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([entity_type, entity_id])
+  @@index([entity_type])
+  @@map("accounts")
+}
+
+enum EntityType {
+  SITE
+  PARTNER
+  FINANCIER
+  EXTERNAL_PARTY
+  ORGANIZATION
+}
+
+// ==================== TRANSACTION ====================
+
+model Transaction {
+  id     String            @id @default(uuid())
+  type   TransactionType
+  status TransactionStatus @default(COMPLETED)
+
+  // Amounts
+  gross_amount Decimal @db.Decimal(15, 2) // Brüt tutar
+  net_amount   Decimal @db.Decimal(15, 2) // Net tutar (komisyon sonrası)
+
+  // ==================== SNAPSHOT: Applied Commission Rates ====================
+  // These are snapshots of rates at the time of transaction
+  // NEVER changes even if commission rates table is updated
+  site_commission_rate      Decimal? @db.Decimal(7, 5)
+  partner_commission_rate   Decimal? @db.Decimal(7, 5)
+  financier_commission_rate Decimal? @db.Decimal(7, 5)
+
+  // Related entities (nullable based on transaction type)
+  site_id           String?
+  partner_id        String?
+  financier_id      String?
+  external_party_id String?
+
+  // ==================== ÖDEME İÇİN (Payment) ====================
+  // Kimin adına ödeme? (Site, Partner, Org, ExternalParty)
+  source_type EntityType?
+  source_id   String?
+
+  // ==================== TAKVİYE İÇİN (Top-up) ====================
+  // Takviye kaynağı (Partner, Org, External)
+  topup_source_type EntityType?
+  topup_source_id   String?
+
+  // ==================== TESLİM İÇİN (Delivery) ====================
+  // Teslimat komisyon oranı (snapshot)
+  delivery_commission_rate   Decimal? @db.Decimal(7, 5)
+  delivery_commission_amount Decimal? @db.Decimal(15, 2)
+  // Partner teslimat komisyonu (varsa)
+  delivery_partner_rate   Decimal? @db.Decimal(7, 5)
+  delivery_partner_amount Decimal? @db.Decimal(15, 2)
+
+  // Category (dynamic - from settings)
+  category_id String?
+
+  // Delivery type (dynamic - from settings)
+  delivery_type_id String?
+
+  // Description and reference
+  description  String?
+  reference_id String?
+
+  // Transaction date (for historical imports)
+  transaction_date DateTime @default(now())
+
+  // Reversal tracking
+  original_transaction_id String?   @unique
+  reversed_at             DateTime?
+  reversal_reason         String?
+
+  // Relations
+  site          Site?         @relation(fields: [site_id], references: [id])
+  category      Category?     @relation(fields: [category_id], references: [id])
+  delivery_type DeliveryType? @relation(fields: [delivery_type_id], references: [id])
+
+  // Related records
+  commission_snapshot CommissionSnapshot?
+  ledger_entries      LedgerEntry[]
+
+  // Audit
+  created_by String
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@index([type, status, transaction_date])
+  @@index([site_id, transaction_date])
+  @@index([transaction_date])
+  @@index([created_at])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  // ==================== ANA 5 İŞLEM ====================
+  DEPOSIT    // Yatırım - Müşteri siteye para yatırdı
+  WITHDRAWAL // Çekim - Müşteri siteden para çekti
+  PAYMENT    // Ödeme - Herkese ödeme (site adına, partner'a, dış kişiye, org için) - KOMİSYONSUZ
+  TOP_UP     // Takviye - Kasaya para girişi (partner açık kapatma, org, dış kaynak)
+  DELIVERY   // Teslim - Site'ye para teslimi (KOMİSYONLU)
+
+  // ==================== DİĞER İŞLEMLER (Gizli Menü) ====================
+  // Dış kişi işlemleri
+  EXTERNAL_DEBT_IN  // Dış borç al
+  EXTERNAL_DEBT_OUT // Dış borç ver
+
+  // Organizasyon işlemleri
+  ORG_EXPENSE  // Org gideri
+  ORG_INCOME   // Org geliri
+  ORG_WITHDRAW // Hak ediş çekimi
+
+  // Finansör işlemleri
+  FINANCIER_TRANSFER // Kasa transferi
+
+  // Düzeltmeler
+  ADJUSTMENT // Manuel düzeltme
+  REVERSAL   // İptal
+}
+
+enum TransactionStatus {
+  PENDING // Awaiting approval
+  COMPLETED // Completed
+  REVERSED // Cancelled
+  FAILED // Failed
+}
+
+// ==================== DOUBLE-ENTRY LEDGER ====================
+
+model LedgerEntry {
+  id             String          @id @default(uuid())
+  transaction_id String
+
+  entry_type LedgerEntryType // DEBIT or CREDIT
+
+  // Which account is affected?
+  account_id   String
+  account_type EntityType
+  account_name String // Denormalized for reporting
+
+  // Amount
+  amount Decimal @db.Decimal(15, 2)
+
+  // Balance after transaction (for audit)
+  balance_after Decimal @db.Decimal(15, 2)
+
+  description String
+
+  // Relations
+  transaction Transaction @relation(fields: [transaction_id], references: [id])
+  account     Account     @relation(fields: [account_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@index([transaction_id])
+  @@index([account_id, created_at])
+  @@index([created_at])
+  @@map("ledger_entries")
+}
+
+enum LedgerEntryType {
+  DEBIT // Borç (money in)
+  CREDIT // Alacak (money out)
+}
+
+// ==================== COMMISSION SNAPSHOT ====================
+
+model CommissionSnapshot {
+  id             String @id @default(uuid())
+  transaction_id String @unique
+
+  // Site commission
+  site_commission_rate   Decimal @db.Decimal(7, 5)
+  site_commission_amount Decimal @db.Decimal(15, 2)
+
+  // Partner commission
+  partner_commission_rate   Decimal? @db.Decimal(7, 5)
+  partner_commission_amount Decimal? @db.Decimal(15, 2)
+
+  // Financier commission
+  financier_commission_rate   Decimal? @db.Decimal(7, 5)
+  financier_commission_amount Decimal? @db.Decimal(15, 2)
+
+  // Organization profit
+  organization_amount Decimal @db.Decimal(15, 2)
+
+  // Relations
+  transaction Transaction @relation(fields: [transaction_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@map("commission_snapshots")
+}
+
+// ==================== COMMISSION RATE ====================
+
+model CommissionRate {
+  id String @id @default(uuid())
+
+  // Who does this belong to?
+  entity_type EntityType
+  entity_id   String
+
+  // For which transaction type?
+  transaction_type TransactionType
+
+  // For Site-Partner relationship (which site does partner get commission from)
+  related_site_id String?
+
+  // Rate
+  rate Decimal @db.Decimal(7, 5)
+
+  // Validity
+  effective_from  DateTime  @default(now())
+  effective_until DateTime?
+  is_active       Boolean   @default(true)
+
+  // Separate FK fields for each entity type
+  site_id      String?
+  partner_id   String?
+  financier_id String?
+
+  // Entity relations
+  site      Site?      @relation(fields: [site_id], references: [id])
+  partner   Partner?   @relation(fields: [partner_id], references: [id])
+  financier Financier? @relation(fields: [financier_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([entity_type, entity_id, transaction_type])
+  @@index([is_active])
+  @@map("commission_rates")
+}
+
+// ==================== CATEGORY (Dynamic) ====================
+
+model Category {
+  id          String       @id @default(uuid())
+  type        CategoryType
+  name        String
+  description String?
+  color       String? // UI color code
+  is_active   Boolean      @default(true)
+  sort_order  Int          @default(0)
+
+  // Relations
+  transactions Transaction[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([type, is_active])
+  @@map("categories")
+}
+
+enum CategoryType {
+  PAYMENT     // Ödeme kategorileri (Maaş, Reklam, Kira, Komisyon, vs.)
+  ORG_EXPENSE // Organizasyon gider kategorileri
+  ORG_INCOME  // Organizasyon gelir kategorileri
+}
+
+// ==================== DELIVERY TYPE ====================
+
+model DeliveryType {
+  id          String  @id @default(uuid())
+  name        String // Cash, Crypto, Bank Transfer
+  code        String? @unique // CASH, CRYPTO, BANK
+  description String?
+  is_active   Boolean @default(true)
+  sort_order  Int     @default(0)
+
+  // Relations
+  transactions         Transaction[]
+  delivery_commissions DeliveryCommission[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([is_active])
+  @@map("delivery_types")
+}
+
+// ==================== DELIVERY COMMISSION (Site + Tür bazlı) ====================
+
+model DeliveryCommission {
+  id               String @id @default(uuid())
+  site_id          String
+  delivery_type_id String
+
+  // Komisyon oranı (örn: 0.02 = %2)
+  rate Decimal @db.Decimal(7, 5)
+
+  // Partner payı (opsiyonel - anlaşmada varsa)
+  partner_id   String?
+  partner_rate Decimal? @db.Decimal(7, 5)
+
+  is_active Boolean @default(true)
+
+  // Geçerlilik
+  effective_from  DateTime  @default(now())
+  effective_until DateTime?
+
+  // Relations
+  site          Site         @relation(fields: [site_id], references: [id])
+  delivery_type DeliveryType @relation(fields: [delivery_type_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([site_id, delivery_type_id])
+  @@index([is_active])
+  @@map("delivery_commissions")
+}
+
+// ==================== ADJUSTMENT (Manual Corrections) ====================
+
+model Adjustment {
+  id     String           @id @default(uuid())
+  type   AdjustmentType
+  status AdjustmentStatus @default(PENDING)
+
+  // What is being adjusted?
+  target_type String // Transaction, Account, Commission
+  target_id   String
+
+  // Change details
+  field_name String? // Which field is changing
+  old_value  Json // Old value (JSON for type independence)
+  new_value  Json // New value
+
+  // Calculated effects (for preview)
+  affected_accounts Json? // Affected accounts and changes
+  affected_ledgers  Json? // Ledger entries to create/delete
+
+  // Reason and evidence
+  reason        String // Required explanation
+  evidence_urls String[] // Document/screenshot URLs
+
+  // Workflow
+  requested_by String
+  requested_at DateTime @default(now())
+
+  reviewed_by String?
+  reviewed_at DateTime?
+  review_note String? // Approval/rejection note
+
+  // Application
+  applied_at DateTime?
+  applied_by String? // System-automated
+
+  // Rollback (if needed)
+  can_revert    Boolean   @default(true)
+  reverted_at   DateTime?
+  reverted_by   String?
+  revert_reason String?
+
+  // Related records
+  result_transaction_id String? // Transaction created by adjustment
+  result_ledger_ids     String[] // Ledger entries created
+
+  // User relations
+  requester User? @relation("AdjustmentRequestedBy", fields: [requested_by], references: [id])
+  reviewer  User? @relation("AdjustmentReviewedBy", fields: [reviewed_by], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([status, created_at])
+  @@index([target_type, target_id])
+  @@index([requested_by])
+  @@map("adjustments")
+}
+
+enum AdjustmentType {
+  TRANSACTION_AMOUNT_CHANGE
+  TRANSACTION_DATE_CHANGE
+  TRANSACTION_CATEGORY_CHANGE
+  TRANSACTION_DELETE
+  BALANCE_CORRECTION
+  BALANCE_RESET
+  COMMISSION_OVERRIDE
+  COMMISSION_RECALCULATE
+}
+
+enum AdjustmentStatus {
+  DRAFT // Draft (not submitted yet)
+  PENDING // Awaiting approval
+  APPROVED // Approved (not applied yet)
+  APPLIED // Applied
+  REJECTED // Rejected
+  REVERTED // Rolled back
+}
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  action      String // CREATE, UPDATE, DELETE, APPROVE, REJECT, LOGIN
+  entity_type String
+  entity_id   String?
+
+  old_data Json?
+  new_data Json?
+
+  user_id    String
+  user_email String
+  ip_address String?
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@index([entity_type, entity_id])
+  @@index([user_id, created_at])
+  @@index([created_at])
+  @@map("audit_logs")
+}
