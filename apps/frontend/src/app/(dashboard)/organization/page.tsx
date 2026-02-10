@@ -22,7 +22,8 @@ import {
     ArrowDownLeft,
     PieChart,
     ChevronRight,
-    Search
+    Search,
+    FileText
 } from "lucide-react";
 
 // UI Components
@@ -50,8 +51,12 @@ import {
     PieChart as RePieChart,
     Pie,
     Cell,
-    Legend
+    Legend,
+    AreaChart,
+    Area
 } from "recharts";
+
+import { Badge } from "@/components/ui/badge";
 
 // Constants
 const MONTHS = [
@@ -109,7 +114,7 @@ export default function OrganizationPage() {
                     {isLoading ? (
                         <Skeleton className="my-2 h-8 w-32" />
                     ) : (
-                        <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 font-mono">
+                        <div className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A] font-mono">
                             {value}
                         </div>
                     )}
@@ -146,6 +151,15 @@ export default function OrganizationPage() {
         return null;
     };
 
+    const EmptyState = ({ icon: Icon, title, height = "h-full" }: { icon: any, title: string, height?: string }) => (
+        <div className={cn("flex flex-col items-center justify-center gap-3 text-slate-400 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-100 m-4", height)}>
+            <div className="p-3 bg-white rounded-full shadow-sm">
+                <Icon className="h-6 w-6 opacity-50" />
+            </div>
+            <p className="text-sm font-medium">{title}</p>
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] pb-20 p-6 sm:p-8 space-y-8 font-sans">
             {/* Background Mesh Gradient */}
@@ -154,8 +168,8 @@ export default function OrganizationPage() {
             {/* Header */}
             <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-[#0F172A] to-[#334155] rounded-xl text-white shadow-lg shadow-blue-900/10">
+                    <h1 className="text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-xl text-white shadow-lg shadow-blue-900/10">
                             <Building2 className="h-6 w-6" />
                         </div>
                         Organizasyon Paneli
@@ -233,8 +247,8 @@ export default function OrganizationPage() {
                     {/* Profit Chart */}
                     <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[450px] flex flex-col">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-indigo-500" />
+                            <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
+                                <BarChart3 className="h-5 w-5 text-[#2c7da0]" />
                                 Site Karlılık Analizi
                             </CardTitle>
                             <CardDescription>Sitelerden elde edilen net kar sıralaması</CardDescription>
@@ -245,10 +259,7 @@ export default function OrganizationPage() {
                                     <Skeleton className="h-[300px] w-full rounded-xl" />
                                 </div>
                             ) : (!analytics?.profitBySite?.length) ? (
-                                <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-400">
-                                    <BarChart3 className="h-10 w-10 opacity-50" />
-                                    <p className="text-sm font-medium">Görüntülenecek veri yok</p>
-                                </div>
+                                <EmptyState icon={BarChart3} title="Görüntülenecek kar verisi yok" />
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
@@ -289,18 +300,15 @@ export default function OrganizationPage() {
                     {/* Operational Density Chart */}
                     <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[400px] flex flex-col">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                                <Calendar className="h-5 w-5 text-indigo-500" />
+                            <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-[#2c7da0]" />
                                 Operasyonel Yoğunluk
                             </CardTitle>
                             <CardDescription>Haftanın günlerine göre işlem hacmi</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 min-h-0">
                             {!analytics?.busyDays?.length && !isLoading ? (
-                                <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-400">
-                                    <Activity className="h-10 w-10 opacity-50" />
-                                    <p className="text-sm font-medium">Görüntülenecek veri yok</p>
-                                </div>
+                                <EmptyState icon={Calendar} title="İşlem verisi bulunamadı" />
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={analytics?.busyDays ?? []}>
@@ -339,8 +347,8 @@ export default function OrganizationPage() {
                     {/* Expense Chart */}
                     <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[450px] flex flex-col">
                         <CardHeader>
-                            <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                                <PieChart className="h-4 w-4 text-indigo-500" />
+                            <CardTitle className="text-base font-semibold text-[#013a63] flex items-center gap-2">
+                                <PieChart className="h-4 w-4 text-[#2c7da0]" />
                                 Gider Dağılımı
                             </CardTitle>
                             <CardDescription>Kategori bazlı harcama dağılımı</CardDescription>
@@ -348,11 +356,13 @@ export default function OrganizationPage() {
                         <CardContent className="flex-1 min-h-0">
                             {isLoading ? (
                                 <Skeleton className="h-full w-full rounded-full" />
+                            ) : (!stats?.breakdown?.length || stats.breakdown.length === 0) ? (
+                                <EmptyState icon={PieChart} title="Henüz gider kaydı yok" />
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RePieChart>
                                         <Pie
-                                            data={stats?.breakdown?.length ? stats.breakdown.map((b: any) => ({ ...b, amount: parseFloat(b.amount) })) : [{ name: 'Veri Yok', amount: 1 }]}
+                                            data={stats.breakdown.map((b: any) => ({ ...b, amount: parseFloat(b.amount) }))}
                                             cx="50%"
                                             cy="50%"
                                             innerRadius={70}
@@ -363,8 +373,8 @@ export default function OrganizationPage() {
                                             stroke="none"
                                             cornerRadius={6}
                                         >
-                                            {(stats?.breakdown?.length ? stats.breakdown : [{ name: 'Veri Yok', amount: 1 }]).map((entry: any, index: number) => (
-                                                <Cell key={`cell-${index}`} fill={stats?.breakdown?.length ? (entry.color || COLORS[index % COLORS.length]) : "#E2E8F0"} />
+                                            {stats.breakdown.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
                                         <Tooltip />
@@ -383,14 +393,16 @@ export default function OrganizationPage() {
                     {/* Recent Transactions */}
                     <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 overflow-hidden h-[400px] flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 bg-slate-50/50 pb-4 shrink-0">
-                            <CardTitle className="text-base font-semibold text-slate-900">Son İşlemler</CardTitle>
+                            <CardTitle className="text-base font-semibold text-[#013a63]">Son İşlemler</CardTitle>
                             <Button variant="ghost" size="sm" className="text-xs h-8 hover:bg-white hover:text-indigo-600">
                                 Tümü <ChevronRight className="ml-1 h-3 w-3" />
                             </Button>
                         </CardHeader>
                         <CardContent className="p-0 flex-1 min-h-0 overflow-y-auto">
                             {!transactions?.items?.length && !isLoading ? (
-                                <div className="p-8 text-center text-slate-400 text-sm">İşlem kaydı bulunamadı</div>
+                                <div className="h-full flex items-center justify-center">
+                                    <EmptyState icon={FileText} title="İşlem kaydı bulunamadı" height="h-auto" />
+                                </div>
                             ) : (
                                 <div className="divide-y divide-slate-100">
                                     {transactions?.items.map((tx, i) => (
@@ -402,8 +414,8 @@ export default function OrganizationPage() {
                                                 <div className={cn(
                                                     "h-10 w-10 rounded-2xl flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110",
                                                     tx.entry_type === "CREDIT"
-                                                        ? "bg-emerald-100 text-emerald-600"
-                                                        : "bg-rose-100 text-rose-600"
+                                                        ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                                                        : "bg-rose-100 text-rose-600 border border-rose-200"
                                                 )}>
                                                     {tx.entry_type === "CREDIT"
                                                         ? <ArrowDownLeft className="h-5 w-5" />
@@ -414,14 +426,19 @@ export default function OrganizationPage() {
                                                     <p className="text-sm font-semibold text-slate-900 truncate max-w-[140px]">
                                                         {tx.description || "İşlem"}
                                                     </p>
-                                                    <p className="text-xs text-slate-500 font-medium">
-                                                        {new Date(tx.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long' })}
-                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Badge variant="outline" className="text-[10px] h-5 font-normal text-slate-500 border-slate-200 px-1.5">
+                                                            {tx.category || "Genel"}
+                                                        </Badge>
+                                                        <p className="text-xs text-slate-400 font-medium">
+                                                            {new Date(tx.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long' })}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className={cn(
                                                 "text-sm font-bold font-mono tracking-tight",
-                                                tx.entry_type === "CREDIT" ? "text-emerald-600" : "text-slate-900"
+                                                tx.entry_type === "CREDIT" ? "text-emerald-600" : "text-rose-600"
                                             )}>
                                                 {tx.entry_type === "CREDIT" ? "+" : "-"}{formatMoney(tx.amount)}
                                             </div>
@@ -434,6 +451,48 @@ export default function OrganizationPage() {
 
                 </div>
             </div>
+
+            {/* Monthly Trend Chart (Restored) */}
+            <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100">
+                <CardHeader>
+                    <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-[#2c7da0]" />
+                        Aylık Finansal Trend
+                    </CardTitle>
+                    <CardDescription>Yıllık gelir ve gider dengesi</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                    {isLoading ? (
+                        <div className="h-full w-full flex items-center justify-center">
+                            <Skeleton className="h-[250px] w-full rounded-xl" />
+                        </div>
+                    ) : (!analytics?.monthlyTrend?.length) ? (
+                        <EmptyState icon={Activity} title="Trend verisi oluşmadı" />
+                    ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={analytics.monthlyTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                <Tooltip content={<CustomTooltip suffix="₺" />} />
+                                <Area type="monotone" dataKey="income" name="Gelir" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#incomeGradient)" />
+                                <Area type="monotone" dataKey="expense" name="Gider" stroke="#F43F5E" strokeWidth={2} fillOpacity={1} fill="url(#expenseGradient)" />
+                                <Legend iconType="circle" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
