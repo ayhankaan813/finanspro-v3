@@ -93,108 +93,90 @@ export class TransactionService {
       // Build ledger entries
       const entries: LedgerEntryData[] = [];
 
-      // DEPOSIT Ledger Entries (CORRECT):
-      // Example: 100K deposit, site 4% commission, partner gets 50% share of commission
+      // DEPOSIT Ledger Entries - CORRECT CEO EXPLANATION:
       //
-      // Commission breakdown:
-      // - Site commission: 4% × 100K = 4K (total commission pool)
-      // - Partner share: 50% × 4K = 2K (partner gets HALF of the 4K commission)
-      // - Organization: 4K - 2K = 2K (org keeps the other HALF)
+      // Physical reality:
+      // - Customer deposits 100 TL to site
+      // - Money goes to Financier's bank account
+      // - Financier IMMEDIATELY CUTS 2.5% (2.5 TL) - THIS NEVER ENTERS OUR BOOKS
+      // - We only account for 97.5 TL (the money we actually see/manage)
       //
-      // Physical money flow:
-      // - Customer gives 100K to Financier
-      // - Site owes customer 96K (after 4K commission deducted)
-      // - From the 4K commission: Partner gets 2K, Org gets 2K
+      // Commission breakdown (from 6% total site commission):
+      // - Site gets: 100 - 6 = 94 TL (net amount to site)
+      // - Partner gets: 1.5 TL (from commission pool)
+      // - Financier gets: 2.5 TL (ALREADY CUT - not in our accounting)
+      // - Organization gets: 2 TL (our profit - from commission pool)
+      //
+      // What we account for:
+      // - Financier holds: 97.5 TL (100 - 2.5 already cut)
+      // - Site owes customers: 94 TL
+      // - Partner earns: 1.5 TL
+      // - Organization earns: 2 TL
       //
       // Ledger entries (double-entry accounting):
-      // DEBIT:  Financier +100K (receives cash)
-      // CREDIT: Site +96K (liability to customer)
-      // CREDIT: Organization +4K (site commission revenue)
-      // DEBIT:  Organization +2K (partner commission expense)
-      // CREDIT: Partner +2K (partner earns their share)
+      // DEBIT: Financier +97.5 (money held by financier - ASSET)
+      // CREDIT: Site +94 (we owe site - LIABILITY)
+      // CREDIT: Partner +1.5 (we owe partner - LIABILITY)
+      // CREDIT: Organization +2 (our profit - ASSET/REVENUE)
       //
       // Balance check:
-      // DEBIT:  100K + 2K = 102K
-      // CREDIT: 96K + 4K + 2K = 102K ✓ BALANCED!
+      // DEBIT: 97.5
+      // CREDIT: 94 + 1.5 + 2 = 97.5 ✓ BALANCED!
       //
-      // IMPORTANT: Partner NEVER gets more than site commission!
-      // Partner rate is a SHARE of the site commission, not separate from gross.
+      // Account Types:
+      // - Site: LIABILITY (we owe them customer money)
+      // - Partner: LIABILITY (we owe them commission)
+      // - Financier: ASSET (holds money for us)
+      // - Organization: ASSET (our profit)
 
-      // 1. DEBIT: Financier receives cash from customer
+      // Calculate the actual amount we see (after financier's pre-cut)
+      const financierNetAmount = amount.times(new Decimal(0.975)); // 100 * 0.975 = 97.5
+
+      // 1. DEBIT: Financier receives net amount (after their commission is already cut)
       entries.push({
         account_id: input.financier_id,
         account_type: EntityType.FINANCIER,
         account_name: financier.name,
         entry_type: LedgerEntryType.DEBIT,
-        amount: amount, // Full gross amount (100K)
-        description: `Yatırım alındı: ${site.name} - Tutar: ${amount}`,
+        amount: financierNetAmount, // 97.5 TL (100 - 2.5 already cut)
+        description: `Yatırım alındı: ${site.name} (Net: ${financierNetAmount})`,
       });
 
-      // 2. CREDIT: Site liability increases (what site owes to customers after commission)
+      // 2. CREDIT: Site liability increases (money we owe to site/customers)
       entries.push({
         account_id: input.site_id,
         account_type: EntityType.SITE,
         account_name: site.name,
         entry_type: LedgerEntryType.CREDIT,
-        amount: siteNetAmount, // 96K (after 4% commission)
-        description: `Müşteri yatırımı: Net ${siteNetAmount}`,
+        amount: siteNetAmount, // 94 TL (100 - 6 commission)
+        description: `Site bakiyesi: ${siteNetAmount}`,
       });
 
-      // 3. CREDIT: Organization receives site commission (revenue)
+      // 3. CREDIT: Partner commission (we owe them)
+      for (const pc of commission.partner_commissions) {
+        entries.push({
+          account_id: pc.partner_id,
+          account_type: EntityType.PARTNER,
+          account_name: pc.partner_name,
+          entry_type: LedgerEntryType.CREDIT,
+          amount: pc.amount, // 1.5 TL
+          description: `Partner komisyonu: ${site.name}`,
+        });
+      }
+
+      // 4. CREDIT: Organization profit (our revenue)
       const orgAccount = await this.getOrCreateOrganizationAccount(tx);
       entries.push({
         account_id: orgAccount.entity_id,
         account_type: EntityType.ORGANIZATION,
         account_name: 'Organizasyon',
         entry_type: LedgerEntryType.CREDIT,
-        amount: commission.site_commission_amount, // 4K (site commission)
-        description: `Site komisyonu geliri: ${site.name}`,
+        amount: commission.organization_amount, // 2 TL (our profit)
+        description: `Organizasyon geliri: ${site.name}`,
       });
 
-      // 4. DEBIT: Organization pays partner commission (expense)
-      for (const pc of commission.partner_commissions) {
-        entries.push({
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
-          entry_type: LedgerEntryType.DEBIT,
-          amount: pc.amount, // 5K (partner commission)
-          description: `Partner komisyon ödemesi: ${pc.partner_name}`,
-        });
-
-        // 5. CREDIT: Partner earns commission
-        entries.push({
-          account_id: pc.partner_id,
-          account_type: EntityType.PARTNER,
-          account_name: pc.partner_name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount: pc.amount, // 5K
-          description: `Yatırım komisyonu: ${site.name}`,
-        });
-      }
-
-      // 6. Handle financier commission if any
-      if (commission.financier_commission_amount.gt(0)) {
-        // DEBIT: Organization pays financier commission (expense)
-        entries.push({
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
-          entry_type: LedgerEntryType.DEBIT,
-          amount: commission.financier_commission_amount,
-          description: `Finansör komisyon ödemesi: ${financier.name}`,
-        });
-
-        // CREDIT: Financier earns commission
-        entries.push({
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount: commission.financier_commission_amount,
-          description: `Yatırım komisyonu kazancı`,
-        });
-      }
+      // NOTE: Financier's 2.5 TL commission is NOT recorded because they already cut it
+      // before the money entered our accounting system. We never see that 2.5 TL.
 
       // Create ledger entries (this validates Debit = Credit)
       await ledgerService.createEntries(transaction.id, entries, tx);

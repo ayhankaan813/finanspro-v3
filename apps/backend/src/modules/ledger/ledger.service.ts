@@ -84,31 +84,44 @@ export class LedgerService {
       }
 
       // Calculate new balance based on account type
-      // For ASSET accounts (SITE, FINANCIER): DEBIT increases, CREDIT decreases
-      // For LIABILITY accounts (PARTNER, EXTERNAL_PARTY, ORGANIZATION): CREDIT increases, DEBIT decreases
+      // For ASSET accounts (FINANCIER, ORGANIZATION): DEBIT increases, CREDIT decreases
+      // For LIABILITY accounts (SITE, PARTNER, EXTERNAL_PARTY): CREDIT increases, DEBIT decreases
       const currentBalance = new Decimal(account.balance);
       let newBalance: Decimal;
 
-      const isLiabilityAccount = [
-        EntityType.PARTNER,
-        EntityType.EXTERNAL_PARTY,
-        EntityType.ORGANIZATION,
-      ].includes(entry.account_type);
+      // LIABILITY: Site (we owe them customer money), Partner (we owe commission), External Party (we owe debt)
+      const isLiabilityAccount = (
+        entry.account_type === EntityType.SITE ||
+        entry.account_type === EntityType.PARTNER ||
+        entry.account_type === EntityType.EXTERNAL_PARTY
+      );
 
-      if (isLiabilityAccount) {
+      // ASSET: Financier (holds money for us), Organization (our profit/capital)
+      const isAssetAccount = (
+        entry.account_type === EntityType.FINANCIER ||
+        entry.account_type === EntityType.ORGANIZATION
+      );
+
+      if (isAssetAccount) {
+        // Asset: DEBIT increases, CREDIT decreases
+        if (entry.entry_type === LedgerEntryType.DEBIT) {
+          newBalance = currentBalance.plus(entry.amount);
+        } else {
+          newBalance = currentBalance.minus(entry.amount);
+        }
+      } else if (isLiabilityAccount) {
         // Liability: CREDIT increases, DEBIT decreases
         if (entry.entry_type === LedgerEntryType.CREDIT) {
-          newBalance = currentBalance.add(entry.amount);
+          newBalance = currentBalance.plus(entry.amount);
         } else {
-          newBalance = currentBalance.sub(entry.amount);
+          newBalance = currentBalance.minus(entry.amount);
         }
       } else {
-        // Asset (SITE, FINANCIER): DEBIT increases, CREDIT decreases
-        if (entry.entry_type === LedgerEntryType.DEBIT) {
-          newBalance = currentBalance.add(entry.amount);
-        } else {
-          newBalance = currentBalance.sub(entry.amount);
-        }
+        // Fallback for unknown account types
+        throw new BusinessError(
+          `Unknown account type: ${entry.account_type}`,
+          'UNKNOWN_ACCOUNT_TYPE'
+        );
       }
 
       // Update account balance

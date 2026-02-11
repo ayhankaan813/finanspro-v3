@@ -76,6 +76,52 @@ export class CommissionService {
       .sub(totalPartnerCommission)
       .sub(financierCommissionAmount);
 
+    // 5. CRITICAL VALIDATION: Total distributed commission cannot exceed site commission
+    // Partner + Financier + Organization ≤ Site Commission
+    const totalDistributed = totalPartnerCommission
+      .plus(financierCommissionAmount)
+      .plus(organizationAmount);
+
+    if (totalDistributed.gt(siteCommissionAmount)) {
+      const diff = totalDistributed.minus(siteCommissionAmount).toString();
+      logger.error(
+        {
+          siteCommissionAmount: siteCommissionAmount.toString(),
+          totalDistributed: totalDistributed.toString(),
+          difference: diff,
+          partnerTotal: totalPartnerCommission.toString(),
+          financierCommission: financierCommissionAmount.toString(),
+          organizationAmount: organizationAmount.toString(),
+        },
+        'Commission distribution exceeds site commission!'
+      );
+      throw new Error(
+        `Komisyon dağılımı hatalı! ` +
+        `Dağıtılan toplam (${totalDistributed.toString()} TL) ` +
+        `site komisyonundan (${siteCommissionAmount.toString()} TL) fazla olamaz. ` +
+        `Fark: ${diff} TL`
+      );
+    }
+
+    // 6. WARNING: If organization amount is negative, something is wrong
+    if (organizationAmount.lt(0)) {
+      logger.warn(
+        {
+          organizationAmount: organizationAmount.toString(),
+          siteCommissionAmount: siteCommissionAmount.toString(),
+          totalPartnerCommission: totalPartnerCommission.toString(),
+          financierCommissionAmount: financierCommissionAmount.toString(),
+        },
+        'Organization amount is negative - commission rates may need adjustment'
+      );
+      throw new Error(
+        `Organizasyon karı negatif çıktı (${organizationAmount.toString()} TL). ` +
+        `Partner (${totalPartnerCommission.toString()} TL) + ` +
+        `Finansör (${financierCommissionAmount.toString()} TL) komisyonları, ` +
+        `site komisyonundan (${siteCommissionAmount.toString()} TL) fazla!`
+      );
+    }
+
     logger.debug(
       {
         siteId,
@@ -140,6 +186,21 @@ export class CommissionService {
 
     // 4. Organization gets the full site commission for withdrawals
     const organizationAmount = siteCommissionAmount;
+
+    // 5. VALIDATION: Ensure no negative amounts
+    if (organizationAmount.lt(0)) {
+      logger.warn(
+        {
+          organizationAmount: organizationAmount.toString(),
+          siteCommissionAmount: siteCommissionAmount.toString(),
+          financierCommissionAmount: financierCommissionAmount.toString(),
+        },
+        'Withdrawal commission calculation resulted in negative organization amount'
+      );
+      throw new Error(
+        `Çekim işlemi komisyon hesaplaması hatalı. Organizasyon tutarı negatif: ${organizationAmount.toString()} TL`
+      );
+    }
 
     return {
       site_commission_rate: siteRate,
