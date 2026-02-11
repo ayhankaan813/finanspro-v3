@@ -27,6 +27,43 @@
 
 ---
 
+## [3.1.1] - 2026-02-11 🔧 UI BAKIYE GÖSTERIMI DÜZELTMESİ
+
+### 🔴 KRITIK - Fixed
+
+#### Site Bakiyesi Negatif Gösteriliyordu
+**Sorun:** Backend'de Site hesabı LIABILITY olarak doğru saklanmasına rağmen (pozitif bakiye = müşterilere borç), frontend'de bakiye negatif olarak görünüyordu.
+
+**Etkilenen Dosya:**
+- `apps/frontend/src/app/(dashboard)/sites/page.tsx`
+
+**Değişiklik Detayı:**
+```typescript
+// ÖNCESİ (YANLIŞ):
+// Site is a LIABILITY account - negative in accounting means positive balance
+const displayBalance = -accountBalance; // Flip sign: -94K becomes +94K
+
+// SONRASI (DOĞRU):
+// Site is a LIABILITY account - positive balance means we owe money to customers
+const displayBalance = accountBalance; // Show as-is: 94 TL stays 94 TL
+```
+
+**Değişen Satırlar:** 101-104
+**Commit:** `fix: Remove incorrect sign flip for site balance display`
+**Etki:** 🔴 YÜKSEK - Kullanıcılar yanlış bakiye görüyordu
+**Test Durumu:** ✅ Manuel test gerekli (browser refresh)
+
+**Teknik Notlar:**
+- Backend'de Site = LIABILITY, pozitif değer saklıyor (94 TL = müşterilere 94 TL borç)
+- Eski kod işareti ters çeviriyordu (-accountBalance)
+- Artık olduğu gibi gösteriliyor (accountBalance)
+- Kullanıcı tarayıcıyı yenilerse +94,00 ₺ görecek
+
+**Kullanıcı Geri Bildirimi:**
+"BAK 100 TL YATIRIM VAR AMA BAKIYE EKSI HALA !!" - Ekran görüntüsünde 100 TL yatırım olmasına rağmen bakiye negatif görünüyordu.
+
+---
+
 ## [3.1.0] - 2026-02-11 🎯 KRİTİK MUHASEBE DÜZELTMESİ
 
 ### 🔴 KRITIK - Fixed

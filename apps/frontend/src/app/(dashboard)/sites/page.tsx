@@ -98,10 +98,10 @@ function SortableSiteCard({
     opacity: isDragging ? 0.9 : 1,
   };
 
-  // Site is a LIABILITY account - negative in accounting means positive balance (owes to customers)
-  // So we flip the sign for display purposes
+  // Site is a LIABILITY account - positive balance means we owe money to customers
+  // Display as-is (no sign flip needed)
   const accountBalance = parseFloat(site.account?.balance || "0");
-  const displayBalance = -accountBalance; // Flip sign: -94K becomes +94K
+  const displayBalance = accountBalance; // Show as-is: 94 TL stays 94 TL
 
   const depositRate = rates?.find(r => r.transaction_type === "DEPOSIT" && r.is_active);
   const withdrawalRate = rates?.find(r => r.transaction_type === "WITHDRAWAL" && r.is_active);
