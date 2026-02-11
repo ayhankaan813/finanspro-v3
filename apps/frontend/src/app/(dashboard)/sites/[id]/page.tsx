@@ -64,10 +64,10 @@ export default function SiteDetailPage() {
     );
   }
 
-  // Site is a LIABILITY account - negative in accounting means positive balance (owes to customers)
-  // So we flip the sign for display purposes
+  // Site is a LIABILITY account - positive balance means we owe money to customers
+  // Display as-is (no sign flip needed)
   const accountBalance = parseFloat(site.account?.balance || "0");
-  const displayBalance = -accountBalance; // Flip sign: -94K becomes +94K
+  const displayBalance = accountBalance; // Show as-is: 94 TL stays 94 TL
 
   // Get monthly data from API - backend always returns 12 months
   const monthlyData = statistics?.monthlyData?.map((data) => ({
@@ -80,7 +80,7 @@ export default function SiteDetailPage() {
     topup: parseFloat(data.topup || "0"),
     payment: parseFloat(data.payment || "0"),
     commission: parseFloat(data.commission || "0"),
-    balance: -parseFloat(data.balance || "0"), // Flip sign for display
+    balance: parseFloat(data.balance || "0"), // Show as-is (LIABILITY account)
   })) || Array.from({ length: 12 }, (_, i) => ({
     month: i + 1,
     monthName: MONTHS[i],
@@ -105,7 +105,7 @@ export default function SiteDetailPage() {
     topup: parseFloat(data.topup || "0"),
     payment: parseFloat(data.payment || "0"),
     commission: parseFloat(data.commission || "0"),
-    balance: -parseFloat(data.balance || "0"), // Flip sign for display
+    balance: parseFloat(data.balance || "0"), // Show as-is (LIABILITY account)
   })) || Array.from({ length: daysInSelectedMonth }, (_, i) => ({
     day: i + 1,
     deposit: 0,

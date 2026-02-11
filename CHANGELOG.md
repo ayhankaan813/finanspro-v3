@@ -27,40 +27,87 @@
 
 ---
 
-## [3.1.1] - 2026-02-11 🔧 UI BAKIYE GÖSTERIMI DÜZELTMESİ
+## [3.1.2] - 2026-02-11 🔧 TÜM BAKIYE GÖSTERIM SORUNLARI DÜZELTİLDİ
 
 ### 🔴 KRITIK - Fixed
 
-#### Site Bakiyesi Negatif Gösteriliyordu
-**Sorun:** Backend'de Site hesabı LIABILITY olarak doğru saklanmasına rağmen (pozitif bakiye = müşterilere borç), frontend'de bakiye negatif olarak görünüyordu.
+#### Site Bakiyeleri Tüm Sayfalarda Negatif Gösteriliyordu
+**Sorun:** Backend'de Site hesabı LIABILITY olarak doğru saklanmasına rağmen (pozitif bakiye = müşterilere borç), frontend'in birçok yerinde bakiyeler negatif olarak görünüyordu.
 
-**Etkilenen Dosya:**
-- `apps/frontend/src/app/(dashboard)/sites/page.tsx`
+**Etkilenen Dosyalar:**
+- `apps/frontend/src/app/(dashboard)/sites/page.tsx` (satır 619 - toplam bakiye özeti)
+- `apps/frontend/src/app/(dashboard)/sites/[id]/page.tsx` (satır 70, 83, 108 - ana bakiye, aylık ve günlük istatistikler)
 
-**Değişiklik Detayı:**
+**Değişiklik Detayları:**
+
+**1. Site Listesi Sayfası - Toplam Bakiye Özeti (sites/page.tsx:619)**
 ```typescript
 // ÖNCESİ (YANLIŞ):
-// Site is a LIABILITY account - negative in accounting means positive balance
+totalBalance: data?.items.reduce((acc, s) => acc + (-parseFloat(s.account?.balance || "0")), 0) || 0,
+
+// SONRASI (DOĞRU):
+totalBalance: data?.items.reduce((acc, s) => acc + parseFloat(s.account?.balance || "0"), 0) || 0,
+```
+
+**2. Site Detay Sayfası - Ana Bakiye (sites/[id]/page.tsx:70)**
+```typescript
+// ÖNCESİ (YANLIŞ):
 const displayBalance = -accountBalance; // Flip sign: -94K becomes +94K
 
 // SONRASI (DOĞRU):
-// Site is a LIABILITY account - positive balance means we owe money to customers
 const displayBalance = accountBalance; // Show as-is: 94 TL stays 94 TL
 ```
 
-**Değişen Satırlar:** 101-104
-**Commit:** `fix: Remove incorrect sign flip for site balance display`
-**Etki:** 🔴 YÜKSEK - Kullanıcılar yanlış bakiye görüyordu
+**3. Site Detay Sayfası - Aylık İstatistikler (sites/[id]/page.tsx:83)**
+```typescript
+// ÖNCESİ (YANLIŞ):
+balance: -parseFloat(data.balance || "0"), // Flip sign for display
+
+// SONRASI (DOĞRU):
+balance: parseFloat(data.balance || "0"), // Show as-is (LIABILITY account)
+```
+
+**4. Site Detay Sayfası - Günlük İstatistikler (sites/[id]/page.tsx:108)**
+```typescript
+// ÖNCESİ (YANLIŞ):
+balance: -parseFloat(data.balance || "0"), // Flip sign for display
+
+// SONRASI (DOĞRU):
+balance: parseFloat(data.balance || "0"), // Show as-is (LIABILITY account)
+```
+
+**Commit:** `fix: Remove ALL incorrect sign flips for site balance display across all pages`
+**Etki:** 🔴 YÜKSEK - Kullanıcılar tüm sayfalarda yanlış bakiye görüyordu
 **Test Durumu:** ✅ Manuel test gerekli (browser refresh)
 
 **Teknik Notlar:**
-- Backend'de Site = LIABILITY, pozitif değer saklıyor (94 TL = müşterilere 94 TL borç)
-- Eski kod işareti ters çeviriyordu (-accountBalance)
-- Artık olduğu gibi gösteriliyor (accountBalance)
-- Kullanıcı tarayıcıyı yenilerse +94,00 ₺ görecek
+- Backend'de Site = LIABILITY, pozitif değer saklıyor (73.226 TL = müşterilere 73.226 TL borç)
+- 4 farklı yerde işaret ters çevirme kodu vardı (-parseFloat veya -accountBalance)
+- Tüm yerlerde artık olduğu gibi gösteriliyor
+- Toplam bakiye kartında: **-73.270,00 ₺** → **+73.226,00 ₺**
+- Individual site kartlarında: Zaten doğruydu (v3.1.1'de düzeltilmişti)
+- Site detay sayfasında: Tüm istatistikler artık doğru
 
 **Kullanıcı Geri Bildirimi:**
-"BAK 100 TL YATIRIM VAR AMA BAKIYE EKSI HALA !!" - Ekran görüntüsünde 100 TL yatırım olmasına rağmen bakiye negatif görünüyordu.
+"bak toplam bakiye yukarda eksi gosteriliyor artik bu durumdan sikildim tum heryeri kontrol et ve tum bu yanlis gosterilen degerleri duzelt" - Ekran görüntüsünde toplam bakiye hala negatif gösteriyordu.
+
+**Arama Yapılan Kalıplar:**
+- `-parseFloat.*balance`
+- `balance.*:.*-parseFloat`
+- `displayBalance.*-`
+- Tüm frontend dosyalarında tarama yapıldı, başka yanlış gösterim bulunmadı ✅
+
+---
+
+## [3.1.1] - 2026-02-11 🔧 INITIAL UI BAKIYE GÖSTERIMI DÜZELTMESİ
+*(Bu versiyon yetersizdi, v3.1.2'de tamamlandı)*
+
+### 🟡 Partial Fix (INCOMPLETE)
+
+#### Site Kartı Bakiyesi Düzeltildi (Eksik Düzeltme)
+**Sorun:** Sadece site listesindeki individual kartlarda bakiye düzeltildi, ama toplam özet ve detay sayfası unutuldu.
+**Etkilenen Dosya:** `apps/frontend/src/app/(dashboard)/sites/page.tsx` (satır 104)
+**Durum:** ⚠️ Yetersiz - v3.1.2'de tamamlandı
 
 ---
 

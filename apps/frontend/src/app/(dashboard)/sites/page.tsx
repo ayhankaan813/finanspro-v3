@@ -614,8 +614,9 @@ export default function SitesPage() {
   const stats = {
     total: data?.total || 0,
     active: data?.items.filter(s => s.is_active).length || 0,
-    // Site is LIABILITY - flip sign for display (negative in DB = positive customer balance)
-    totalBalance: data?.items.reduce((acc, s) => acc + (-parseFloat(s.account?.balance || "0")), 0) || 0,
+    // Site is LIABILITY - positive balance means we owe customers
+    // Show as-is (no sign flip)
+    totalBalance: data?.items.reduce((acc, s) => acc + parseFloat(s.account?.balance || "0"), 0) || 0,
     totalIn: 0, // Will come from real transaction data
     totalOut: 0, // Will come from real transaction data
   };
