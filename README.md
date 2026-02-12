@@ -110,17 +110,7 @@ finanspro-v3/
 
 ## 💡 Temel Kavramlar
 
-### Komisyon Yapısı (SABİT - ASLA DEĞİŞMEZ)
-
-```typescript
-const COMMISSION_RATES = {
-  SITE: 0.06,          // 6%
-  PARTNER: 0.015,      // 1.5%
-  FINANCIER: 0.025,    // 2.5%
-  ORGANIZATION: 0.02,  // 2%
-  TOTAL: 0.12          // 12%
-};
-```
+### Komisyon Yapısı (
 
 **Örnek:** 100 TL işlem
 - Site: 6 TL komisyon
