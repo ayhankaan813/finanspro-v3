@@ -93,12 +93,12 @@ export class OrganizationService {
         });
 
         const totalIncome = new Decimal(commissionIncome._sum.organization_amount || 0)
-            .add(directIncome._sum.net_amount || 0);
+            .plus(directIncome._sum.net_amount || 0);
 
         const totalExpense = new Decimal(expenses._sum.net_amount || 0)
-            .add(payments._sum.net_amount || 0);
+            .plus(payments._sum.net_amount || 0);
 
-        const netProfit = totalIncome.sub(totalExpense);
+        const netProfit = totalIncome.minus(totalExpense);
 
         // 3. Get Expense Breakdown by Category
         const expenseBreakdown = await prisma.transaction.groupBy({
@@ -232,7 +232,7 @@ export class OrganizationService {
             const site = snap.transaction?.site;
             if (site) {
                 const current = siteProfitMap.get(site.id) || { name: site.name, amount: new Decimal(0) };
-                current.amount = current.amount.add(snap.organization_amount);
+                current.amount = current.amount.plus(snap.organization_amount);
                 siteProfitMap.set(site.id, current);
             }
         }

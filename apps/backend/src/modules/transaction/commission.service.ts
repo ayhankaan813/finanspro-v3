@@ -48,7 +48,7 @@ export class CommissionService {
       siteId,
       TransactionType.DEPOSIT
     );
-    const siteCommissionAmount = amount.mul(siteRate);
+    const siteCommissionAmount = amount.times(siteRate);
 
     // 2. Get partner commissions for this site
     // Partner commission is calculated from GROSS amount (not from site commission)
@@ -58,7 +58,7 @@ export class CommissionService {
       TransactionType.DEPOSIT
     );
     const totalPartnerCommission = partnerCommissions.reduce(
-      (sum, pc) => sum.add(pc.amount),
+      (sum, pc) => sum.plus(pc.amount),
       new Decimal(0)
     );
 
@@ -68,13 +68,13 @@ export class CommissionService {
       financierId,
       TransactionType.DEPOSIT
     );
-    const financierCommissionAmount = amount.mul(financierRate);
+    const financierCommissionAmount = amount.times(financierRate);
 
     // 4. Calculate organization profit
     // Organization gets: Site Commission - Partner Commission - Financier Commission
     const organizationAmount = siteCommissionAmount
-      .sub(totalPartnerCommission)
-      .sub(financierCommissionAmount);
+      .minus(totalPartnerCommission)
+      .minus(financierCommissionAmount);
 
     // 5. CRITICAL VALIDATION: Total distributed commission cannot exceed site commission
     // Partner + Financier + Organization ≤ Site Commission
@@ -166,7 +166,7 @@ export class CommissionService {
       siteId,
       TransactionType.WITHDRAWAL
     );
-    const siteCommissionAmount = amount.mul(siteRate);
+    const siteCommissionAmount = amount.times(siteRate);
 
     // 2. No partner commissions for withdrawals
     const partnerCommissions: Array<{
@@ -182,7 +182,7 @@ export class CommissionService {
       financierId,
       TransactionType.WITHDRAWAL
     );
-    const financierCommissionAmount = amount.mul(financierRate);
+    const financierCommissionAmount = amount.times(financierRate);
 
     // 4. Organization gets the full site commission for withdrawals
     const organizationAmount = siteCommissionAmount;
@@ -261,7 +261,7 @@ export class CommissionService {
 
       if (!shareRate.isZero()) {
         // Partner gets their commission from gross amount
-        const commissionAmount = grossAmount.mul(shareRate);
+        const commissionAmount = grossAmount.times(shareRate);
         partnerCommissions.push({
           partner_id: sp.partner.id,
           partner_name: sp.partner.name,
@@ -318,10 +318,10 @@ export class CommissionService {
         site_commission_rate: commission.site_commission_rate,
         site_commission_amount: commission.site_commission_amount,
         partner_commission_rate: commission.partner_commissions.length > 0
-          ? commission.partner_commissions.reduce((sum, pc) => sum.add(pc.rate), new Decimal(0))
+          ? commission.partner_commissions.reduce((sum, pc) => sum.plus(pc.rate), new Decimal(0))
           : null,
         partner_commission_amount: commission.partner_commissions.length > 0
-          ? commission.partner_commissions.reduce((sum, pc) => sum.add(pc.amount), new Decimal(0))
+          ? commission.partner_commissions.reduce((sum, pc) => sum.plus(pc.amount), new Decimal(0))
           : null,
         financier_commission_rate: commission.financier_commission_rate.isZero()
           ? null

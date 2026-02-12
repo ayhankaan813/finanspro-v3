@@ -65,10 +65,10 @@ export class TransactionService {
     );
 
     // Net amount to financier (after their commission deduction)
-    const financierNetAmount = amount.sub(commission.financier_commission_amount);
+    const financierNetAmount = amount.minus(commission.financier_commission_amount);
 
     // Net amount for site (after site commission deduction)
-    const siteNetAmount = amount.sub(commission.site_commission_amount);
+    const siteNetAmount = amount.minus(commission.site_commission_amount);
 
     return prisma.$transaction(async (tx) => {
       // Create transaction record
@@ -93,52 +93,40 @@ export class TransactionService {
       // Build ledger entries
       const entries: LedgerEntryData[] = [];
 
-      // DEPOSIT Ledger Entries - CORRECT CEO EXPLANATION:
+      // DEPOSIT Ledger Entries:
       //
       // Physical reality:
-      // - Customer deposits 100 TL to site
+      // - Customer deposits money to site
       // - Money goes to Financier's bank account
-      // - Financier IMMEDIATELY CUTS 2.5% (2.5 TL) - THIS NEVER ENTERS OUR BOOKS
-      // - We only account for 97.5 TL (the money we actually see/manage)
+      // - Financier IMMEDIATELY CUTS their commission - THIS NEVER ENTERS OUR BOOKS
+      // - We only account for the net amount (gross - financier commission)
       //
-      // Commission breakdown (from 6% total site commission):
-      // - Site gets: 100 - 6 = 94 TL (net amount to site)
-      // - Partner gets: 1.5 TL (from commission pool)
-      // - Financier gets: 2.5 TL (ALREADY CUT - not in our accounting)
-      // - Organization gets: 2 TL (our profit - from commission pool)
-      //
-      // What we account for:
-      // - Financier holds: 97.5 TL (100 - 2.5 already cut)
-      // - Site owes customers: 94 TL
-      // - Partner earns: 1.5 TL
-      // - Organization earns: 2 TL
+      // Commission breakdown (from site commission pool):
+      // - Site gets: gross - site_commission (net amount)
+      // - Partner gets: their commission share (from gross)
+      // - Financier gets: their commission (ALREADY CUT - not in our accounting)
+      // - Organization gets: site_commission - partner - financier (our profit)
       //
       // Ledger entries (double-entry accounting):
-      // DEBIT: Financier +97.5 (money held by financier - ASSET)
-      // CREDIT: Site +94 (we owe site - LIABILITY)
-      // CREDIT: Partner +1.5 (we owe partner - LIABILITY)
-      // CREDIT: Organization +2 (our profit - ASSET/REVENUE)
+      // DEBIT: Financier = gross - financier_commission (money held by financier - ASSET)
+      // CREDIT: Site = gross - site_commission (we owe site - LIABILITY)
+      // CREDIT: Partner = partner_commission (we owe partner - LIABILITY)
+      // CREDIT: Organization = org_amount (our profit - ASSET/REVENUE)
       //
       // Balance check:
-      // DEBIT: 97.5
-      // CREDIT: 94 + 1.5 + 2 = 97.5 ✓ BALANCED!
-      //
-      // Account Types:
-      // - Site: LIABILITY (we owe them customer money)
-      // - Partner: LIABILITY (we owe them commission)
-      // - Financier: ASSET (holds money for us)
-      // - Organization: ASSET (our profit)
-
-      // Calculate the actual amount we see (after financier's pre-cut)
-      const financierNetAmount = amount.times(new Decimal(0.975)); // 100 * 0.975 = 97.5
+      // DEBIT = gross - financier_commission
+      // CREDIT = (gross - site_commission) + partner_commission + org_amount
+      //        = (gross - site_commission) + partner_commission + (site_commission - partner_commission - financier_commission)
+      //        = gross - financier_commission ✓ BALANCED!
 
       // 1. DEBIT: Financier receives net amount (after their commission is already cut)
+      // Uses calculated commission from commission service, NOT hardcoded rate
       entries.push({
         account_id: input.financier_id,
         account_type: EntityType.FINANCIER,
         account_name: financier.name,
         entry_type: LedgerEntryType.DEBIT,
-        amount: financierNetAmount, // 97.5 TL (100 - 2.5 already cut)
+        amount: financierNetAmount, // gross - financier_commission (from commission service)
         description: `Yatırım alındı: ${site.name} (Net: ${financierNetAmount})`,
       });
 
@@ -240,7 +228,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Financier', input.financier_id);
 
     // Check financier has enough available balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -253,7 +241,7 @@ export class TransactionService {
     );
 
     // Site pays amount + commission
-    const siteTotalPay = amount.add(commission.site_commission_amount);
+    const siteTotalPay = amount.plus(commission.site_commission_amount);
 
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
@@ -357,7 +345,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Financier', input.financier_id);
 
     // Check available balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -429,7 +417,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Financier', input.financier_id);
 
     // Check available balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -507,7 +495,7 @@ export class TransactionService {
     if (!toFinancier) throw new NotFoundError('Hedef Finansör', input.to_financier_id);
 
     // Check source has enough available balance
-    const availableBalance = new Decimal(fromFinancier.account!.balance).sub(fromFinancier.account!.blocked_amount);
+    const availableBalance = new Decimal(fromFinancier.account!.balance).minus(fromFinancier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -660,7 +648,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
     // Check financier has enough balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -732,7 +720,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
     // Check financier has enough balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -798,7 +786,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
     // Check financier has enough balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -927,7 +915,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
     // Check financier has enough balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -1006,7 +994,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
     // Check available balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(amount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
@@ -1233,7 +1221,7 @@ export class TransactionService {
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
     // Check available balance
-    const availableBalance = new Decimal(financier.account!.balance).sub(financier.account!.blocked_amount);
+    const availableBalance = new Decimal(financier.account!.balance).minus(financier.account!.blocked_amount);
     if (availableBalance.lt(grossAmount)) {
       throw new InsufficientBalanceError(availableBalance.toString(), grossAmount.toString());
     }
@@ -1256,8 +1244,8 @@ export class TransactionService {
 
     // Calculate commission
     const commissionRate = deliveryCommission ? new Decimal(deliveryCommission.rate) : new Decimal(0);
-    const commissionAmount = grossAmount.mul(commissionRate);
-    const netAmount = grossAmount.sub(commissionAmount);
+    const commissionAmount = grossAmount.times(commissionRate);
+    const netAmount = grossAmount.minus(commissionAmount);
 
     // Calculate partner commission (if exists)
     let partnerCommissionRate = new Decimal(0);
@@ -1266,7 +1254,7 @@ export class TransactionService {
 
     if (deliveryCommission?.partner_id && deliveryCommission?.partner_rate) {
       partnerCommissionRate = new Decimal(deliveryCommission.partner_rate);
-      partnerCommissionAmount = grossAmount.mul(partnerCommissionRate);
+      partnerCommissionAmount = grossAmount.times(partnerCommissionRate);
 
       const partner = await prisma.partner.findUnique({
         where: { id: deliveryCommission.partner_id },
@@ -1277,7 +1265,7 @@ export class TransactionService {
     }
 
     // Organization gets: total commission - partner commission
-    const orgCommissionAmount = commissionAmount.sub(partnerCommissionAmount);
+    const orgCommissionAmount = commissionAmount.minus(partnerCommissionAmount);
 
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({

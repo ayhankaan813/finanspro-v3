@@ -69,7 +69,7 @@ export class SiteService {
           entity_id: newSite.id,
           site_id: newSite.id,
           transaction_type: TransactionType.DEPOSIT,
-          rate: new Decimal(depositRate).div(100), // Convert % to decimal (5.00 -> 0.05000)
+          rate: new Decimal(depositRate).dividedBy(100), // Convert % to decimal (5.00 -> 0.05000)
           effective_from: new Date(),
           effective_until: null, // Open-ended
           is_active: true,
@@ -83,7 +83,7 @@ export class SiteService {
           entity_id: newSite.id,
           site_id: newSite.id,
           transaction_type: TransactionType.WITHDRAWAL,
-          rate: new Decimal(withdrawalRate).div(100), // Convert % to decimal (5.00 -> 0.05000)
+          rate: new Decimal(withdrawalRate).dividedBy(100), // Convert % to decimal (5.00 -> 0.05000)
           effective_from: new Date(),
           effective_until: null, // Open-ended
           is_active: true,
@@ -445,38 +445,38 @@ export class SiteService {
 
       switch (tx.type) {
         case 'DEPOSIT':
-          monthlyStats[month].deposit = monthlyStats[month].deposit.add(grossAmount);
+          monthlyStats[month].deposit = monthlyStats[month].deposit.plus(grossAmount);
           if (tx.commission_snapshot) {
-            monthlyStats[month].commission = monthlyStats[month].commission.add(
+            monthlyStats[month].commission = monthlyStats[month].commission.plus(
               tx.commission_snapshot.site_commission_amount
             );
           }
           break;
 
         case 'WITHDRAWAL':
-          monthlyStats[month].withdrawal = monthlyStats[month].withdrawal.add(grossAmount);
+          monthlyStats[month].withdrawal = monthlyStats[month].withdrawal.plus(grossAmount);
           if (tx.commission_snapshot) {
-            monthlyStats[month].commission = monthlyStats[month].commission.add(
+            monthlyStats[month].commission = monthlyStats[month].commission.plus(
               tx.commission_snapshot.site_commission_amount
             );
           }
           break;
 
         case 'DELIVERY':
-          monthlyStats[month].delivery = monthlyStats[month].delivery.add(grossAmount);
+          monthlyStats[month].delivery = monthlyStats[month].delivery.plus(grossAmount);
           if (tx.delivery_commission_amount) {
-            monthlyStats[month].delivery_commission = monthlyStats[month].delivery_commission.add(
+            monthlyStats[month].delivery_commission = monthlyStats[month].delivery_commission.plus(
               tx.delivery_commission_amount
             );
           }
           break;
 
         case 'TOP_UP':
-          monthlyStats[month].topup = monthlyStats[month].topup.add(grossAmount);
+          monthlyStats[month].topup = monthlyStats[month].topup.plus(grossAmount);
           break;
 
         case 'PAYMENT':
-          monthlyStats[month].payment = monthlyStats[month].payment.add(grossAmount);
+          monthlyStats[month].payment = monthlyStats[month].payment.plus(grossAmount);
           break;
       }
     });
@@ -574,38 +574,38 @@ export class SiteService {
 
       switch (tx.type) {
         case 'DEPOSIT':
-          dailyStats[dayIndex].deposit = dailyStats[dayIndex].deposit.add(grossAmount);
+          dailyStats[dayIndex].deposit = dailyStats[dayIndex].deposit.plus(grossAmount);
           if (tx.commission_snapshot) {
-            dailyStats[dayIndex].commission = dailyStats[dayIndex].commission.add(
+            dailyStats[dayIndex].commission = dailyStats[dayIndex].commission.plus(
               tx.commission_snapshot.site_commission_amount
             );
           }
           break;
 
         case 'WITHDRAWAL':
-          dailyStats[dayIndex].withdrawal = dailyStats[dayIndex].withdrawal.add(grossAmount);
+          dailyStats[dayIndex].withdrawal = dailyStats[dayIndex].withdrawal.plus(grossAmount);
           if (tx.commission_snapshot) {
-            dailyStats[dayIndex].commission = dailyStats[dayIndex].commission.add(
+            dailyStats[dayIndex].commission = dailyStats[dayIndex].commission.plus(
               tx.commission_snapshot.site_commission_amount
             );
           }
           break;
 
         case 'DELIVERY':
-          dailyStats[dayIndex].delivery = dailyStats[dayIndex].delivery.add(grossAmount);
+          dailyStats[dayIndex].delivery = dailyStats[dayIndex].delivery.plus(grossAmount);
           if (tx.delivery_commission_amount) {
-            dailyStats[dayIndex].delivery_commission = dailyStats[dayIndex].delivery_commission.add(
+            dailyStats[dayIndex].delivery_commission = dailyStats[dayIndex].delivery_commission.plus(
               tx.delivery_commission_amount
             );
           }
           break;
 
         case 'TOP_UP':
-          dailyStats[dayIndex].topup = dailyStats[dayIndex].topup.add(grossAmount);
+          dailyStats[dayIndex].topup = dailyStats[dayIndex].topup.plus(grossAmount);
           break;
 
         case 'PAYMENT':
-          dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.add(grossAmount);
+          dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.plus(grossAmount);
           break;
       }
     });

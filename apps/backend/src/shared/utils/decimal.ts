@@ -66,14 +66,14 @@ export function isNegative(value: Decimal): boolean {
  * Calculate percentage
  */
 export function percentage(value: Decimal, percent: Decimal): Decimal {
-  return value.mul(percent);
+  return value.times(percent);
 }
 
 /**
  * Sum array of decimals
  */
 export function sum(values: Decimal[]): Decimal {
-  return values.reduce((acc, val) => acc.add(val), new Decimal(0));
+  return values.reduce((acc, val) => acc.plus(val), new Decimal(0));
 }
 
 export { Decimal };

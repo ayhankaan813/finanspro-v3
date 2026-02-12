@@ -161,7 +161,7 @@ export class FinancierService {
         ...f,
         active_blocks_count: f._count.blocks,
         available_balance: f.account
-          ? new Decimal(f.account.balance).sub(f.account.blocked_amount).toString()
+          ? new Decimal(f.account.balance).minus(f.account.blocked_amount).toString()
           : '0',
       })),
       total,
@@ -281,7 +281,7 @@ export class FinancierService {
     const blockAmount = new Decimal(input.amount);
     const currentBalance = new Decimal(financier.account.balance);
     const currentBlocked = new Decimal(financier.account.blocked_amount);
-    const availableBalance = currentBalance.sub(currentBlocked);
+    const availableBalance = currentBalance.minus(currentBlocked);
 
     if (blockAmount.greaterThan(availableBalance)) {
       throw new BusinessError(
@@ -305,7 +305,7 @@ export class FinancierService {
       await tx.account.update({
         where: { entity_id: financierId },
         data: {
-          blocked_amount: currentBlocked.add(blockAmount),
+          blocked_amount: currentBlocked.plus(blockAmount),
         },
       });
 
@@ -359,7 +359,7 @@ export class FinancierService {
 
       // Update account blocked amount
       const currentBlocked = new Decimal(financier.account!.blocked_amount);
-      const newBlocked = currentBlocked.sub(block.amount);
+      const newBlocked = currentBlocked.minus(block.amount);
 
       await tx.account.update({
         where: { entity_id: financierId },
@@ -429,7 +429,7 @@ export class FinancierService {
 
     const total = new Decimal(financier.account.balance);
     const blocked = new Decimal(financier.account.blocked_amount);
-    const available = total.sub(blocked);
+    const available = total.minus(blocked);
 
     return {
       total: total.toString(),

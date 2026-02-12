@@ -48,9 +48,9 @@ export class LedgerService {
 
     for (const entry of entries) {
       if (entry.entry_type === LedgerEntryType.DEBIT) {
-        totalDebit = totalDebit.add(entry.amount);
+        totalDebit = totalDebit.plus(entry.amount);
       } else {
-        totalCredit = totalCredit.add(entry.amount);
+        totalCredit = totalCredit.plus(entry.amount);
       }
     }
 
@@ -61,7 +61,7 @@ export class LedgerService {
           transactionId,
           totalDebit: totalDebit.toString(),
           totalCredit: totalCredit.toString(),
-          difference: totalDebit.sub(totalCredit).toString(),
+          difference: totalDebit.minus(totalCredit).toString(),
         },
         'CRITICAL: Ledger imbalance detected!'
       );
@@ -277,7 +277,7 @@ export class LedgerService {
     });
 
     const creditTotal = new Decimal(creditResult._sum.amount || 0);
-    const difference = debitTotal.sub(creditTotal);
+    const difference = debitTotal.minus(creditTotal);
     const isBalanced = difference.isZero();
 
     if (!isBalanced) {
@@ -316,7 +316,7 @@ export class LedgerService {
     const totalDebit = new Decimal(debitSum._sum.amount || 0);
     const totalCredit = new Decimal(creditSum._sum.amount || 0);
 
-    return totalDebit.sub(totalCredit);
+    return totalDebit.minus(totalCredit);
   }
 
   /**
@@ -338,7 +338,7 @@ export class LedgerService {
 
     const calculatedBalance = await this.calculateAccountBalance(account.id);
     const storedBalance = new Decimal(account.balance);
-    const difference = storedBalance.sub(calculatedBalance);
+    const difference = storedBalance.minus(calculatedBalance);
     const isReconciled = difference.isZero();
 
     if (!isReconciled) {

@@ -64,7 +64,6 @@ export class ApprovalService {
           select: {
             id: true,
             name: true,
-            code: true,
           },
         },
       },
