@@ -5,6 +5,8 @@ import { NotFoundError, BusinessError, InsufficientBalanceError } from '../../sh
 import { logger } from '../../shared/utils/logger.js';
 import { ledgerService, LedgerEntryData } from '../ledger/ledger.service.js';
 import { commissionService } from './commission.service.js';
+import { approvalService } from '../approval/approval.service.js';
+import { notificationService } from '../notification/notification.service.js';
 import type {
   CreateDepositInput,
   CreateWithdrawalInput,
@@ -70,12 +72,19 @@ export class TransactionService {
     // Net amount for site (after site commission deduction)
     const siteNetAmount = amount.minus(commission.site_commission_amount);
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.DEPOSIT, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       // Create transaction record
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.DEPOSIT,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: siteNetAmount,
           site_id: input.site_id,
@@ -87,87 +96,101 @@ export class TransactionService {
         },
       });
 
-      // Create commission snapshot
-      await commissionService.createSnapshot(transaction.id, commission, tx);
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        // Create commission snapshot
+        await commissionService.createSnapshot(transaction.id, commission, tx);
 
-      // Build ledger entries
-      const entries: LedgerEntryData[] = [];
+        // Build ledger entries
+        const entries: LedgerEntryData[] = [];
 
-      // DEPOSIT Ledger Entries:
-      //
-      // Physical reality:
-      // - Customer deposits money to site
-      // - Money goes to Financier's bank account
-      // - Financier IMMEDIATELY CUTS their commission - THIS NEVER ENTERS OUR BOOKS
-      // - We only account for the net amount (gross - financier commission)
-      //
-      // Commission breakdown (from site commission pool):
-      // - Site gets: gross - site_commission (net amount)
-      // - Partner gets: their commission share (from gross)
-      // - Financier gets: their commission (ALREADY CUT - not in our accounting)
-      // - Organization gets: site_commission - partner - financier (our profit)
-      //
-      // Ledger entries (double-entry accounting):
-      // DEBIT: Financier = gross - financier_commission (money held by financier - ASSET)
-      // CREDIT: Site = gross - site_commission (we owe site - LIABILITY)
-      // CREDIT: Partner = partner_commission (we owe partner - LIABILITY)
-      // CREDIT: Organization = org_amount (our profit - ASSET/REVENUE)
-      //
-      // Balance check:
-      // DEBIT = gross - financier_commission
-      // CREDIT = (gross - site_commission) + partner_commission + org_amount
-      //        = (gross - site_commission) + partner_commission + (site_commission - partner_commission - financier_commission)
-      //        = gross - financier_commission ✓ BALANCED!
+        // DEPOSIT Ledger Entries:
+        //
+        // Physical reality:
+        // - Customer deposits money to site
+        // - Money goes to Financier's bank account
+        // - Financier IMMEDIATELY CUTS their commission - THIS NEVER ENTERS OUR BOOKS
+        // - We only account for the net amount (gross - financier commission)
+        //
+        // Commission breakdown (from site commission pool):
+        // - Site gets: gross - site_commission (net amount)
+        // - Partner gets: their commission share (from gross)
+        // - Financier gets: their commission (ALREADY CUT - not in our accounting)
+        // - Organization gets: site_commission - partner - financier (our profit)
+        //
+        // Ledger entries (double-entry accounting):
+        // DEBIT: Financier = gross - financier_commission (money held by financier - ASSET)
+        // CREDIT: Site = gross - site_commission (we owe site - LIABILITY)
+        // CREDIT: Partner = partner_commission (we owe partner - LIABILITY)
+        // CREDIT: Organization = org_amount (our profit - ASSET/REVENUE)
+        //
+        // Balance check:
+        // DEBIT = gross - financier_commission
+        // CREDIT = (gross - site_commission) + partner_commission + org_amount
+        //        = (gross - site_commission) + partner_commission + (site_commission - partner_commission - financier_commission)
+        //        = gross - financier_commission ✓ BALANCED!
 
-      // 1. DEBIT: Financier receives net amount (after their commission is already cut)
-      // Uses calculated commission from commission service, NOT hardcoded rate
-      entries.push({
-        account_id: input.financier_id,
-        account_type: EntityType.FINANCIER,
-        account_name: financier.name,
-        entry_type: LedgerEntryType.DEBIT,
-        amount: financierNetAmount, // gross - financier_commission (from commission service)
-        description: `Yatırım alındı: ${site.name} (Net: ${financierNetAmount})`,
-      });
-
-      // 2. CREDIT: Site liability increases (money we owe to site/customers)
-      entries.push({
-        account_id: input.site_id,
-        account_type: EntityType.SITE,
-        account_name: site.name,
-        entry_type: LedgerEntryType.CREDIT,
-        amount: siteNetAmount, // 94 TL (100 - 6 commission)
-        description: `Site bakiyesi: ${siteNetAmount}`,
-      });
-
-      // 3. CREDIT: Partner commission (we owe them)
-      for (const pc of commission.partner_commissions) {
+        // 1. DEBIT: Financier receives net amount (after their commission is already cut)
+        // Uses calculated commission from commission service, NOT hardcoded rate
         entries.push({
-          account_id: pc.partner_id,
-          account_type: EntityType.PARTNER,
-          account_name: pc.partner_name,
+          account_id: input.financier_id,
+          account_type: EntityType.FINANCIER,
+          account_name: financier.name,
+          entry_type: LedgerEntryType.DEBIT,
+          amount: financierNetAmount, // gross - financier_commission (from commission service)
+          description: `Yatırım alındı: ${site.name} (Net: ${financierNetAmount})`,
+        });
+
+        // 2. CREDIT: Site liability increases (money we owe to site/customers)
+        entries.push({
+          account_id: input.site_id,
+          account_type: EntityType.SITE,
+          account_name: site.name,
           entry_type: LedgerEntryType.CREDIT,
-          amount: pc.amount, // 1.5 TL
-          description: `Partner komisyonu: ${site.name}`,
+          amount: siteNetAmount, // 94 TL (100 - 6 commission)
+          description: `Site bakiyesi: ${siteNetAmount}`,
+        });
+
+        // 3. CREDIT: Partner commission (we owe them)
+        for (const pc of commission.partner_commissions) {
+          entries.push({
+            account_id: pc.partner_id,
+            account_type: EntityType.PARTNER,
+            account_name: pc.partner_name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount: pc.amount, // 1.5 TL
+            description: `Partner komisyonu: ${site.name}`,
+          });
+        }
+
+        // 4. CREDIT: Organization profit (our revenue)
+        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+        entries.push({
+          account_id: orgAccount.entity_id,
+          account_type: EntityType.ORGANIZATION,
+          account_name: 'Organizasyon',
+          entry_type: LedgerEntryType.CREDIT,
+          amount: commission.organization_amount, // 2 TL (our profit)
+          description: `Organizasyon geliri: ${site.name}`,
+        });
+
+        // NOTE: Financier's 2.5 TL commission is NOT recorded because they already cut it
+        // before the money entered our accounting system. We never see that 2.5 TL.
+
+        // Create ledger entries (this validates Debit = Credit)
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Yatırım Onay Bekliyor',
+          message: `${site.name} sitesine ${amount} TL yatırım onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
         });
       }
-
-      // 4. CREDIT: Organization profit (our revenue)
-      const orgAccount = await this.getOrCreateOrganizationAccount(tx);
-      entries.push({
-        account_id: orgAccount.entity_id,
-        account_type: EntityType.ORGANIZATION,
-        account_name: 'Organizasyon',
-        entry_type: LedgerEntryType.CREDIT,
-        amount: commission.organization_amount, // 2 TL (our profit)
-        description: `Organizasyon geliri: ${site.name}`,
-      });
-
-      // NOTE: Financier's 2.5 TL commission is NOT recorded because they already cut it
-      // before the money entered our accounting system. We never see that 2.5 TL.
-
-      // Create ledger entries (this validates Debit = Credit)
-      await ledgerService.createEntries(transaction.id, entries, tx);
 
       // Create audit log
       await tx.auditLog.create({
@@ -243,11 +266,18 @@ export class TransactionService {
     // Site pays amount + commission
     const siteTotalPay = amount.plus(commission.site_commission_amount);
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.WITHDRAWAL, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.WITHDRAWAL,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           site_id: input.site_id,
@@ -259,47 +289,61 @@ export class TransactionService {
         },
       });
 
-      await commissionService.createSnapshot(transaction.id, commission, tx);
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        await commissionService.createSnapshot(transaction.id, commission, tx);
 
-      const entries: LedgerEntryData[] = [];
+        const entries: LedgerEntryData[] = [];
 
-      // WITHDRAWAL Ledger Entries:
-      // Site pays 50K + 1.5K commission = 51.5K total
-      // Financier pays out 50K to customer
-      // Organization earns 1.5K commission
+        // WITHDRAWAL Ledger Entries:
+        // Site pays 50K + 1.5K commission = 51.5K total
+        // Financier pays out 50K to customer
+        // Organization earns 1.5K commission
 
-      // 1. DEBIT: Site liability decreases (site owes less)
-      entries.push({
-        account_id: input.site_id,
-        account_type: EntityType.SITE,
-        account_name: site.name,
-        entry_type: LedgerEntryType.DEBIT,
-        amount: siteTotalPay,
-        description: `Çekim işlemi: ${amount} + ${commission.site_commission_amount} kom`,
-      });
+        // 1. DEBIT: Site liability decreases (site owes less)
+        entries.push({
+          account_id: input.site_id,
+          account_type: EntityType.SITE,
+          account_name: site.name,
+          entry_type: LedgerEntryType.DEBIT,
+          amount: siteTotalPay,
+          description: `Çekim işlemi: ${amount} + ${commission.site_commission_amount} kom`,
+        });
 
-      // 2. CREDIT: Financier pays out cash to customer
-      entries.push({
-        account_id: input.financier_id,
-        account_type: EntityType.FINANCIER,
-        account_name: financier.name,
-        entry_type: LedgerEntryType.CREDIT,
-        amount: amount,
-        description: `Müşteriye ödeme: ${site.name}`,
-      });
+        // 2. CREDIT: Financier pays out cash to customer
+        entries.push({
+          account_id: input.financier_id,
+          account_type: EntityType.FINANCIER,
+          account_name: financier.name,
+          entry_type: LedgerEntryType.CREDIT,
+          amount: amount,
+          description: `Müşteriye ödeme: ${site.name}`,
+        });
 
-      // 3. CREDIT: Organization earns commission
-      const orgAccount = await this.getOrCreateOrganizationAccount(tx);
-      entries.push({
-        account_id: orgAccount.entity_id,
-        account_type: EntityType.ORGANIZATION,
-        account_name: 'Organizasyon',
-        entry_type: LedgerEntryType.CREDIT,
-        amount: commission.site_commission_amount,
-        description: `Çekim komisyonu: ${site.name}`,
-      });
+        // 3. CREDIT: Organization earns commission
+        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+        entries.push({
+          account_id: orgAccount.entity_id,
+          account_type: EntityType.ORGANIZATION,
+          account_name: 'Organizasyon',
+          entry_type: LedgerEntryType.CREDIT,
+          amount: commission.site_commission_amount,
+          description: `Çekim komisyonu: ${site.name}`,
+        });
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Çekim Onay Bekliyor',
+          message: `${site.name} sitesinden ${amount} TL çekim onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       await tx.auditLog.create({
         data: {
@@ -350,11 +394,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.SITE_DELIVERY, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.SITE_DELIVERY,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           site_id: input.site_id,
@@ -366,28 +417,42 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: Site debt decreases (they receive money)
-        {
-          account_id: input.site_id,
-          account_type: EntityType.SITE,
-          account_name: site.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Kasa teslimi: ${financier.name}'dan`,
-        },
-        // CREDIT: Financier pays out
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Kasa teslimi: ${site.name}'a`,
-        },
-      ];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [
+          // DEBIT: Site debt decreases (they receive money)
+          {
+            account_id: input.site_id,
+            account_type: EntityType.SITE,
+            account_name: site.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Kasa teslimi: ${financier.name}'dan`,
+          },
+          // CREDIT: Financier pays out
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Kasa teslimi: ${site.name}'a`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Kasa Teslimi Onay Bekliyor',
+          message: `${site.name} sitesine ${amount} TL kasa teslimi onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'SITE_DELIVERY', amount: amount.toString() },
@@ -422,11 +487,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.PARTNER_PAYMENT, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.PARTNER_PAYMENT,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           partner_id: input.partner_id,
@@ -437,28 +509,42 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: Partner balance decreases (they receive cash)
-        {
-          account_id: input.partner_id,
-          account_type: EntityType.PARTNER,
-          account_name: partner.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Komisyon ödemesi`,
-        },
-        // CREDIT: Financier pays out
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Partner ödemesi: ${partner.name}`,
-        },
-      ];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [
+          // DEBIT: Partner balance decreases (they receive cash)
+          {
+            account_id: input.partner_id,
+            account_type: EntityType.PARTNER,
+            account_name: partner.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Komisyon ödemesi`,
+          },
+          // CREDIT: Financier pays out
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Partner ödemesi: ${partner.name}`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Partner Ödemesi Onay Bekliyor',
+          message: `${partner.name} partner'e ${amount} TL komisyon ödemesi onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'PARTNER_PAYMENT', amount: amount.toString() },
@@ -500,11 +586,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.FINANCIER_TRANSFER, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.FINANCIER_TRANSFER,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           financier_id: input.from_financier_id, // Primary financier (source)
@@ -514,28 +607,42 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [
-        // CREDIT: Source financier sends money (balance decreases)
-        {
-          account_id: input.from_financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: fromFinancier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Transfer çıkış: ${toFinancier.name}'a`,
-        },
-        // DEBIT: Target financier receives money (balance increases)
-        {
-          account_id: input.to_financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: toFinancier.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Transfer giriş: ${fromFinancier.name}'dan`,
-        },
-      ];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [
+          // CREDIT: Source financier sends money (balance decreases)
+          {
+            account_id: input.from_financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: fromFinancier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Transfer çıkış: ${toFinancier.name}'a`,
+          },
+          // DEBIT: Target financier receives money (balance increases)
+          {
+            account_id: input.to_financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: toFinancier.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Transfer giriş: ${fromFinancier.name}'dan`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Finansör Transferi Onay Bekliyor',
+          message: `${fromFinancier.name}'dan ${toFinancier.name}'a ${amount} TL transfer onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       await tx.auditLog.create({
         data: {
@@ -581,11 +688,18 @@ export class TransactionService {
     });
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.EXTERNAL_DEBT_IN, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.EXTERNAL_DEBT_IN,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           external_party_id: input.external_party_id,
@@ -596,28 +710,42 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: Financier receives money
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Borç alındı: ${externalParty.name}'dan`,
-        },
-        // CREDIT: External party is owed money (our liability increases)
-        {
-          account_id: input.external_party_id,
-          account_type: EntityType.EXTERNAL_PARTY,
-          account_name: externalParty.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Borç verildi: Finansör ${financier.name}'a`,
-        },
-      ];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [
+          // DEBIT: Financier receives money
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Borç alındı: ${externalParty.name}'dan`,
+          },
+          // CREDIT: External party is owed money (our liability increases)
+          {
+            account_id: input.external_party_id,
+            account_type: EntityType.EXTERNAL_PARTY,
+            account_name: externalParty.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Borç verildi: Finansör ${financier.name}'a`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Dış Borç Girişi Onay Bekliyor',
+          message: `${externalParty.name}'dan ${amount} TL borç alınması onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'EXTERNAL_DEBT_IN', amount: amount.toString() },
@@ -653,11 +781,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.EXTERNAL_DEBT_OUT, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.EXTERNAL_DEBT_OUT,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           external_party_id: input.external_party_id,
@@ -668,28 +803,42 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [
-        // CREDIT: Financier sends money
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Borç verildi: ${externalParty.name}'a`,
-        },
-        // DEBIT: External party owes us money (our receivable increases)
-        {
-          account_id: input.external_party_id,
-          account_type: EntityType.EXTERNAL_PARTY,
-          account_name: externalParty.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Borç alındı: Finansör ${financier.name}'dan`,
-        },
-      ];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [
+          // CREDIT: Financier sends money
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Borç verildi: ${externalParty.name}'a`,
+          },
+          // DEBIT: External party owes us money (our receivable increases)
+          {
+            account_id: input.external_party_id,
+            account_type: EntityType.EXTERNAL_PARTY,
+            account_name: externalParty.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Borç alındı: Finansör ${financier.name}'dan`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Dış Borç Çıkışı Onay Bekliyor',
+          message: `${externalParty.name}'a ${amount} TL borç verilmesi onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'EXTERNAL_DEBT_OUT', amount: amount.toString() },
@@ -725,11 +874,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.EXTERNAL_PAYMENT, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.EXTERNAL_PAYMENT,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           external_party_id: input.external_party_id,
@@ -740,28 +896,42 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: External party receives money (our liability decreases)
-        {
-          account_id: input.external_party_id,
-          account_type: EntityType.EXTERNAL_PARTY,
-          account_name: externalParty.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Ödeme alındı`,
-        },
-        // CREDIT: Financier pays money
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Dış kişi ödemesi: ${externalParty.name}'a`,
-        },
-      ];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [
+          // DEBIT: External party receives money (our liability decreases)
+          {
+            account_id: input.external_party_id,
+            account_type: EntityType.EXTERNAL_PARTY,
+            account_name: externalParty.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Ödeme alındı`,
+          },
+          // CREDIT: Financier pays money
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Dış kişi ödemesi: ${externalParty.name}'a`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Dış Ödeme Onay Bekliyor',
+          message: `${externalParty.name}'a ${amount} TL ödeme onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'EXTERNAL_PAYMENT', amount: amount.toString() },
@@ -791,11 +961,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.ORG_EXPENSE, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.ORG_EXPENSE,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           financier_id: input.financier_id,
@@ -806,30 +983,44 @@ export class TransactionService {
         },
       });
 
-      const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: Organization spends (balance decreases)
-        {
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: input.description || 'Organizasyon gideri',
-        },
-        // CREDIT: Financier pays
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Org gideri: ${input.description || 'Gider'}`,
-        },
-      ];
+        const entries: LedgerEntryData[] = [
+          // DEBIT: Organization spends (balance decreases)
+          {
+            account_id: orgAccount.entity_id,
+            account_type: EntityType.ORGANIZATION,
+            account_name: 'Organizasyon',
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: input.description || 'Organizasyon gideri',
+          },
+          // CREDIT: Financier pays
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Org gideri: ${input.description || 'Gider'}`,
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Organizasyon Gideri Onay Bekliyor',
+          message: `${amount} TL organizasyon gideri onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'ORG_EXPENSE', amount: amount.toString() },
@@ -853,11 +1044,18 @@ export class TransactionService {
     });
     if (!financier) throw new NotFoundError('Finansör', input.financier_id);
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.ORG_INCOME, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.ORG_INCOME,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           financier_id: input.financier_id,
@@ -868,30 +1066,44 @@ export class TransactionService {
         },
       });
 
-      const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: Financier receives money
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: `Org geliri: ${input.description || 'Gelir'}`,
-        },
-        // CREDIT: Organization earns (balance increases)
-        {
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: input.description || 'Organizasyon geliri',
-        },
-      ];
+        const entries: LedgerEntryData[] = [
+          // DEBIT: Financier receives money
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: `Org geliri: ${input.description || 'Gelir'}`,
+          },
+          // CREDIT: Organization earns (balance increases)
+          {
+            account_id: orgAccount.entity_id,
+            account_type: EntityType.ORGANIZATION,
+            account_name: 'Organizasyon',
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: input.description || 'Organizasyon geliri',
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Organizasyon Geliri Onay Bekliyor',
+          message: `${amount} TL organizasyon geliri onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'ORG_INCOME', amount: amount.toString() },
@@ -920,11 +1132,18 @@ export class TransactionService {
       throw new InsufficientBalanceError(availableBalance.toString(), amount.toString());
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.ORG_WITHDRAW, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.ORG_WITHDRAW,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           financier_id: input.financier_id,
@@ -934,30 +1153,44 @@ export class TransactionService {
         },
       });
 
-      const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
 
-      const entries: LedgerEntryData[] = [
-        // DEBIT: Organization balance decreases (owner takes profit)
-        {
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
-          entry_type: LedgerEntryType.DEBIT,
-          amount,
-          description: input.description || 'Hak ediş çekimi',
-        },
-        // CREDIT: Financier pays out
-        {
-          account_id: input.financier_id,
-          account_type: EntityType.FINANCIER,
-          account_name: financier.name,
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: 'Organizasyon hak ediş çekimi',
-        },
-      ];
+        const entries: LedgerEntryData[] = [
+          // DEBIT: Organization balance decreases (owner takes profit)
+          {
+            account_id: orgAccount.entity_id,
+            account_type: EntityType.ORGANIZATION,
+            account_name: 'Organizasyon',
+            entry_type: LedgerEntryType.DEBIT,
+            amount,
+            description: input.description || 'Hak ediş çekimi',
+          },
+          // CREDIT: Financier pays out
+          {
+            account_id: input.financier_id,
+            account_type: EntityType.FINANCIER,
+            account_name: financier.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: 'Organizasyon hak ediş çekimi',
+          },
+        ];
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Hak Ediş Çekimi Onay Bekliyor',
+          message: `${amount} TL hak ediş çekimi onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         { transactionId: transaction.id, type: 'ORG_WITHDRAW', amount: amount.toString() },
@@ -1029,11 +1262,18 @@ export class TransactionService {
       throw new BusinessError('Kaynak entity bulunamadı', 'SOURCE_NOT_FOUND');
     }
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.PAYMENT, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.PAYMENT,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           financier_id: input.financier_id,
@@ -1049,29 +1289,43 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [];
 
-      // DEBIT: Source bakiyesi azalır (onlar adına ödeme yaptık)
-      entries.push({
-        account_id: sourceEntity!.id,
-        account_type: sourceEntity!.type,
-        account_name: sourceEntity!.name,
-        entry_type: LedgerEntryType.DEBIT,
-        amount,
-        description: `Ödeme: ${input.description || 'Ödeme işlemi'}`,
-      });
+        // DEBIT: Source bakiyesi azalır (onlar adına ödeme yaptık)
+        entries.push({
+          account_id: sourceEntity!.id,
+          account_type: sourceEntity!.type,
+          account_name: sourceEntity!.name,
+          entry_type: LedgerEntryType.DEBIT,
+          amount,
+          description: `Ödeme: ${input.description || 'Ödeme işlemi'}`,
+        });
 
-      // CREDIT: Financier kasasından para çıkar
-      entries.push({
-        account_id: input.financier_id,
-        account_type: EntityType.FINANCIER,
-        account_name: financier.name,
-        entry_type: LedgerEntryType.CREDIT,
-        amount,
-        description: `Ödeme: ${sourceEntity!.name} adına`,
-      });
+        // CREDIT: Financier kasasından para çıkar
+        entries.push({
+          account_id: input.financier_id,
+          account_type: EntityType.FINANCIER,
+          account_name: financier.name,
+          entry_type: LedgerEntryType.CREDIT,
+          amount,
+          description: `Ödeme: ${sourceEntity!.name} adına`,
+        });
 
-      await ledgerService.createEntries(transaction.id, entries, tx);
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Ödeme Onay Bekliyor',
+          message: `${sourceEntity!.name} adına ${amount} TL ödeme onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
+        });
+      }
 
       logger.info(
         {
@@ -1124,11 +1378,18 @@ export class TransactionService {
     }
     // EXTERNAL için source yok, sadece kasaya para girer
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.TOP_UP, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.TOP_UP,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           financier_id: input.financier_id,
@@ -1141,42 +1402,56 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [];
 
-      // DEBIT: Financier kasasına para girer
-      entries.push({
-        account_id: input.financier_id,
-        account_type: EntityType.FINANCIER,
-        account_name: financier.name,
-        entry_type: LedgerEntryType.DEBIT,
-        amount,
-        description: `Takviye: ${sourceEntity?.name || 'Dış kaynak'}`,
-      });
-
-      // CREDIT: Source bakiyesi değişir (açık kapanır)
-      if (sourceEntity) {
+        // DEBIT: Financier kasasına para girer
         entries.push({
-          account_id: sourceEntity.id,
-          account_type: sourceEntity.type,
-          account_name: sourceEntity.name,
-          entry_type: LedgerEntryType.CREDIT,
+          account_id: input.financier_id,
+          account_type: EntityType.FINANCIER,
+          account_name: financier.name,
+          entry_type: LedgerEntryType.DEBIT,
           amount,
-          description: `Takviye: Açık kapatma`,
+          description: `Takviye: ${sourceEntity?.name || 'Dış kaynak'}`,
         });
+
+        // CREDIT: Source bakiyesi değişir (açık kapanır)
+        if (sourceEntity) {
+          entries.push({
+            account_id: sourceEntity.id,
+            account_type: sourceEntity.type,
+            account_name: sourceEntity.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Takviye: Açık kapatma`,
+          });
+        } else {
+          // Dış kaynak için Organization'a credit (gelir)
+          const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+          entries.push({
+            account_id: orgAccount.entity_id,
+            account_type: EntityType.ORGANIZATION,
+            account_name: 'Organizasyon',
+            entry_type: LedgerEntryType.CREDIT,
+            amount,
+            description: `Takviye: Dış kaynak`,
+          });
+        }
+
+        await ledgerService.createEntries(transaction.id, entries, tx);
       } else {
-        // Dış kaynak için Organization'a credit (gelir)
-        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
-        entries.push({
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
-          entry_type: LedgerEntryType.CREDIT,
-          amount,
-          description: `Takviye: Dış kaynak`,
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Takviye Onay Bekliyor',
+          message: `${sourceEntity?.name || 'Dış kaynak'}'dan ${amount} TL takviye onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
         });
       }
-
-      await ledgerService.createEntries(transaction.id, entries, tx);
 
       logger.info(
         {
@@ -1267,11 +1542,18 @@ export class TransactionService {
     // Organization gets: total commission - partner commission
     const orgCommissionAmount = commissionAmount.minus(partnerCommissionAmount);
 
+    // Check if approval required
+    const user = await prisma.user.findUnique({ where: { id: createdBy } });
+    if (!user) throw new NotFoundError('User', createdBy);
+
+    const needsApproval = approvalService.requiresApproval(TransactionType.DELIVERY, user.role);
+    const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           type: TransactionType.DELIVERY,
-          status: TransactionStatus.COMPLETED,
+          status: transactionStatus,
           gross_amount: grossAmount,
           net_amount: netAmount,
           site_id: input.site_id,
@@ -1288,54 +1570,68 @@ export class TransactionService {
         },
       });
 
-      const entries: LedgerEntryData[] = [];
+      if (transactionStatus === TransactionStatus.COMPLETED) {
+        const entries: LedgerEntryData[] = [];
 
-      // 1. DEBIT: Site bakiyesi azalır (net tutar)
-      entries.push({
-        account_id: input.site_id,
-        account_type: EntityType.SITE,
-        account_name: site.name,
-        entry_type: LedgerEntryType.DEBIT,
-        amount: netAmount,
-        description: `Teslimat: ${deliveryType.name} - Net tutar`,
-      });
-
-      // 2. DEBIT: Organization komisyon geliri
-      if (orgCommissionAmount.gt(0)) {
-        const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+        // 1. DEBIT: Site bakiyesi azalır (net tutar)
         entries.push({
-          account_id: orgAccount.entity_id,
-          account_type: EntityType.ORGANIZATION,
-          account_name: 'Organizasyon',
+          account_id: input.site_id,
+          account_type: EntityType.SITE,
+          account_name: site.name,
           entry_type: LedgerEntryType.DEBIT,
-          amount: orgCommissionAmount,
-          description: `Teslimat komisyonu: ${site.name}`,
+          amount: netAmount,
+          description: `Teslimat: ${deliveryType.name} - Net tutar`,
         });
-      }
 
-      // 3. CREDIT: Partner komisyon geliri (varsa)
-      if (partnerInfo && partnerCommissionAmount.gt(0)) {
+        // 2. DEBIT: Organization komisyon geliri
+        if (orgCommissionAmount.gt(0)) {
+          const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+          entries.push({
+            account_id: orgAccount.entity_id,
+            account_type: EntityType.ORGANIZATION,
+            account_name: 'Organizasyon',
+            entry_type: LedgerEntryType.DEBIT,
+            amount: orgCommissionAmount,
+            description: `Teslimat komisyonu: ${site.name}`,
+          });
+        }
+
+        // 3. CREDIT: Partner komisyon geliri (varsa)
+        if (partnerInfo && partnerCommissionAmount.gt(0)) {
+          entries.push({
+            account_id: partnerInfo.id,
+            account_type: EntityType.PARTNER,
+            account_name: partnerInfo.name,
+            entry_type: LedgerEntryType.CREDIT,
+            amount: partnerCommissionAmount,
+            description: `Teslimat komisyonu: ${site.name}`,
+          });
+        }
+
+        // 4. CREDIT: Financier kasasından para çıkar (brüt)
         entries.push({
-          account_id: partnerInfo.id,
-          account_type: EntityType.PARTNER,
-          account_name: partnerInfo.name,
+          account_id: input.financier_id,
+          account_type: EntityType.FINANCIER,
+          account_name: financier.name,
           entry_type: LedgerEntryType.CREDIT,
-          amount: partnerCommissionAmount,
-          description: `Teslimat komisyonu: ${site.name}`,
+          amount: grossAmount,
+          description: `Teslimat: ${site.name} - ${deliveryType.name}`,
+        });
+
+        await ledgerService.createEntries(transaction.id, entries, tx);
+      } else {
+        // Transaction is PENDING - notify admins
+        await notificationService.notifyAdmins({
+          type: 'TRANSACTION_PENDING',
+          title: 'Yeni Teslimat Onay Bekliyor',
+          message: `${site.name} sitesine ${grossAmount} TL teslimat (${deliveryType.name}) onay bekliyor.`,
+          entityType: 'Transaction',
+          entityId: transaction.id,
+          actionUrl: `/approvals`,
+          actionText: 'İncele',
+          priority: 'HIGH',
         });
       }
-
-      // 4. CREDIT: Financier kasasından para çıkar (brüt)
-      entries.push({
-        account_id: input.financier_id,
-        account_type: EntityType.FINANCIER,
-        account_name: financier.name,
-        entry_type: LedgerEntryType.CREDIT,
-        amount: grossAmount,
-        description: `Teslimat: ${site.name} - ${deliveryType.name}`,
-      });
-
-      await ledgerService.createEntries(transaction.id, entries, tx);
 
       logger.info(
         {
