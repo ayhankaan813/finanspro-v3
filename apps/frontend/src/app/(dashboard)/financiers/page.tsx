@@ -14,6 +14,8 @@ import {
   useCreateFinancierCommissionRate,
   useUpdateFinancierCommissionRate,
   useCreateFinancier,
+  useUpdateFinancier,
+  useDeleteFinancier,
   Financier,
   CommissionRate,
 } from "@/hooks/use-api";
@@ -483,9 +485,23 @@ export default function FinanciersPage() {
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commissionFinancier, setCommissionFinancier] = useState<Financier | null>(null);
+  const [editingFinancier, setEditingFinancier] = useState<Financier | null>(null);
+  const [deletingFinancier, setDeletingFinancier] = useState<Financier | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useFinanciers({ page, limit: 20, search });
   const createFinancier = useCreateFinancier();
+  const updateFinancier = useUpdateFinancier();
+  const deleteFinancier = useDeleteFinancier();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuId]);
 
   const handleCreateFinancier = async (financierData: {
     name: string;
@@ -497,6 +513,35 @@ export default function FinanciersPage() {
       setShowCreateModal(false);
     } catch (err) {
       console.error("Failed to create financier:", err);
+    }
+  };
+
+  const handleUpdateFinancier = async (financierData: {
+    name: string;
+    description?: string;
+    is_active: boolean;
+  }) => {
+    if (!editingFinancier) return;
+    try {
+      await updateFinancier.mutateAsync({
+        id: editingFinancier.id,
+        ...financierData,
+      });
+      setEditingFinancier(null);
+      setOpenMenuId(null);
+    } catch (err) {
+      console.error("Failed to update financier:", err);
+    }
+  };
+
+  const handleDeleteFinancier = async () => {
+    if (!deletingFinancier) return;
+    try {
+      await deleteFinancier.mutateAsync(deletingFinancier.id);
+      setDeletingFinancier(null);
+      setOpenMenuId(null);
+    } catch (err) {
+      console.error("Failed to delete financier:", err);
     }
   };
 
@@ -635,9 +680,45 @@ export default function FinanciersPage() {
                               {financier.code}
                             </div>
                           </div>
-                          <Button variant="ghost" size="icon" className="mt-11 text-twilight-400 hover:text-twilight-600">
-                            <MoreVertical className="h-5 w-5" />
-                          </Button>
+                          <div className="relative mt-11">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-twilight-400 hover:text-twilight-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === financier.id ? null : financier.id);
+                              }}
+                            >
+                              <MoreVertical className="h-5 w-5" />
+                            </Button>
+                            {openMenuId === financier.id && (
+                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-twilight-100 py-2 z-50">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingFinancier(financier);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-twilight-700 hover:bg-twilight-50 flex items-center gap-2"
+                                >
+                                  <Settings className="h-4 w-4" />
+                                  Düzenle
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingFinancier(financier);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Sil
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </CardHeader>
 
@@ -753,6 +834,184 @@ export default function FinanciersPage() {
             financier={commissionFinancier}
             onClose={() => setCommissionFinancier(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Edit Financier Modal */}
+      <AnimatePresence>
+        {editingFinancier && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div
+              className="fixed inset-0 bg-twilight-900/60 backdrop-blur-sm transition-opacity"
+              onClick={() => setEditingFinancier(null)}
+            />
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden transform transition-all border border-twilight-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700 px-6 py-5 flex justify-between items-center text-white">
+                  <div className="flex items-center gap-4 z-10">
+                    <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                      <Settings className="h-6 w-6 text-amber-50" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-xl text-white">Finansör Düzenle</h2>
+                      <p className="text-sm text-amber-100/80">{editingFinancier.code}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditingFinancier(null)}
+                    className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    handleUpdateFinancier({
+                      name: formData.get("name") as string,
+                      description: formData.get("description") as string,
+                      is_active: formData.get("is_active") === "true",
+                    });
+                  }}
+                >
+                  <div className="p-6 space-y-5">
+                    <div className="space-y-2">
+                      <Label>Finansör Adı</Label>
+                      <Input
+                        name="name"
+                        defaultValue={editingFinancier.name}
+                        className="h-12 rounded-xl"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Açıklama</Label>
+                      <Textarea
+                        name="description"
+                        defaultValue={editingFinancier.description || ""}
+                        className="rounded-xl"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        name="is_active"
+                        value="true"
+                        defaultChecked={editingFinancier.is_active}
+                        className="h-5 w-5 rounded border-twilight-300"
+                      />
+                      <Label>Aktif</Label>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 p-6 bg-twilight-50/50 border-t border-twilight-100">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingFinancier(null)}
+                      className="flex-1 h-11 rounded-xl"
+                    >
+                      İptal
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1 h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white"
+                      disabled={updateFinancier.isPending}
+                    >
+                      {updateFinancier.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Kaydediliyor...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Kaydet
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deletingFinancier && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div
+              className="fixed inset-0 bg-twilight-900/60 backdrop-blur-sm transition-opacity"
+              onClick={() => setDeletingFinancier(null)}
+            />
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden border border-red-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative bg-gradient-to-br from-red-600 to-rose-700 px-6 py-5 flex items-center gap-4 text-white">
+                  <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-xl">Finansörü Sil</h2>
+                    <p className="text-sm text-red-100/80">Bu işlem geri alınamaz</p>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <p className="text-twilight-700 mb-2">
+                    <span className="font-bold">{deletingFinancier.name}</span> finansörünü silmek istediğinizden emin misiniz?
+                  </p>
+                  <p className="text-sm text-twilight-500">
+                    Bu işlem geri alınamaz ve finansöre ait tüm veriler silinecektir.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 p-6 bg-twilight-50/50 border-t border-twilight-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDeletingFinancier(null)}
+                    className="flex-1 h-11 rounded-xl"
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    onClick={handleDeleteFinancier}
+                    className="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white"
+                    disabled={deleteFinancier.isPending}
+                  >
+                    {deleteFinancier.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Siliniyor...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Evet, Sil
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>

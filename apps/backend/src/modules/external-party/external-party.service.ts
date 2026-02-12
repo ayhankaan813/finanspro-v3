@@ -31,6 +31,16 @@ export class ExternalPartyService {
    * Create external party with account
    */
   async create(input: CreateExternalPartyInput, createdBy: string): Promise<ExternalPartyWithAccount> {
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: createdBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', createdBy);
+    }
+
     const externalParty = await prisma.$transaction(async (tx) => {
       const newParty = await tx.externalParty.create({
         data: {
@@ -60,8 +70,8 @@ export class ExternalPartyService {
           entity_type: 'ExternalParty',
           entity_id: newParty.id,
           new_data: newParty as unknown as Prisma.JsonObject,
-          user_id: createdBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
 
@@ -155,6 +165,16 @@ export class ExternalPartyService {
   async update(id: string, input: UpdateExternalPartyInput, updatedBy: string): Promise<ExternalPartyWithAccount> {
     const existing = await this.findById(id);
 
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: updatedBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', updatedBy);
+    }
+
     const party = await prisma.$transaction(async (tx) => {
       const updated = await tx.externalParty.update({
         where: { id },
@@ -174,8 +194,8 @@ export class ExternalPartyService {
           entity_id: id,
           old_data: existing as unknown as Prisma.JsonObject,
           new_data: updated as unknown as Prisma.JsonObject,
-          user_id: updatedBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
 
@@ -200,6 +220,16 @@ export class ExternalPartyService {
       );
     }
 
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: deletedBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', deletedBy);
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.externalParty.update({
         where: { id },
@@ -212,8 +242,8 @@ export class ExternalPartyService {
           entity_type: 'ExternalParty',
           entity_id: id,
           old_data: existing as unknown as Prisma.JsonObject,
-          user_id: deletedBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
     });

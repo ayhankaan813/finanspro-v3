@@ -100,6 +100,7 @@ export interface Transaction {
     financier_commission_amount: string | null;
     organization_amount: string;
   } | null;
+  delivery_commission_amount?: string | null;
 }
 
 export interface FinancierBlock {
@@ -338,6 +339,45 @@ export function useCreateFinancier() {
   });
 }
 
+export function useUpdateFinancier() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      name: string;
+      description?: string;
+      is_active: boolean;
+    }) => {
+      api.setToken(accessToken);
+      return api.patch<Financier>(`/api/financiers/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financiers"] });
+      queryClient.invalidateQueries({ queryKey: ["financier"] });
+    },
+  });
+}
+
+export function useDeleteFinancier() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      api.setToken(accessToken);
+      return api.delete(`/api/financiers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financiers"] });
+    },
+  });
+}
+
 export function useFinancierBlocks(financierId: string) {
   const { accessToken } = useAuthStore();
 
@@ -418,9 +458,13 @@ export function useTransactions(params?: {
   type?: string;
   status?: string;
   site_id?: string;
+  partner_id?: string;
+  financier_id?: string;
   search?: string;
   date_from?: string;
   date_to?: string;
+  min_amount?: string;
+  max_amount?: string;
 }) {
   const { accessToken } = useAuthStore();
 
@@ -435,8 +479,13 @@ export function useTransactions(params?: {
       if (params?.type) queryParams.type = params.type;
       if (params?.status) queryParams.status = params.status;
       if (params?.site_id) queryParams.site_id = params.site_id;
+      if (params?.partner_id) queryParams.partner_id = params.partner_id;
+      if (params?.financier_id) queryParams.financier_id = params.financier_id;
+      if (params?.search) queryParams.search = params.search;
       if (params?.date_from) queryParams.date_from = params.date_from;
       if (params?.date_to) queryParams.date_to = params.date_to;
+      if (params?.min_amount) queryParams.min_amount = params.min_amount;
+      if (params?.max_amount) queryParams.max_amount = params.max_amount;
 
       return api.get<PaginatedResponse<Transaction>>("/api/transactions", { params: queryParams });
     },

@@ -41,6 +41,16 @@ export class FinancierService {
       throw new ConflictError(`Finansör kodu '${input.code}' zaten kullanılıyor`);
     }
 
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: createdBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', createdBy);
+    }
+
     const financier = await prisma.$transaction(async (tx) => {
       const newFinancier = await tx.financier.create({
         data: {
@@ -68,8 +78,8 @@ export class FinancierService {
           entity_type: 'Financier',
           entity_id: newFinancier.id,
           new_data: newFinancier as unknown as Prisma.JsonObject,
-          user_id: createdBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
 
@@ -179,6 +189,16 @@ export class FinancierService {
   async update(id: string, input: UpdateFinancierInput, updatedBy: string): Promise<FinancierWithAccount> {
     const existing = await this.findById(id);
 
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: updatedBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', updatedBy);
+    }
+
     const financier = await prisma.$transaction(async (tx) => {
       const updated = await tx.financier.update({
         where: { id },
@@ -196,8 +216,8 @@ export class FinancierService {
           entity_id: id,
           old_data: existing as unknown as Prisma.JsonObject,
           new_data: updated as unknown as Prisma.JsonObject,
-          user_id: updatedBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
 
@@ -225,6 +245,16 @@ export class FinancierService {
       throw new ConflictError('Bu finansör silinemez çünkü aktif blokeler var');
     }
 
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: deletedBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', deletedBy);
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.financier.update({
         where: { id },
@@ -237,8 +267,8 @@ export class FinancierService {
           entity_type: 'Financier',
           entity_id: id,
           old_data: existing as unknown as Prisma.JsonObject,
-          user_id: deletedBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
     });
@@ -290,6 +320,16 @@ export class FinancierService {
       );
     }
 
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: createdBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', createdBy);
+    }
+
     const block = await prisma.$transaction(async (tx) => {
       // Create block record
       const newBlock = await tx.financierBlock.create({
@@ -319,8 +359,8 @@ export class FinancierService {
             amount: blockAmount.toString(),
             reason: input.reason,
           } as unknown as Prisma.JsonObject,
-          user_id: createdBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
 
@@ -348,6 +388,16 @@ export class FinancierService {
 
     if (block.resolved_at) {
       throw new BusinessError('Bu bloke zaten çözülmüş', 'ALREADY_RESOLVED');
+    }
+
+    // Fetch user for audit log
+    const user = await prisma.user.findUnique({
+      where: { id: resolvedBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', resolvedBy);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -378,8 +428,8 @@ export class FinancierService {
             resolved_at: new Date().toISOString(),
             resolution_note: input.resolution_note,
           } as unknown as Prisma.JsonObject,
-          user_id: resolvedBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
     });

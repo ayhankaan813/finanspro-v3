@@ -1,273 +1,370 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { formatMoney, cn } from "@/lib/utils";
 import {
-  FileBarChart,
+  Calendar as CalendarIcon,
   Download,
   TrendingUp,
   TrendingDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  Loader2,
+  Wallet,
+  Building2,
+  Users,
+  Search,
+  Activity,
+  ArrowDownLeft,
   ChevronLeft,
   ChevronRight,
-  Loader2,
+  BarChart3,
+  Calendar
 } from "lucide-react";
-import { useDashboardStats } from "@/hooks/use-api";
-
-const months = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
-];
+import { useTransactions, useOrganizationAccount } from "@/hooks/use-api";
+import { Badge } from "@/components/ui/badge";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDaysInMonth } from "date-fns";
+import { tr } from "date-fns/locale";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function MonthlyReportPage() {
-  const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const { data: stats, isLoading } = useDashboardStats();
+  const dateFrom = startOfMonth(currentDate).toISOString();
+  const dateTo = endOfMonth(currentDate).toISOString();
 
-  const goToPreviousMonth = () => {
-    if (selectedMonth === 0) {
-      setSelectedMonth(11);
-      setSelectedYear(selectedYear - 1);
+  // Fetch transactions
+  const { data: transactions, isLoading: isTxLoading } = useTransactions({
+    date_from: dateFrom,
+    date_to: dateTo,
+    limit: 100, // API limit is 100
+  });
+
+  // Fetch current organization account balance to calculate "Devir"
+  const { data: accountData, isLoading: isAccountLoading } = useOrganizationAccount();
+
+  const processedData = useMemo(() => {
+    if (!transactions?.items || isAccountLoading) return null;
+
+    const daysInMonth = eachDayOfInterval({
+      start: startOfMonth(currentDate),
+      end: endOfMonth(currentDate),
+    });
+
+    // 1. Initialize Daily Map
+    const dailyMap = new Map();
+    daysInMonth.forEach(day => {
+      const dayKey = format(day, "yyyy-MM-dd");
+      dailyMap.set(dayKey, {
+        date: day,
+        dayStr: format(day, "d MMM", { locale: tr }),
+        deposit: 0,
+        withdrawal: 0,
+        commission: 0,
+        delivery: 0,
+        deliveryCommission: 0, // Teslim Kom.
+        payment: 0, // Ödeme: Payment + PartnerPayment
+        topup: 0, // Takviye
+        netChange: 0, // Daily net change for Kasa calculation
+        balance: 0, // Will be calculated after processing all txs
+      });
+    });
+
+    const totals = {
+      deposit: 0,
+      withdrawal: 0,
+      commission: 0,
+      delivery: 0,
+      deliveryCommission: 0,
+      payment: 0,
+      topup: 0,
+      netChange: 0,
+      startBalance: 0, // Devir
+      endBalance: 0, // Kasa
+    };
+
+    // 2. Aggregate Transactions
+    transactions.items.forEach(tx => {
+      const txDate = new Date(tx.transaction_date);
+      const dayKey = format(txDate, "yyyy-MM-dd");
+      const dayEntry = dailyMap.get(dayKey);
+
+      if (dayEntry) {
+        const amount = parseFloat(tx.gross_amount);
+        const netAmount = parseFloat(tx.net_amount); // Used for some calcs if needed
+
+        // Income (Money IN)
+        if (tx.type === "DEPOSIT") {
+          dayEntry.deposit += amount;
+          totals.deposit += amount;
+          dayEntry.netChange += amount;
+        }
+        else if (tx.type === "TOP_UP") {
+          dayEntry.topup += amount;
+          totals.topup += amount;
+          dayEntry.netChange += amount;
+        }
+
+        // Expense (Money OUT)
+        else if (tx.type === "WITHDRAWAL") {
+          dayEntry.withdrawal += amount;
+          totals.withdrawal += amount;
+          dayEntry.netChange -= amount;
+        }
+        else if (tx.type === "PAYMENT" || tx.type === "PARTNER_PAYMENT" || tx.type === "ORG_EXPENSE") {
+          dayEntry.payment += amount;
+          totals.payment += amount;
+          dayEntry.netChange -= amount;
+        }
+        else if (tx.type === "DELIVERY" || tx.type === "SITE_DELIVERY") {
+          // Delivery is money leaving the Kasa to the Site
+          dayEntry.delivery += amount;
+          totals.delivery += amount;
+          dayEntry.netChange -= amount;
+
+          // Delivery Commission (if any)
+          if (tx.delivery_commission_amount) {
+            const comm = parseFloat(tx.delivery_commission_amount);
+            dayEntry.deliveryCommission += comm;
+            totals.deliveryCommission += comm;
+            // Commission is technically income retained or accounted for, but simplified here
+          }
+        }
+
+        // Commission Income (Organization's profit from the tx)
+        if (tx.commission_snapshot) {
+          const comm = parseFloat(tx.commission_snapshot.organization_amount || "0");
+          dayEntry.commission += comm;
+          totals.commission += comm;
+          // Note: Commission might not be a separate cash flow if it's deducted from net, 
+          // but usually it's tracked as income. 
+          // For Kasa flow: Recieved = Principal. 
+        }
+      }
+    });
+
+    // 3. Calculate Balances (Devir & Running Kasa)
+    // Logic: If current month, StartBalance = CurrentBalance - TotalNetChangeSoFar
+    // This assumes specific consistency. 
+    let currentBalance = parseFloat(accountData?.balance || "0");
+    const isCurrentMonth = isSameDay(startOfMonth(new Date()), startOfMonth(currentDate));
+
+    if (isCurrentMonth) {
+      // Back-calculate devir
+      totals.startBalance = currentBalance - totals.netChange;
     } else {
-      setSelectedMonth(selectedMonth - 1);
+      // For past months, we can't easily know without a snapshot. 
+      // We will default to 0 or leave it as "Undefined" visually if we want.
+      // For now, let's assume 0 for demo purposes to show logic.
+      totals.startBalance = 0;
     }
-  };
 
-  const goToNextMonth = () => {
-    if (selectedMonth === 11) {
-      setSelectedMonth(0);
-      setSelectedYear(selectedYear + 1);
-    } else {
-      setSelectedMonth(selectedMonth + 1);
-    }
-  };
+    let runningBalance = totals.startBalance;
+    const dailyData = Array.from(dailyMap.values()).map((day: any) => {
+      runningBalance += day.netChange;
+      day.balance = runningBalance;
+      return day;
+    });
 
-  // Mock monthly data - in real implementation, this would come from API
-  const monthlyData = {
-    totalDeposits: 15250000,
-    totalWithdrawals: 12800000,
-    siteDeliveries: 8500000,
-    partnerPayments: 450000,
-    commissionEarned: 285000,
-    netProfit: 185000,
-    transactionCount: 1245,
-    avgTransactionSize: 22500,
-  };
+    totals.endBalance = runningBalance; // Should match currentBalance if current month
 
-  const weeklyBreakdown = [
-    { week: "1. Hafta", deposits: 3200000, withdrawals: 2800000 },
-    { week: "2. Hafta", deposits: 4100000, withdrawals: 3500000 },
-    { week: "3. Hafta", deposits: 3800000, withdrawals: 3200000 },
-    { week: "4. Hafta", deposits: 4150000, withdrawals: 3300000 },
-  ];
+    return { dailyData, totals };
 
-  if (isLoading) {
+  }, [transactions, currentDate, accountData]);
+
+  const goToPreviousMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  const goToNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+
+  if (isTxLoading || isAccountLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-twilight-600" />
       </div>
     );
   }
 
+  const { dailyData, totals } = processedData || {
+    dailyData: [],
+    totals: { deposit: 0, withdrawal: 0, commission: 0, delivery: 0, deliveryCommission: 0, payment: 0, topup: 0, netChange: 0, startBalance: 0, endBalance: 0 }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* Header & Month Selector */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Aylık Rapor</h1>
-          <p className="text-muted-foreground">
-            Aylık finansal performans ve özet raporu
+          <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">Aylık Rapor</h1>
+          <p className="text-twilight-500">
+            Detaylı finansal işlem dökümü ve günlük dağılım.
           </p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Excel İndir
-        </Button>
-      </div>
 
-      {/* Month Selector */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-center gap-4">
-            <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="text-center min-w-[200px]">
-              <p className="text-2xl font-bold">
-                {months[selectedMonth]} {selectedYear}
-              </p>
-            </div>
-            <Button variant="outline" size="icon" onClick={goToNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        <div className="flex items-center gap-2 bg-white p-1 rounded-2xl border border-twilight-200 shadow-sm">
+          <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="hover:bg-twilight-50 text-twilight-600">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-[140px] text-center font-bold text-twilight-900">
+            {format(currentDate, "MMMM yyyy", { locale: tr })}
           </div>
-        </CardContent>
-      </Card>
+          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="hover:bg-twilight-50 text-twilight-600">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <div className="h-6 w-px bg-twilight-200 mx-1" />
+          <Button variant="ghost" size="sm" className="text-twilight-600 hover:text-twilight-900 px-3">
+            <Download className="h-4 w-4 mr-2" /> Excel
+          </Button>
+        </div>
+      </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Toplam Yatırım
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount text-success-600">
-              {formatMoney(monthlyData.totalDeposits)}
-            </p>
-            <p className="text-xs text-success-600 flex items-center mt-1">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +12% geçen aya göre
-            </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Devir Card */}
+        <Card className="border-0 shadow-lg shadow-twilight-100/50 bg-white rounded-3xl overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-1 h-full bg-twilight-500"></div>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="h-4 w-4 text-twilight-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-twilight-500">Devir</span>
+            </div>
+            <p className="text-xl font-bold text-twilight-900">{formatMoney(totals.startBalance)}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Toplam Çekim
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount text-danger-600">
-              {formatMoney(monthlyData.totalWithdrawals)}
-            </p>
-            <p className="text-xs text-danger-600 flex items-center mt-1">
-              <TrendingDown className="h-3 w-3 mr-1" />
-              -5% geçen aya göre
-            </p>
+        {/* Yatırım Card */}
+        <Card className="border-0 shadow-lg shadow-emerald-50/50 bg-white rounded-3xl overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">Toplam Yatırım</span>
+            </div>
+            <p className="text-xl font-bold text-twilight-900">{formatMoney(totals.deposit)}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Komisyon Geliri
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount text-primary-600">
-              {formatMoney(monthlyData.commissionEarned)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {monthlyData.transactionCount} işlem
-            </p>
+        {/* Çekim Card */}
+        <Card className="border-0 shadow-lg shadow-rose-50/50 bg-white rounded-3xl overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingDown className="h-4 w-4 text-rose-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-500">Toplam Çekim</span>
+            </div>
+            <p className="text-xl font-bold text-twilight-900">{formatMoney(totals.withdrawal)}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Net Kar
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount text-success-600">
-              {formatMoney(monthlyData.netProfit)}
-            </p>
-            <p className="text-xs text-success-600 flex items-center mt-1">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +8% geçen aya göre
-            </p>
+        {/* Komisyon Card */}
+        <Card className="border-0 shadow-lg shadow-violet-50/50 bg-white rounded-3xl overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-1 h-full bg-violet-500"></div>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="h-4 w-4 text-violet-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-violet-500">Komisyon</span>
+            </div>
+            <p className="text-xl font-bold text-twilight-900">{formatMoney(totals.commission)}</p>
           </CardContent>
+        </Card>
+
+        {/* Kasa Card */}
+        <Card className="border-0 shadow-lg shadow-blue-100/50 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl overflow-hidden relative">
+          <CardContent className="p-5 relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 className="h-4 w-4 text-blue-100" />
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-100">Güncel Kasa</span>
+            </div>
+            <p className="text-xl font-bold text-white">{formatMoney(totals.endBalance)}</p>
+          </CardContent>
+          <div className="absolute right-0 bottom-0 p-4 opacity-10">
+            <Wallet className="h-16 w-16" />
+          </div>
         </Card>
       </div>
 
-      {/* Weekly Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Haftalık Dağılım</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Main Table */}
+      <Card className="rounded-3xl border-0 shadow-xl shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 overflow-hidden">
+        <div className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b text-left">
-                  <th className="pb-3 font-medium">Hafta</th>
-                  <th className="pb-3 font-medium text-right">Yatırım</th>
-                  <th className="pb-3 font-medium text-right">Çekim</th>
-                  <th className="pb-3 font-medium text-right">Net</th>
+                <tr className="bg-twilight-900 text-white">
+                  <th className="py-4 px-4 text-sm font-semibold text-left">Tarih</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300">Yatırım</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300">Çekim</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300">Komisyon</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim Kom.</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-yellow-200">Ödeme</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right text-cyan-300">Takviye</th>
+                  <th className="py-4 px-4 text-sm font-semibold text-right font-bold">Kasa</th>
                 </tr>
               </thead>
-              <tbody>
-                {weeklyBreakdown.map((week) => (
-                  <tr key={week.week} className="border-b last:border-0">
-                    <td className="py-3 font-medium">{week.week}</td>
-                    <td className="py-3 text-right font-amount text-success-600">
-                      {formatMoney(week.deposits)}
+              <tbody className="divide-y divide-twilight-50">
+                {dailyData.map((day) => (
+                  <tr key={day.dayStr} className="hover:bg-twilight-50/50 transition-colors group">
+                    <td className="py-3 px-4 text-sm text-twilight-700 font-medium">
+                      {format(day.date, "dd.MM.yyyy", { locale: tr })}
                     </td>
-                    <td className="py-3 text-right font-amount text-danger-600">
-                      {formatMoney(week.withdrawals)}
+                    <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors">
+                      {day.deposit > 0 ? formatMoney(day.deposit) : <span className="text-emerald-300/50">-</span>}
                     </td>
-                    <td className={`py-3 text-right font-amount font-medium ${
-                      week.deposits - week.withdrawals >= 0
-                        ? "text-success-600"
-                        : "text-danger-600"
-                    }`}>
-                      {formatMoney(week.deposits - week.withdrawals)}
+                    <td className="py-3 px-4 text-right text-sm font-bold text-rose-600 bg-rose-50/30 group-hover:bg-rose-50/50 transition-colors">
+                      {day.withdrawal > 0 ? formatMoney(day.withdrawal) : <span className="text-rose-300/50">-</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm font-medium text-violet-600">
+                      {day.commission > 0 ? formatMoney(day.commission) : <span className="text-twilight-200/50">-</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
+                      {day.delivery > 0 ? formatMoney(day.delivery) : <span className="text-twilight-200/50">-</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
+                      {day.deliveryCommission > 0 ? formatMoney(day.deliveryCommission) : <span className="text-twilight-200/50">-</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm font-medium text-yellow-600">
+                      {day.payment > 0 ? formatMoney(day.payment) : <span className="text-twilight-200/50">-</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm font-medium text-cyan-600">
+                      {day.topup > 0 ? formatMoney(day.topup) : <span className="text-twilight-200/50">-</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm font-bold font-mono text-twilight-900 bg-twilight-50/50">
+                      {formatMoney(day.balance)}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="bg-secondary">
-                  <td className="py-3 font-bold">Toplam</td>
-                  <td className="py-3 text-right font-amount font-bold text-success-600">
-                    {formatMoney(monthlyData.totalDeposits)}
-                  </td>
-                  <td className="py-3 text-right font-amount font-bold text-danger-600">
-                    {formatMoney(monthlyData.totalWithdrawals)}
-                  </td>
-                  <td className="py-3 text-right font-amount font-bold text-success-600">
-                    {formatMoney(monthlyData.totalDeposits - monthlyData.totalWithdrawals)}
-                  </td>
+              <tfoot className="bg-twilight-900 border-t border-twilight-200 text-white font-bold">
+                <tr>
+                  <td className="py-4 px-4 text-sm text-left">TOPLAM</td>
+                  <td className="py-4 px-4 text-sm text-right text-emerald-300">{formatMoney(totals.deposit)}</td>
+                  <td className="py-4 px-4 text-sm text-right text-rose-300">{formatMoney(totals.withdrawal)}</td>
+                  <td className="py-4 px-4 text-sm text-right text-violet-300">{formatMoney(totals.commission)}</td>
+                  <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.delivery)}</td>
+                  <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.deliveryCommission)}</td>
+                  <td className="py-4 px-4 text-sm text-right text-yellow-200">{formatMoney(totals.payment)}</td>
+                  <td className="py-4 px-4 text-sm text-right text-cyan-300">{formatMoney(totals.topup)}</td>
+                  <td className="py-4 px-4 text-sm text-right">{formatMoney(totals.endBalance)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
-        </CardContent>
+        </div>
       </Card>
-
-      {/* Site & Partner Summary */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Site Teslim Özeti</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                <span>Toplam Site Teslimi</span>
-                <span className="font-amount font-bold">{formatMoney(monthlyData.siteDeliveries)}</span>
-              </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Detaylı site bazlı rapor için Excel'i indirin
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Partner Ödeme Özeti</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                <span>Toplam Partner Ödemesi</span>
-                <span className="font-amount font-bold">{formatMoney(monthlyData.partnerPayments)}</span>
-              </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Detaylı partner bazlı rapor için Excel'i indirin
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

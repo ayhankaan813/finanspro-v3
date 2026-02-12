@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TransactionFilters, INITIAL_FILTERS, FilterState } from "@/components/transactions/TransactionFilters";
 import {
   Select,
   SelectContent,
@@ -86,6 +87,7 @@ import {
   Eye,
   RotateCcw,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -434,11 +436,10 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 px-5 py-3.5 text-sm font-semibold rounded-xl transition-all ${
-                      activeTab === tab.id
-                        ? "bg-white text-twilight-900 shadow-lg shadow-twilight-200/50 scale-[1.02]"
-                        : "text-twilight-500 hover:text-twilight-700 hover:bg-white/40"
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2.5 px-5 py-3.5 text-sm font-semibold rounded-xl transition-all ${activeTab === tab.id
+                      ? "bg-white text-twilight-900 shadow-lg shadow-twilight-200/50 scale-[1.02]"
+                      : "text-twilight-500 hover:text-twilight-700 hover:bg-white/40"
+                      }`}
                   >
                     <tab.icon className="h-4.5 w-4.5" />
                     {tab.label}
@@ -713,7 +714,9 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
-  const [filterType, setFilterType] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -722,12 +725,31 @@ export default function TransactionsPage() {
   const reverseTransaction = useReverseTransaction();
   const limit = 20;
 
+  const { data: sites } = useSites({ page: 1, limit: 100 });
+  const { data: partners } = usePartners({ page: 1, limit: 100 });
+  const { data: financiers } = useFinanciers({ page: 1, limit: 100 });
+
   const { data: transactionsData, isLoading } = useTransactions({
     page,
     limit,
-    search: searchTerm,
-    type: filterType || undefined,
+    search: filters.search || searchTerm, // Search can come from header or filter
+    type: filters.type || undefined,
+    status: filters.status || undefined,
+    site_id: filters.site_id || undefined,
+    partner_id: filters.partner_id || undefined,
+    financier_id: filters.financier_id || undefined,
+    date_from: filters.start_date || undefined,
+    date_to: filters.end_date || undefined,
+    min_amount: filters.min_amount || undefined,
+    max_amount: filters.max_amount || undefined,
   });
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length - (filters.search ? 1 : 0);
+
+  const clearFilters = () => {
+    setFilters(INITIAL_FILTERS);
+    setSearchTerm("");
+  };
 
   const totalVolume = transactionsData?.items.reduce((acc, t) => acc + parseFloat(t.gross_amount || "0"), 0) || 0;
   const transactionCount = transactionsData?.total || 0;
@@ -735,6 +757,18 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6 pb-20">
       <NewTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      <TransactionFilters
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        setFilters={setFilters}
+        data={{
+          sites: sites?.items || [],
+          partners: partners?.items || [],
+          financiers: financiers?.items || [],
+        }}
+      />
 
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -756,40 +790,40 @@ export default function TransactionsPage() {
           </Button>
         </div>
       </div>
-      {/* ... Rest of the page component (Cards, Table) same as before ... */}
-      {/* Summary Cards */}
+
+      {/* Summary Cards with Glassmorphism */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-0 shadow-lg shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 rounded-3xl overflow-hidden">
-          <CardContent className="p-6 flex items-center justify-between relative overflow-hidden">
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-twilight-50 to-transparent"></div>
-            <div className="relative">
-              <p className="text-sm font-medium text-twilight-500 mb-1">Toplam İşlem Hacmi</p>
-              <h3 className="text-3xl font-bold text-twilight-900 tracking-tight">{formatMoney(totalVolume)}</h3>
+        <Card className="border-0 shadow-xl shadow-indigo-100/50 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-3xl overflow-hidden relative group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+          <CardContent className="p-6 flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-indigo-100 font-medium mb-1">Toplam İşlem Hacmi</p>
+              <h3 className="text-3xl font-bold tracking-tight">{formatMoney(totalVolume)}</h3>
             </div>
-            <div className="relative h-12 w-12 rounded-2xl bg-twilight-100 flex items-center justify-center text-twilight-600">
-              <ArrowDownLeft className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 rounded-3xl overflow-hidden">
-          <CardContent className="p-6 flex items-center justify-between relative overflow-hidden">
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-emerald-50 to-transparent"></div>
-            <div className="relative">
-              <p className="text-sm font-medium text-twilight-500 mb-1">Toplam İşlem Adedi</p>
-              <h3 className="text-3xl font-bold text-twilight-900 tracking-tight">{transactionCount}</h3>
-            </div>
-            <div className="relative h-12 w-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <Send className="h-6 w-6" />
+            <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+              <Activity className="h-6 w-6 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 rounded-3xl overflow-hidden">
-          <CardContent className="p-6 flex items-center justify-between relative overflow-hidden">
+        <Card className="border-0 shadow-xl shadow-emerald-100/50 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-3xl overflow-hidden relative group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+          <CardContent className="p-6 flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-emerald-100 font-medium mb-1">Toplam İşlem Adedi</p>
+              <h3 className="text-3xl font-bold tracking-tight">{transactionCount}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+              <Repeat className="h-6 w-6 text-white" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-xl shadow-amber-100/50 bg-white ring-1 ring-twilight-100 rounded-3xl overflow-hidden relative group">
+          <CardContent className="p-6 flex items-center justify-between relative z-10">
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-50 to-transparent"></div>
             <div className="relative">
-              <p className="text-sm font-medium text-twilight-500 mb-1">Bekleyen İşlemler</p>
+              <p className="text-twilight-500 font-medium mb-1">Bekleyen İşlemler</p>
               <h3 className="text-3xl font-bold text-twilight-900 tracking-tight">0</h3>
             </div>
             <div className="relative h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
@@ -799,31 +833,49 @@ export default function TransactionsPage() {
         </Card>
       </div>
 
-      {/* Filters Area */}
+      {/* Modern Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-twilight-400" />
           <Input
-            placeholder="İşlem ara..."
-            className="pl-10 h-10 rounded-xl border-twilight-200 bg-white focus:ring-2 focus:ring-twilight-400"
+            placeholder="İşlem kodu, açıklama veya tutar ara..."
+            className="pl-10 h-11 rounded-xl border-twilight-200 bg-white focus:ring-2 focus:ring-twilight-400 shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 bg-twilight-50 p-1 rounded-xl border border-twilight-100">
-          {["", "DEPOSIT", "WITHDRAWAL", "PAYMENT"].map((type) => (
+
+        {/* Quick Type Filters */}
+        <div className="hidden md:flex bg-white p-1 rounded-xl border border-twilight-200 shadow-sm">
+          {["", "DEPOSIT", "WITHDRAWAL"].map((type) => (
             <button
               key={type}
-              onClick={() => setFilterType(type)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filterType === type
-                  ? "bg-white text-twilight-900 shadow-sm"
-                  : "text-twilight-500 hover:text-twilight-700"
+              onClick={() => setFilters({ ...filters, type })}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filters.type === type
+                  ? "bg-twilight-900 text-white shadow-md"
+                  : "text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50"
                 }`}
             >
-              {type === "" ? "Tümü" : type === "DEPOSIT" ? "Yatırım" : type === "WITHDRAWAL" ? "Çekim" : "Ödeme"}
+              {type === "" ? "Tümü" : type === "DEPOSIT" ? "Yatırım" : "Çekim"}
             </button>
           ))}
         </div>
+
+        <Button
+          onClick={() => setShowFilters(true)}
+          className={`h-11 px-5 rounded-xl border transition-all ${activeFilterCount > 0
+              ? "bg-twilight-900 text-white border-twilight-900 hover:bg-twilight-800 shadow-lg shadow-twilight-900/20"
+              : "bg-white text-twilight-700 border-twilight-200 hover:bg-twilight-50 hover:border-twilight-300"
+            }`}
+        >
+          <Filter className="mr-2 h-4 w-4" />
+          Filtreler
+          {activeFilterCount > 0 && (
+            <span className="ml-2 h-5 w-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
       </div>
 
       {/* Transactions List */}
@@ -855,15 +907,14 @@ export default function TransactionsPage() {
                   {/* Islem Turu */}
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
+                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
                         t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
-                        t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
-                        'bg-twilight-100 text-twilight-600'
-                      }`}>
+                          t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
+                            'bg-twilight-100 text-twilight-600'
+                        }`}>
                         {t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
-                         t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
-                         <Send className="h-4 w-4" />}
+                          t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
+                            <Send className="h-4 w-4" />}
                       </div>
                       <div>
                         <p className="font-semibold text-sm text-twilight-900">{getTransactionTypeLabel(t.type)}</p>
@@ -916,13 +967,12 @@ export default function TransactionsPage() {
 
                   {/* Tutar */}
                   <td className="py-3 px-4 text-right">
-                    <span className={`text-sm font-bold ${
-                      t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
-                        ? 'text-emerald-700' :
+                    <span className={`text-sm font-bold ${t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
+                      ? 'text-emerald-700' :
                       t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
                         ? 'text-rose-700' :
-                      'text-twilight-700'
-                    }`}>
+                        'text-twilight-700'
+                      }`}>
                       {formatMoney(parseFloat(t.gross_amount || "0"))}
                     </span>
                     {t.net_amount && t.net_amount !== t.gross_amount && (
@@ -1000,14 +1050,13 @@ export default function TransactionsPage() {
               {/* Durum ve Tur */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
-                    selectedTransaction.type === 'DEPOSIT' || selectedTransaction.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${selectedTransaction.type === 'DEPOSIT' || selectedTransaction.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
                     selectedTransaction.type === 'WITHDRAWAL' || selectedTransaction.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
-                    'bg-twilight-100 text-twilight-600'
-                  }`}>
+                      'bg-twilight-100 text-twilight-600'
+                    }`}>
                     {selectedTransaction.type === 'DEPOSIT' || selectedTransaction.type === 'TOP_UP' ? <ArrowDownLeft className="h-6 w-6" /> :
-                     selectedTransaction.type === 'WITHDRAWAL' || selectedTransaction.type === 'PAYMENT' ? <ArrowUpRight className="h-6 w-6" /> :
-                     <Send className="h-6 w-6" />}
+                      selectedTransaction.type === 'WITHDRAWAL' || selectedTransaction.type === 'PAYMENT' ? <ArrowUpRight className="h-6 w-6" /> :
+                        <Send className="h-6 w-6" />}
                   </div>
                   <div>
                     <p className="font-bold text-lg text-twilight-900">{getTransactionTypeLabel(selectedTransaction.type)}</p>
