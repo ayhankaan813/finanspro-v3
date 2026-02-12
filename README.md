@@ -330,12 +330,6 @@ Proprietary - ©2026 FinansPro
 
 ---
 
-## 🙏 Teşekkürler
-
-Bu proje Claude Code ve CEO-CFO modeli ile geliştirilmiştir.
-
-- **CEO (Emre):** Strateji, iş mantığı, test
-- **CFO (Claude):** Teknik uygulama, kod kalitesi, muhasebe doğruluğu
 
 ---
 
