@@ -33,7 +33,23 @@ import {
   useCreateOrgExpense,
   useCreateOrgIncome,
   useCreateOrgWithdraw,
+  useReverseTransaction,
+  Transaction,
 } from "@/hooks/use-api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import {
   Search,
   Filter,
@@ -66,10 +82,14 @@ import {
   Loader2,
   LayoutGrid,
   Banknote,
-  Repeat
+  Repeat,
+  Eye,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
 
 // ===== TRANSACTION CONFIG & TABS =====
 
@@ -208,6 +228,44 @@ const ACTIONS_BY_TAB: Record<string, TransactionAction[]> = {
 
 const ALL_ACTIONS = Object.values(ACTIONS_BY_TAB).flat();
 
+// ===== HELPER FUNCTIONS =====
+
+const getTransactionTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    DEPOSIT: 'Yatirim',
+    WITHDRAWAL: 'Cekim',
+    PAYMENT: 'Odeme',
+    TOP_UP: 'Takviye',
+    DELIVERY: 'Teslimat',
+    PARTNER_PAYMENT: 'Partner Odemesi',
+    EXTERNAL_DEBT_IN: 'Borc Alindi',
+    EXTERNAL_DEBT_OUT: 'Borc Verildi',
+    EXTERNAL_PAYMENT: 'Dis Odeme',
+    ORG_EXPENSE: 'Org. Gideri',
+    ORG_INCOME: 'Org. Geliri',
+    ORG_WITHDRAW: 'Hak Edis',
+    FINANCIER_TRANSFER: 'Kasa Transferi',
+    ADJUSTMENT: 'Duzeltme',
+    REVERSAL: 'Iptal',
+  };
+  return labels[type] || type;
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'COMPLETED':
+      return <Badge className="bg-emerald-100 text-emerald-700 border-0">Tamamlandi</Badge>;
+    case 'REVERSED':
+      return <Badge className="bg-rose-100 text-rose-700 border-0">Iptal Edildi</Badge>;
+    case 'PENDING':
+      return <Badge className="bg-amber-100 text-amber-700 border-0">Bekliyor</Badge>;
+    case 'FAILED':
+      return <Badge className="bg-gray-100 text-gray-700 border-0">Basarisiz</Badge>;
+    default:
+      return <Badge className="bg-twilight-100 text-twilight-700 border-0">{status}</Badge>;
+  }
+};
+
 // ===== MODAL COMPONENT =====
 
 function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -314,9 +372,19 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       else if (selectedType === "ORG_WITHDRAW") await mutations.ORG_WITHDRAW.mutateAsync({ ...formData, description: formData.description || undefined });
 
       setSuccess(true);
+      toast({
+        title: "İşlem Başarılı ✓",
+        description: `${currentAction?.name || "İşlem"} başarıyla oluşturuldu.`,
+        variant: "success",
+      });
       setTimeout(onClose, 1500);
     } catch (err: any) {
       setError(err.message || "İşlem başarısız");
+      toast({
+        title: "Hata",
+        description: err.message || "İşlem oluşturulamadı. Lütfen tekrar deneyin.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -646,7 +714,12 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [filterType, setFilterType] = useState<string>("");
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [showReverseDialog, setShowReverseDialog] = useState(false);
+  const [reverseReason, setReverseReason] = useState("");
+  const reverseTransaction = useReverseTransaction();
   const limit = 20;
 
   const { data: transactionsData, isLoading } = useTransactions({
@@ -656,8 +729,8 @@ export default function TransactionsPage() {
     type: filterType || undefined,
   });
 
-  const totalVolume = transactionsData?.items.reduce((acc, t) => acc + parseFloat(t.amount), 0) || 0;
-  const transactionCount = transactionsData?.meta?.total_items || 0;
+  const totalVolume = transactionsData?.items.reduce((acc, t) => acc + parseFloat(t.gross_amount || "0"), 0) || 0;
+  const transactionCount = transactionsData?.total || 0;
 
   return (
     <div className="space-y-6 pb-20">
@@ -759,62 +832,128 @@ export default function TransactionsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-twilight-100 bg-twilight-50/50">
-                <th className="text-left py-4 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">İşlem Türü</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Açıklama</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tarih</th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar</th>
-                <th className="w-20"></th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Islem Turu</th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Durum</th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Site</th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Finansor</th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Partner / Kisi</th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Aciklama</th>
+                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tarih</th>
+                <th className="text-right py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar</th>
+                <th className="w-14"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-twilight-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center">
+                  <td colSpan={9} className="py-20 text-center">
                     <div className="animate-spin h-8 w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full mx-auto" />
                   </td>
                 </tr>
               ) : transactionsData?.items.map((t) => (
                 <tr key={t.id} className="group hover:bg-twilight-50/30 transition-colors">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${t.type === 'DEPOSIT' ? 'bg-emerald-100 text-emerald-600' :
-                          t.type === 'WITHDRAWAL' ? 'bg-rose-100 text-rose-600' :
-                            'bg-twilight-100 text-twilight-600'
-                        }`}>
-                        {t.type === 'DEPOSIT' ? <ArrowDownLeft className="h-5 w-5" /> :
-                          t.type === 'WITHDRAWAL' ? <ArrowUpRight className="h-5 w-5" /> :
-                            <Send className="h-5 w-5" />}
+                  {/* Islem Turu */}
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
+                        t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
+                        t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
+                        'bg-twilight-100 text-twilight-600'
+                      }`}>
+                        {t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
+                         t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
+                         <Send className="h-4 w-4" />}
                       </div>
                       <div>
-                        <p className="font-bold text-twilight-900">{
-                          t.type === 'DEPOSIT' ? 'Yatırım' :
-                            t.type === 'WITHDRAWAL' ? 'Çekim' :
-                              t.type === 'PAYMENT' ? 'Ödeme' : t.type
-                        }</p>
-                        <p className="text-xs text-twilight-400">{t.id.slice(0, 8)}</p>
+                        <p className="font-semibold text-sm text-twilight-900">{getTransactionTypeLabel(t.type)}</p>
+                        <p className="text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <p className="text-sm text-twilight-600 font-medium">{t.description || "Açıklama yok"}</p>
+
+                  {/* Durum */}
+                  <td className="py-3 px-4">
+                    {getStatusBadge(t.status)}
                   </td>
-                  <td className="py-4 px-6">
-                    <p className="text-sm text-twilight-600">
-                      {format(new Date(t.created_at), "d MMMM yyyy, HH:mm", { locale: tr })}
+
+                  {/* Site */}
+                  <td className="py-3 px-4">
+                    <span className="text-sm text-twilight-700 font-medium">{t.site?.name || '\u2014'}</span>
+                    {t.site?.code && <p className="text-[10px] text-twilight-400">{t.site.code}</p>}
+                  </td>
+
+                  {/* Finansor */}
+                  <td className="py-3 px-4">
+                    <span className="text-sm text-twilight-700 font-medium">{t.financier?.name || '\u2014'}</span>
+                  </td>
+
+                  {/* Partner / Dis Kisi */}
+                  <td className="py-3 px-4">
+                    {t.partner ? (
+                      <span className="text-sm text-twilight-700 font-medium">{t.partner.name}</span>
+                    ) : t.external_party ? (
+                      <span className="text-sm text-purple-700 font-medium">{t.external_party.name}</span>
+                    ) : (
+                      <span className="text-sm text-twilight-300">{'\u2014'}</span>
+                    )}
+                  </td>
+
+                  {/* Aciklama */}
+                  <td className="py-3 px-4 max-w-[200px]">
+                    <p className="text-sm text-twilight-600 truncate">{t.description || '\u2014'}</p>
+                  </td>
+
+                  {/* Tarih */}
+                  <td className="py-3 px-4">
+                    <p className="text-sm text-twilight-600 whitespace-nowrap">
+                      {format(new Date(t.transaction_date), "d MMM yyyy", { locale: tr })}
+                    </p>
+                    <p className="text-[10px] text-twilight-400">
+                      {format(new Date(t.transaction_date), "HH:mm", { locale: tr })}
                     </p>
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    <span className={`text-sm font-bold px-3 py-1 rounded-lg ${t.type === 'DEPOSIT' ? 'bg-emerald-50 text-emerald-700' :
-                        t.type === 'WITHDRAWAL' ? 'bg-rose-50 text-rose-700' :
-                          'bg-twilight-50 text-twilight-700'
-                      }`}>
+
+                  {/* Tutar */}
+                  <td className="py-3 px-4 text-right">
+                    <span className={`text-sm font-bold ${
+                      t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
+                        ? 'text-emerald-700' :
+                      t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
+                        ? 'text-rose-700' :
+                      'text-twilight-700'
+                    }`}>
                       {formatMoney(parseFloat(t.gross_amount || "0"))}
                     </span>
+                    {t.net_amount && t.net_amount !== t.gross_amount && (
+                      <p className="text-[10px] text-twilight-400">Net: {formatMoney(parseFloat(t.net_amount))}</p>
+                    )}
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-twilight-400 hover:text-twilight-700">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+
+                  {/* 3 Nokta Menu */}
+                  <td className="py-3 px-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-twilight-400 hover:text-twilight-700">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => { setSelectedTransaction(t); setShowDetail(true); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Detay Goruntule
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => { setSelectedTransaction(t); setShowReverseDialog(true); }}
+                          disabled={t.status === 'REVERSED' || t.status === 'FAILED'}
+                          className="text-rose-600 focus:text-rose-600"
+                        >
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          Islemi Iptal Et
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -825,7 +964,7 @@ export default function TransactionsPage() {
         {/* Pagination */}
         <div className="border-t border-twilight-100 p-4 flex items-center justify-between">
           <span className="text-sm text-twilight-500">
-            Toplam {transactionCount} işlem
+            Toplam {transactionCount} islem
           </span>
           <div className="flex gap-2">
             <Button
@@ -841,7 +980,7 @@ export default function TransactionsPage() {
               variant="outline"
               size="sm"
               onClick={() => setPage(p => p + 1)}
-              disabled={!transactionsData?.meta?.has_next_page}
+              disabled={!transactionsData?.hasNext}
               className="h-9 w-9 p-0 rounded-xl"
             >
               <ChevronRight className="h-4 w-4" />
@@ -849,6 +988,227 @@ export default function TransactionsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Transaction Detail Sheet */}
+      <Sheet open={showDetail} onOpenChange={setShowDetail}>
+        <SheetContent className="w-[450px] sm:w-[540px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-twilight-900">Islem Detayi</SheetTitle>
+          </SheetHeader>
+          {selectedTransaction && (
+            <div className="mt-6 space-y-6">
+              {/* Durum ve Tur */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                    selectedTransaction.type === 'DEPOSIT' || selectedTransaction.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
+                    selectedTransaction.type === 'WITHDRAWAL' || selectedTransaction.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
+                    'bg-twilight-100 text-twilight-600'
+                  }`}>
+                    {selectedTransaction.type === 'DEPOSIT' || selectedTransaction.type === 'TOP_UP' ? <ArrowDownLeft className="h-6 w-6" /> :
+                     selectedTransaction.type === 'WITHDRAWAL' || selectedTransaction.type === 'PAYMENT' ? <ArrowUpRight className="h-6 w-6" /> :
+                     <Send className="h-6 w-6" />}
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg text-twilight-900">{getTransactionTypeLabel(selectedTransaction.type)}</p>
+                    {getStatusBadge(selectedTransaction.status)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tutar Bilgileri */}
+              <div className="bg-twilight-50 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-twilight-500">Brut Tutar</span>
+                  <span className="font-bold text-twilight-900">{formatMoney(parseFloat(selectedTransaction.gross_amount || "0"))}</span>
+                </div>
+                {selectedTransaction.net_amount && selectedTransaction.net_amount !== selectedTransaction.gross_amount && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-twilight-500">Net Tutar</span>
+                    <span className="font-bold text-emerald-700">{formatMoney(parseFloat(selectedTransaction.net_amount))}</span>
+                  </div>
+                )}
+                {selectedTransaction.commission_snapshot && (
+                  <>
+                    <div className="border-t border-twilight-200 pt-2 mt-2">
+                      <p className="text-xs text-twilight-400 font-semibold mb-1">Komisyon Detayi</p>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-twilight-500">Site Komisyonu</span>
+                        <span className="text-twilight-700">{formatMoney(parseFloat(selectedTransaction.commission_snapshot.site_commission_amount || "0"))}</span>
+                      </div>
+                      {selectedTransaction.commission_snapshot.partner_commission_amount && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-twilight-500">Partner Komisyonu</span>
+                          <span className="text-twilight-700">{formatMoney(parseFloat(selectedTransaction.commission_snapshot.partner_commission_amount))}</span>
+                        </div>
+                      )}
+                      {selectedTransaction.commission_snapshot.financier_commission_amount && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-twilight-500">Finansor Komisyonu</span>
+                          <span className="text-twilight-700">{formatMoney(parseFloat(selectedTransaction.commission_snapshot.financier_commission_amount))}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-twilight-500">Organizasyon</span>
+                        <span className="text-twilight-700">{formatMoney(parseFloat(selectedTransaction.commission_snapshot.organization_amount || "0"))}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Ilgili Taraflar */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-twilight-700">Ilgili Taraflar</p>
+                {selectedTransaction.site && (
+                  <div className="flex justify-between items-center py-2 border-b border-twilight-100">
+                    <span className="text-sm text-twilight-500">Site</span>
+                    <span className="text-sm font-medium text-twilight-900">{selectedTransaction.site.name} ({selectedTransaction.site.code})</span>
+                  </div>
+                )}
+                {selectedTransaction.financier && (
+                  <div className="flex justify-between items-center py-2 border-b border-twilight-100">
+                    <span className="text-sm text-twilight-500">Finansor</span>
+                    <span className="text-sm font-medium text-twilight-900">{selectedTransaction.financier.name}</span>
+                  </div>
+                )}
+                {selectedTransaction.partner && (
+                  <div className="flex justify-between items-center py-2 border-b border-twilight-100">
+                    <span className="text-sm text-twilight-500">Partner</span>
+                    <span className="text-sm font-medium text-twilight-900">{selectedTransaction.partner.name} ({selectedTransaction.partner.code})</span>
+                  </div>
+                )}
+                {selectedTransaction.external_party && (
+                  <div className="flex justify-between items-center py-2 border-b border-twilight-100">
+                    <span className="text-sm text-twilight-500">Dis Kisi</span>
+                    <span className="text-sm font-medium text-purple-700">{selectedTransaction.external_party.name}</span>
+                  </div>
+                )}
+                {selectedTransaction.category && (
+                  <div className="flex justify-between items-center py-2 border-b border-twilight-100">
+                    <span className="text-sm text-twilight-500">Kategori</span>
+                    <Badge style={{ backgroundColor: selectedTransaction.category.color + '20', color: selectedTransaction.category.color }}>{selectedTransaction.category.name}</Badge>
+                  </div>
+                )}
+                {selectedTransaction.delivery_type && (
+                  <div className="flex justify-between items-center py-2 border-b border-twilight-100">
+                    <span className="text-sm text-twilight-500">Teslimat Turu</span>
+                    <span className="text-sm font-medium text-twilight-900">{selectedTransaction.delivery_type.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Aciklama */}
+              {selectedTransaction.description && (
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-twilight-700">Aciklama</p>
+                  <p className="text-sm text-twilight-600 bg-twilight-50 rounded-xl p-3">{selectedTransaction.description}</p>
+                </div>
+              )}
+
+              {/* Iptal Bilgisi */}
+              {selectedTransaction.reversed_at && (
+                <div className="bg-rose-50 rounded-2xl p-4 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-rose-500" />
+                    <p className="text-sm font-semibold text-rose-700">Iptal Edildi</p>
+                  </div>
+                  {selectedTransaction.reversal_reason && (
+                    <p className="text-sm text-rose-600">Neden: {selectedTransaction.reversal_reason}</p>
+                  )}
+                  <p className="text-xs text-rose-400">{format(new Date(selectedTransaction.reversed_at), "d MMMM yyyy, HH:mm", { locale: tr })}</p>
+                </div>
+              )}
+
+              {/* Meta Bilgiler */}
+              <div className="space-y-2 pt-4 border-t border-twilight-100">
+                <div className="flex justify-between text-xs">
+                  <span className="text-twilight-400">Islem ID</span>
+                  <span className="text-twilight-500 font-mono">{selectedTransaction.id}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-twilight-400">Islem Tarihi</span>
+                  <span className="text-twilight-500">{format(new Date(selectedTransaction.transaction_date), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-twilight-400">Olusturulma</span>
+                  <span className="text-twilight-500">{format(new Date(selectedTransaction.created_at), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Reverse Transaction Dialog */}
+      {showReverseDialog && selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl p-6 w-[420px] shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-rose-100 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-twilight-900">Islemi Iptal Et</h3>
+                <p className="text-sm text-twilight-500">Bu islem geri alinamaz!</p>
+              </div>
+            </div>
+
+            <div className="bg-twilight-50 rounded-xl p-3 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-twilight-500">{getTransactionTypeLabel(selectedTransaction.type)}</span>
+                <span className="font-bold text-twilight-900">{formatMoney(parseFloat(selectedTransaction.gross_amount || "0"))}</span>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <Label htmlFor="reverse-reason" className="text-sm font-medium text-twilight-700">Iptal Nedeni *</Label>
+              <Textarea
+                id="reverse-reason"
+                value={reverseReason}
+                onChange={(e) => setReverseReason(e.target.value)}
+                placeholder="Iptal nedenini yazin..."
+                className="mt-1"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => { setShowReverseDialog(false); setReverseReason(""); }}>
+                Vazgec
+              </Button>
+              <Button
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                disabled={!reverseReason.trim() || reverseTransaction.isPending}
+                onClick={async () => {
+                  try {
+                    await reverseTransaction.mutateAsync({ id: selectedTransaction.id, reason: reverseReason });
+                    toast({
+                      title: "İşlem İptal Edildi",
+                      description: "İşlem başarıyla iptal edildi ve bakiyeler güncellendi.",
+                      variant: "success",
+                    });
+                    setShowReverseDialog(false);
+                    setReverseReason("");
+                    setSelectedTransaction(null);
+                  } catch (err: any) {
+                    toast({
+                      title: "İptal Hatası",
+                      description: err.message || "İşlem iptal edilemedi. Lütfen tekrar deneyin.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                {reverseTransaction.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Iptal Ediliyor...</>
+                ) : (
+                  'Iptal Et'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1489,7 +1489,11 @@ export class TransactionService {
         where,
         include: {
           site: { select: { id: true, name: true, code: true } },
+          partner: { select: { id: true, name: true, code: true } },
+          financier: { select: { id: true, name: true, code: true } },
+          external_party: { select: { id: true, name: true } },
           category: { select: { id: true, name: true, color: true } },
+          delivery_type: { select: { id: true, name: true } },
           commission_snapshot: true,
         },
         orderBy: { [query.sortBy]: query.sortOrder },

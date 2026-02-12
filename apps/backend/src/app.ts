@@ -20,6 +20,8 @@ import { settingsRoutes } from './modules/settings/index.js';
 import { transactionRoutes } from './modules/transaction/index.js';
 import { ledgerRoutes } from './modules/ledger/index.js';
 import { organizationRoutes } from './modules/organization/index.js';
+import { notificationRoutes } from './modules/notification/notification.routes.js';
+import { approvalRoutes } from './modules/approval/approval.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -123,11 +125,14 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Settings routes
     api.register(settingsRoutes, { prefix: '/settings' });
 
-    // Report routes (will be added in Phase 6)
-    // api.register(reportRoutes, { prefix: '/reports' });
+    // Notification routes
+    api.register(notificationRoutes, { prefix: '/notifications' });
 
-    // Approval routes (will be added in Phase 4)
-    // api.register(approvalRoutes, { prefix: '/approvals' });
+    // Approval routes
+    api.register(approvalRoutes, { prefix: '/approvals' });
+
+    // Report routes (will be added later)
+    // api.register(reportRoutes, { prefix: '/reports' });
   }, { prefix: '/api' });
 
   return app;

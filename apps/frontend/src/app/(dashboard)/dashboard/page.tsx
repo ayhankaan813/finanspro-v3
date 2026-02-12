@@ -24,7 +24,8 @@ import {
   CreditCard,
   PieChart,
   Activity,
-  ArrowRight
+  ArrowRight,
+  HelpCircle
 } from "lucide-react";
 import {
   useDashboardStats,
@@ -35,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { OverviewChart } from "@/components/dashboard/overview-chart";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
@@ -130,7 +132,17 @@ export default function DashboardPage() {
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-twilight-200 text-sm font-medium mb-1">Toplam Kasa</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="text-twilight-200 text-sm font-medium mb-1 inline-flex items-center gap-1 cursor-help">
+                        Toplam Kasa
+                        <HelpCircle className="h-3.5 w-3.5 text-twilight-400" />
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Organizasyonun toplam nakit varlığı (tüm finansör bakiyeleri dahil)</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <h2 className="text-4xl font-bold tracking-tight font-mono">
                     {formatMoney(stats?.totalCash || 0)}
                   </h2>
@@ -147,7 +159,17 @@ export default function DashboardPage() {
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-2 w-2 rounded-full bg-twilight-400"></div>
-                      <span className="text-xs font-semibold text-twilight-400 uppercase tracking-wider">Partner Hak Ediş</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs font-semibold text-twilight-400 uppercase tracking-wider inline-flex items-center gap-1 cursor-help">
+                            Partner Hak Ediş
+                            <HelpCircle className="h-3 w-3" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Tüm partnerlere ödenmesi gereken toplam komisyon bakiyesi</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div className="text-xl font-bold text-twilight-900 font-mono">
                       {formatMoney(stats?.partnerBalance || 0)}
@@ -163,7 +185,17 @@ export default function DashboardPage() {
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-2 w-2 rounded-full bg-red-400"></div>
-                      <span className="text-xs font-semibold text-twilight-400 uppercase tracking-wider">Site Borcu</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs font-semibold text-twilight-400 uppercase tracking-wider inline-flex items-center gap-1 cursor-help">
+                            Site Borcu
+                            <HelpCircle className="h-3 w-3" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Sitelerin organizasyona olan toplam borcu (çekim - yatırım farkı)</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div className="text-xl font-bold text-twilight-900 font-mono">
                       {formatMoney(stats?.siteDebt || 0)}

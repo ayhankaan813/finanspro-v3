@@ -428,7 +428,7 @@ export default function OrganizationPage() {
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <Badge variant="outline" className="text-[10px] h-5 font-normal text-slate-500 border-slate-200 px-1.5">
-                                                            {tx.category || "Genel"}
+                                                            {typeof tx.category === 'object' && tx.category !== null ? tx.category.name : (tx.category || "Genel")}
                                                         </Badge>
                                                         <p className="text-xs text-slate-400 font-medium">
                                                             {new Date(tx.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long' })}

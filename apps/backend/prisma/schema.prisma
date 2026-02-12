@@ -26,9 +26,10 @@ model User {
   deleted_at DateTime?
 
   // Audit relations
-  audit_logs        AuditLog[]
-  adjustments_made  Adjustment[]   @relation("AdjustmentRequestedBy")
-  adjustments_reviewed Adjustment[] @relation("AdjustmentReviewedBy")
+  audit_logs           AuditLog[]
+  adjustments_made     Adjustment[]   @relation("AdjustmentRequestedBy")
+  adjustments_reviewed Adjustment[]   @relation("AdjustmentReviewedBy")
+  notifications        Notification[]
 
   @@index([email])
   @@index([is_active])
@@ -79,6 +80,7 @@ model Partner {
   // Relations
   site_partners    SitePartner[]
   commission_rates CommissionRate[]
+  transactions     Transaction[]
 
   // Account relation
   account Account?
@@ -129,6 +131,7 @@ model Financier {
   // Relations
   commission_rates CommissionRate[]
   blocks           FinancierBlock[]
+  transactions     Transaction[]
 
   // Account relation
   account Account?
@@ -175,6 +178,9 @@ model ExternalParty {
   phone       String?
   email       String?
   is_active   Boolean @default(true)
+
+  // Relations
+  transactions Transaction[]
 
   // Account relation
   account Account?
@@ -295,9 +301,12 @@ model Transaction {
   reversal_reason         String?
 
   // Relations
-  site          Site?         @relation(fields: [site_id], references: [id])
-  category      Category?     @relation(fields: [category_id], references: [id])
-  delivery_type DeliveryType? @relation(fields: [delivery_type_id], references: [id])
+  site           Site?          @relation(fields: [site_id], references: [id])
+  partner        Partner?       @relation(fields: [partner_id], references: [id])
+  financier      Financier?     @relation(fields: [financier_id], references: [id])
+  external_party ExternalParty? @relation(fields: [external_party_id], references: [id])
+  category       Category?      @relation(fields: [category_id], references: [id])
+  delivery_type  DeliveryType?  @relation(fields: [delivery_type_id], references: [id])
 
   // Related records
   commission_snapshot CommissionSnapshot?
@@ -641,4 +650,61 @@ model AuditLog {
   @@index([user_id, created_at])
   @@index([created_at])
   @@map("audit_logs")
+}
+
+// ==================== NOTIFICATION (Panel İçi Bildirimler) ====================
+
+model Notification {
+  id String @id @default(uuid())
+
+  // Notification type
+  type NotificationType
+
+  // Title and message
+  title   String
+  message String
+
+  // Related entity (optional)
+  entity_type String? // Transaction, Adjustment, etc.
+  entity_id   String?
+
+  // Target user
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
+
+  // Action link (optional)
+  action_url  String? // /approvals, /transactions/:id, etc.
+  action_text String? // "Onayla", "İncele", etc.
+
+  // Status
+  is_read   Boolean   @default(false)
+  read_at   DateTime?
+
+  // Priority
+  priority NotificationPriority @default(NORMAL)
+
+  created_at DateTime @default(now())
+  expires_at DateTime? // Auto-delete after this date
+
+  @@index([user_id, is_read, created_at])
+  @@index([created_at])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  TRANSACTION_PENDING   // İşlem onay bekliyor
+  TRANSACTION_APPROVED  // İşlem onaylandı
+  TRANSACTION_REJECTED  // İşlem reddedildi
+  ADJUSTMENT_PENDING    // Düzeltme talebi bekliyor
+  ADJUSTMENT_APPROVED   // Düzeltme onaylandı
+  ADJUSTMENT_REJECTED   // Düzeltme reddedildi
+  SYSTEM_ALERT          // Sistem bildirimi
+  BALANCE_ALERT         // Bakiye uyarısı
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }

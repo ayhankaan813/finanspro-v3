@@ -10,6 +10,17 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   LayoutDashboard,
   CreditCard,
   Plus,
@@ -29,7 +40,8 @@ import {
   X,
   Briefcase,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useApprovalStats } from "@/hooks/use-api";
 
 interface NavItem {
   title: string;
@@ -89,6 +101,7 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { data: approvalStats } = useApprovalStats();
 
   const handleLogout = () => {
     logout();
@@ -105,6 +118,20 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
       .slice(0, 2);
   };
 
+  // Inject dynamic badge for "Onay Bekleyenler"
+  const dynamicNavigation = useMemo(() => {
+    const pendingCount = approvalStats?.pendingCount || 0;
+    return navigation.map(group => ({
+      ...group,
+      items: group.items.map(item => {
+        if (item.href === "/approvals" && pendingCount > 0) {
+          return { ...item, badge: pendingCount };
+        }
+        return item;
+      }),
+    }));
+  }, [approvalStats]);
+
   return (
     <div className="flex h-full flex-col">
       {/* Logo */}
@@ -120,7 +147,7 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-6">
-          {navigation.map((group, groupIndex) => (
+          {dynamicNavigation.map((group, groupIndex) => (
             <div key={groupIndex}>
               {group.title && (
                 <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -171,15 +198,32 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
             <p className="text-sm font-medium truncate">{user?.name || "Kullanıcı"}</p>
             <p className="text-xs text-muted-foreground truncate">{user?.role || "Rol"}</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="shrink-0 text-muted-foreground hover:text-danger-600"
-            title="Çıkış Yap"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-danger-600"
+                title="Çıkış Yap"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Çıkış yapmak istediğinize emin misiniz?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Oturumunuz sonlandırılacak ve giriş sayfasına yönlendirileceksiniz.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white">
+                  Çıkış Yap
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

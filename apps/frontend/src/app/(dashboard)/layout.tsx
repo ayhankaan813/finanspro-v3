@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { useAuthStore } from "@/stores/auth.store";
 import { Loader2 } from "lucide-react";
 
@@ -61,6 +62,10 @@ export default function DashboardLayout({
       <Sidebar />
       {/* Main content - responsive padding */}
       <main className="lg:pl-64">
+        {/* Desktop top bar with notification bell */}
+        <header className="sticky top-0 z-30 hidden lg:flex h-14 items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-8">
+          <NotificationBell />
+        </header>
         <div className="container px-4 py-6 lg:px-8 lg:py-8">
           {children}
         </div>

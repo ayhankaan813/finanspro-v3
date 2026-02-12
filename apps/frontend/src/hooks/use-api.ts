@@ -85,7 +85,15 @@ export interface Transaction {
   transaction_date: string;
   created_at: string;
   site?: { id: string; name: string; code: string } | null;
+  partner?: { id: string; name: string; code: string } | null;
+  financier?: { id: string; name: string; code: string } | null;
+  external_party?: { id: string; name: string } | null;
+  delivery_type?: { id: string; name: string } | null;
   category?: { id: string; name: string; color: string } | null;
+  source_type?: string | null;
+  created_by: string;
+  reversed_at?: string | null;
+  reversal_reason?: string | null;
   commission_snapshot?: {
     site_commission_amount: string;
     partner_commission_amount: string | null;
@@ -410,6 +418,7 @@ export function useTransactions(params?: {
   type?: string;
   status?: string;
   site_id?: string;
+  search?: string;
   date_from?: string;
   date_to?: string;
 }) {
@@ -1434,5 +1443,203 @@ export function useOrgAnalytics(year: number, month?: number | null) {
       return api.get<OrganizationAnalytics>("/api/organization/analytics", { params });
     },
     enabled: !!accessToken,
+  });
+}
+
+// ==================== REVERSE TRANSACTION ====================
+export function useReverseTransaction() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/transactions/${id}/reverse`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({ queryKey: ["financiers"] });
+      queryClient.invalidateQueries({ queryKey: ["partners"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+// ==================== NOTIFICATIONS ====================
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
+}
+
+export function useNotifications(limit = 20) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["notifications", limit],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ items: Notification[]; total: number }>(`/api/notifications`, {
+        params: { limit: String(limit) },
+      });
+    },
+    enabled: !!accessToken,
+  });
+}
+
+export function useUnreadCount() {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["notifications-unread-count"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ count: number }>("/api/notifications/unread/count");
+    },
+    enabled: !!accessToken,
+    refetchInterval: 30000,
+  });
+}
+
+export function useMarkAsRead() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      api.setToken(accessToken);
+      return api.put(`/api/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+export function useMarkAllAsRead() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async () => {
+      api.setToken(accessToken);
+      return api.put("/api/notifications/read-all");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      api.setToken(accessToken);
+      return api.delete(`/api/notifications/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+// ==================== APPROVALS ====================
+export interface ApprovalTransaction {
+  id: string;
+  type: string;
+  status: string;
+  gross_amount: string;
+  net_amount: string;
+  description: string | null;
+  transaction_date: string;
+  created_at: string;
+  created_by: string;
+  site?: { id: string; name: string; code: string } | null;
+  partner?: { id: string; name: string; code: string } | null;
+  financier?: { id: string; name: string; code: string } | null;
+  external_party?: { id: string; name: string } | null;
+}
+
+export interface ApprovalStats {
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  totalCount: number;
+}
+
+export function usePendingApprovals() {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["approvals-pending"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ items: ApprovalTransaction[] }>("/api/approvals/pending");
+    },
+    enabled: !!accessToken,
+  });
+}
+
+export function useApproveTransaction_Approval() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/approvals/transactions/${id}/approve`, { note });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["approvals-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+export function useRejectTransaction_Approval() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/approvals/transactions/${id}/reject`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["approvals-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["approval-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+export function useApprovalStats() {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["approval-stats"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<ApprovalStats>("/api/approvals/stats");
+    },
+    enabled: !!accessToken,
+    refetchInterval: 60000,
   });
 }
