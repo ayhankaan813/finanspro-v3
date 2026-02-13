@@ -281,4 +281,18 @@ export async function transactionRoutes(app: FastifyInstance) {
       return { success: true, data: reversal };
     }
   );
+
+  /**
+   * POST /transactions/bulk
+   * Bulk import transactions
+   */
+  app.post<{ Body: { transactions: any[] } }>(
+    '/bulk',
+    async (request, reply) => {
+      // Schema validation is done inside service or we can add a specific schema here
+      // prioritizing the service implementation for now
+      const result = await transactionService.processBulkImport(request.body, request.user!.userId);
+      return reply.status(201).send({ success: true, data: result });
+    }
+  );
 }

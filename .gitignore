@@ -42,3 +42,7 @@ apps/backend/prisma/*.db-journal
 
 # Misc
 *.tsbuildinfo
+
+# Local backups and data
+_backup/
+postgres-data/

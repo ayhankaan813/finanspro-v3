@@ -1,209 +1,262 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Upload,
   FileSpreadsheet,
-  Download,
-  CheckCircle,
-  AlertCircle,
   Loader2,
+  Save,
+  Calendar as CalendarIcon
 } from "lucide-react";
+import { EditableTransactionGrid, BulkTransactionRow } from "@/components/bulk-import/EditableTransactionGrid";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { useSites, useFinanciers } from "@/hooks/use-api";
+import { useAuthStore } from "@/stores/auth.store";
+import api from "@/lib/api";
 
 export default function BulkImportPage() {
-  const [file, setFile] = useState<File | null>(null);
+  const [data, setData] = useState<BulkTransactionRow[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]); // YYYY-MM-DD
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{
-    success: boolean;
-    message: string;
-    details?: { imported: number; errors: number };
-  } | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const { toast } = useToast();
+  const router = useRouter();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setUploadResult(null);
+  // Fetch Sites and Financiers for dropdowns
+  const { data: sitesData } = useSites({ limit: 1000 });
+  const { data: financiersData } = useFinanciers({ limit: 1000 });
+
+  const sites = sitesData?.items.map(s => ({ id: s.id, name: s.name, code: s.code, is_active: s.is_active })) || [];
+  const financiers = financiersData?.items.map(f => ({ id: f.id, name: f.name, code: f.code, is_active: f.is_active })) || [];
+
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("bulkImportData");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setData(parsed);
+      } catch (e) {
+        console.error("Failed to load bulk data", e);
+      }
     }
-  };
+    setIsInitialized(true);
+  }, []);
 
-  const handleUpload = async () => {
-    if (!file) return;
+  // Save to localStorage on change
+  useEffect(() => {
+    if (!isInitialized) return;
+    localStorage.setItem("bulkImportData", JSON.stringify(data));
+  }, [data, isInitialized]);
 
-    setIsUploading(true);
-    // Simulated upload - will be connected to backend
-    setTimeout(() => {
-      setUploadResult({
-        success: true,
-        message: "Dosya başarıyla işlendi",
-        details: { imported: 45, errors: 2 },
+  const handleImport = async () => {
+    // 1. Filter out completely empty rows (keep rows with site, even if amounts are 0)
+    const validRows = data.filter(r => r.site);
+
+    if (validRows.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Veri Yok",
+        description: "Lütfen en az bir geçerli satır girin (Site ve Tutar zorunlu).",
       });
+      return;
+    }
+
+    if (!selectedDate) {
+      toast({
+        variant: "destructive",
+        title: "Tarih Seçilmedi",
+        description: "Lütfen işlemlere uygulanacak tarihi seçin.",
+      });
+      return;
+    }
+
+    // 2. Validate Rows (Financier Check)
+    const currentErrors: string[] = [];
+    validRows.forEach((row, index) => {
+      // Find visible index in main array for error reporting
+      const realIndex = data.indexOf(row);
+      if (!row.financier) {
+        currentErrors.push(`Satır ${realIndex + 1}: Finansör seçilmeli`);
+      }
+      if (!row.siteId) {
+        // Try to fuzzy match if not exact ID (though grid handles this, safety check)
+        currentErrors.push(`Satır ${realIndex + 1}: Site geçerli değil`);
+      }
+    });
+
+    if (currentErrors.length > 0) {
+      setErrors(currentErrors);
+      toast({
+        variant: "destructive",
+        title: "Doğrulama Hatası",
+        description: "Bazı satırlarda eksik bilgiler var.",
+      });
+      return;
+    }
+
+    setErrors([]);
+    setIsUploading(true);
+
+    // 3. Transform to Transactions
+    // Format Date to DD.MM.YYYY for backend (as per schema)
+    const [year, month, day] = selectedDate.split("-");
+    const formattedDate = `${day}.${month}.${year}`;
+
+    const transactions = [];
+
+    for (const row of validRows) {
+      // Deposit Transaction
+      if (row.depositAmount > 0) {
+        transactions.push({
+          date: formattedDate,
+          amount: row.depositAmount,
+          type: "DEPOSIT",
+          site: row.site, // Backend will resolve or we can pass ID if backend supports it? Backend schema expects string name/code.
+          financier: row.financier,
+          description: `${row.depositCount} Adet Yatırım (Toplu İşlem)`
+        });
+      }
+      // Withdrawal Transaction
+      if (row.withdrawalAmount > 0) {
+        transactions.push({
+          date: formattedDate,
+          amount: row.withdrawalAmount,
+          type: "WITHDRAWAL",
+          site: row.site,
+          financier: row.financier,
+          description: `${row.withdrawalCount} Adet Çekim (Toplu İşlem)`
+        });
+      }
+    }
+
+    try {
+      const accessToken = useAuthStore.getState().accessToken;
+      api.setToken(accessToken);
+      const result = await api.post<{ success: number; failed: number; errors: string[] }>("/api/transactions/bulk", { transactions });
+
+      if (result.failed > 0) {
+        setErrors(result.errors);
+        toast({
+          title: "Kısmi Başarı",
+          description: `${result.success} işlem oluşturuldu, ${result.failed} hata. Detaylar aşağıda görüntüleniyor.`,
+        });
+      } else {
+        toast({
+          title: "Başarılı",
+          description: `${result.success} işlem başarıyla oluşturuldu.`,
+        });
+        setData([]);
+        localStorage.removeItem("bulkImportData");
+        router.refresh();
+      }
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error.message,
+      });
+    } finally {
       setIsUploading(false);
-    }, 2000);
+    }
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Bulk Import</h1>
-        <p className="text-muted-foreground">
-          Excel veya CSV dosyasından toplu işlem aktarımı yapın
-        </p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Upload Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Dosya Yükle
-            </CardTitle>
-            <CardDescription>
-              Excel (.xlsx) veya CSV (.csv) formatında dosya yükleyin
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                file ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-              }`}
-            >
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileChange}
-                className="hidden"
-                id="file-upload"
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Toplu Veri Girişi (Gün Sonu)</h1>
+          <p className="text-muted-foreground">
+            Excel'den kopyaladığınız günlük raporları (Site Özeti) yapıştırarak hızlıca girin.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 bg-white p-2 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="date" className="text-sm font-medium text-muted-foreground">İşlem Tarihi:</Label>
+            <div className="relative">
+              <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="pl-9 h-9 w-[160px]"
               />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <FileSpreadsheet className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-2 text-sm font-medium">
-                  {file ? file.name : "Dosya seçmek için tıklayın"}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  veya sürükleyip bırakın
-                </p>
-              </label>
             </div>
-
-            {file && (
-              <div className="flex items-center justify-between rounded-lg bg-secondary p-3">
-                <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      İşleniyor...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Yükle
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {uploadResult && (
-              <div
-                className={`rounded-lg p-4 ${
-                  uploadResult.success
-                    ? "bg-success-50 text-success-700"
-                    : "bg-danger-50 text-danger-700"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {uploadResult.success ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5" />
-                  )}
-                  <span className="font-medium">{uploadResult.message}</span>
-                </div>
-                {uploadResult.details && (
-                  <div className="mt-2 text-sm">
-                    <p>Başarılı: {uploadResult.details.imported} işlem</p>
-                    <p>Hatalı: {uploadResult.details.errors} işlem</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Template Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
-              Şablon İndir
-            </CardTitle>
-            <CardDescription>
-              Doğru formatta veri girişi için şablon dosyalarını indirin
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Deposit İşlemleri Şablonu (.xlsx)
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Withdrawal İşlemleri Şablonu (.xlsx)
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Site Teslim Şablonu (.xlsx)
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Partner Ödeme Şablonu (.xlsx)
-              </Button>
-            </div>
-
-            <div className="rounded-lg bg-secondary p-4">
-              <h4 className="font-medium mb-2">Önemli Notlar</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• İlk satır başlık satırı olmalıdır</li>
-                <li>• Tarih formatı: GG.AA.YYYY</li>
-                <li>• Tutar formatı: 1234.56 (nokta ile)</li>
-                <li>• Site ve Finansör kodları doğru girilmeli</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="h-6 w-px bg-border mx-2"></div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setData([])} disabled={data.length === 0 || isUploading}>
+              Temizle
+            </Button>
+            <Button size="sm" onClick={handleImport} disabled={data.length === 0 || isUploading}>
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Aktarılıyor...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Kaydet
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Recent Imports */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Son İçe Aktarmalar</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Henüz içe aktarma yapılmadı
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+              Veri Tablosu
+            </CardTitle>
+            <CardDescription>
+              Aşağıdaki alana Excel'den kopyaladığınız verileri yapıştırın.<br />
+              Format: <strong>Site | Yatırım Tutarı | Yatırım Adedi | Çekim Tutarı | Çekim Adedi | (Opsiyonel: Finansör)</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 sm:p-6 pt-0">
+            <EditableTransactionGrid
+              data={data}
+              setData={setData}
+              errors={errors}
+              sites={sites}
+              financiers={financiers}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Error Details Panel */}
+        {errors.length > 0 && (
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-red-800">
+                ⚠️ Hata Detayları ({errors.length} hata)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1">
+                {errors.map((err, i) => (
+                  <li key={i} className="text-sm text-red-700">
+                    • {err}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

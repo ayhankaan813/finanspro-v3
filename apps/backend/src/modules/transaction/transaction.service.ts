@@ -1810,6 +1810,83 @@ export class TransactionService {
   }
 
   /**
+   * Process BULK IMPORT
+   * Creates multiple transactions (Deposit/Withdrawal) at once
+   */
+  async processBulkImport(input: { transactions: any[] }, createdBy: string) {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    // Parallel processing might be risky for ledger consistency if too many conflicts
+    // Process sequentially for safety
+    for (const [index, row] of input.transactions.entries()) {
+      try {
+        // 1. Resolve Site
+        const site = await prisma.site.findFirst({
+          where: {
+            OR: [{ name: { equals: row.site, mode: 'insensitive' } }, { code: { equals: row.site, mode: 'insensitive' } }],
+            deleted_at: null,
+          },
+        });
+        if (!site) throw new Error(`Site bulunamadı: ${row.site}`);
+
+        // 2. Resolve Financier
+        const financier = await prisma.financier.findFirst({
+          where: {
+            OR: [
+              { name: { equals: row.financier, mode: 'insensitive' } },
+              { code: { equals: row.financier, mode: 'insensitive' } },
+            ],
+            deleted_at: null,
+          },
+        });
+        if (!financier) throw new Error(`Finansör bulunamadı: ${row.financier}`);
+
+        // 3. Parse Date (DD.MM.YYYY -> Date object)
+        const [day, month, year] = row.date.split('.');
+        const transactionDate = new Date(`${year}-${month}-${day}`);
+
+        // 4. Create Transaction
+        if (row.type === 'DEPOSIT') {
+          await this.processDeposit(
+            {
+              site_id: site.id,
+              financier_id: financier.id,
+              amount: row.amount.toString(),
+              description: row.description || 'Toplu İçe Aktarım',
+              transaction_date: transactionDate.toISOString(),
+            },
+            createdBy
+          );
+        } else if (row.type === 'WITHDRAWAL') {
+          await this.processWithdrawal(
+            {
+              site_id: site.id,
+              financier_id: financier.id,
+              amount: row.amount.toString(),
+              description: row.description || 'Toplu İçe Aktarım',
+              transaction_date: transactionDate.toISOString(),
+            },
+            createdBy
+          );
+        } else {
+          throw new Error(`Geçersiz işlem tipi: ${row.type}`);
+        }
+
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Satır ${index + 1}: ${error.message}`);
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Get or create Organization account
    */
   private async getOrCreateOrganizationAccount(tx: Prisma.TransactionClient) {

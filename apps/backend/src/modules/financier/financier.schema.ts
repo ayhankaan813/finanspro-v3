@@ -14,7 +14,7 @@ export const updateFinancierSchema = z.object({
 
 export const financierQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
+  limit: z.coerce.number().min(1).max(1000).default(20),
   search: z.string().optional(),
   is_active: z.enum(['true', 'false']).optional(),
   sortBy: z.enum(['name', 'code', 'created_at']).default('created_at'),

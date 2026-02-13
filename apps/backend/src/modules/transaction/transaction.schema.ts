@@ -197,6 +197,21 @@ export const transactionQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
+export const bulkImportSchema = z.object({
+  transactions: z.array(
+    z.object({
+      date: z.string().regex(/^\d{2}\.\d{2}\.\d{4}$/, "Geçersiz tarih formatı (GG.AA.YYYY)"),
+      amount: z.number().positive("Tutar pozitif olmalı"),
+      description: z.string().optional(),
+      type: z.enum(["DEPOSIT", "WITHDRAWAL"]),
+      site: z.string().min(1, "Site seçilmeli"), // Name or Code
+      financier: z.string().min(1, "Finansör seçilmeli"), // Name or Code
+    })
+  ),
+});
+
+export type BulkImportInput = z.infer<typeof bulkImportSchema>;
+
 export type CreateDepositInput = z.infer<typeof createDepositSchema>;
 export type CreateWithdrawalInput = z.infer<typeof createWithdrawalSchema>;
 export type CreateSitePaymentInput = z.infer<typeof createSitePaymentSchema>;
@@ -213,3 +228,4 @@ export type CreateTopUpInput = z.infer<typeof createTopUpSchema>;
 export type CreateDeliveryInput = z.infer<typeof createDeliverySchema>;
 export type ReverseTransactionInput = z.infer<typeof reverseTransactionSchema>;
 export type TransactionQueryInput = z.infer<typeof transactionQuerySchema>;
+
