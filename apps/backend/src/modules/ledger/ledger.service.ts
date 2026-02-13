@@ -215,6 +215,95 @@ export class LedgerService {
   }
 
   /**
+   * Undo ledger entries for a transaction (for edit feature)
+   * Unlike reverseEntries, this DELETES the old entries and restores account balances
+   * Used when editing a transaction: first undo old entries, then create new ones
+   */
+  async undoEntries(
+    transactionId: string,
+    tx: Prisma.TransactionClient
+  ): Promise<void> {
+    // Get all ledger entries for this transaction
+    const entries = await tx.ledgerEntry.findMany({
+      where: { transaction_id: transactionId },
+    });
+
+    if (entries.length === 0) {
+      throw new NotFoundError('LedgerEntries for transaction', transactionId);
+    }
+
+    // Reverse balance effects for each entry
+    for (const entry of entries) {
+      const account = await tx.account.findUnique({
+        where: { id: entry.account_id },
+        select: { id: true, balance: true },
+      });
+
+      if (!account) {
+        throw new NotFoundError('Account', entry.account_id);
+      }
+
+      const currentBalance = new Decimal(account.balance);
+      let restoredBalance: Decimal;
+
+      // LIABILITY: Site, Partner, External Party
+      const isLiabilityAccount = (
+        entry.account_type === EntityType.SITE ||
+        entry.account_type === EntityType.PARTNER ||
+        entry.account_type === EntityType.EXTERNAL_PARTY
+      );
+
+      // ASSET: Financier, Organization
+      const isAssetAccount = (
+        entry.account_type === EntityType.FINANCIER ||
+        entry.account_type === EntityType.ORGANIZATION
+      );
+
+      if (isAssetAccount) {
+        // Asset: DEBIT increased balance → undo by subtracting
+        // Asset: CREDIT decreased balance → undo by adding
+        if (entry.entry_type === LedgerEntryType.DEBIT) {
+          restoredBalance = currentBalance.minus(entry.amount);
+        } else {
+          restoredBalance = currentBalance.plus(entry.amount);
+        }
+      } else if (isLiabilityAccount) {
+        // Liability: CREDIT increased balance → undo by subtracting
+        // Liability: DEBIT decreased balance → undo by adding
+        if (entry.entry_type === LedgerEntryType.CREDIT) {
+          restoredBalance = currentBalance.minus(entry.amount);
+        } else {
+          restoredBalance = currentBalance.plus(entry.amount);
+        }
+      } else {
+        throw new BusinessError(
+          `Unknown account type: ${entry.account_type}`,
+          'UNKNOWN_ACCOUNT_TYPE'
+        );
+      }
+
+      // Restore account balance
+      await tx.account.update({
+        where: { id: account.id },
+        data: { balance: restoredBalance },
+      });
+    }
+
+    // Delete old ledger entries
+    await tx.ledgerEntry.deleteMany({
+      where: { transaction_id: transactionId },
+    });
+
+    logger.info(
+      {
+        transactionId,
+        entriesRemoved: entries.length,
+      },
+      'Ledger entries undone (for edit)'
+    );
+  }
+
+  /**
    * Get ledger entries for a transaction
    */
   async getEntriesByTransaction(transactionId: string) {

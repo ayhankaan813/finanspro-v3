@@ -295,6 +295,12 @@ model Transaction {
   // Transaction date (for historical imports)
   transaction_date DateTime @default(now())
 
+  // Edit tracking (admin manual edits)
+  edited_at    DateTime?
+  edited_by    String?
+  edit_count   Int       @default(0)
+  edit_reason  String?
+
   // Reversal tracking
   original_transaction_id String?   @unique
   reversed_at             DateTime?

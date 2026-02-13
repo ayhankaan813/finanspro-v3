@@ -23,6 +23,7 @@ import type {
   CreateDeliveryInput,
   TransactionQueryInput,
   ReverseTransactionInput,
+  EditTransactionInput,
 } from './transaction.schema.js';
 
 export class TransactionService {
@@ -1734,6 +1735,772 @@ export class TransactionService {
       );
 
       return reversal;
+    });
+  }
+
+  /**
+   * Edit a COMPLETED transaction (Admin only)
+   * Strategy: Undo & Recreate
+   * 1. Undo old ledger entries (restore account balances, delete entries)
+   * 2. Recalculate with new values
+   * 3. Create new ledger entries
+   * 4. Update transaction record
+   */
+  async editTransaction(transactionId: string, input: EditTransactionInput, editedBy: string) {
+    // Validate user is admin
+    const user = await prisma.user.findUnique({ where: { id: editedBy } });
+    if (!user) throw new NotFoundError('User', editedBy);
+    if (user.role !== 'ADMIN') {
+      throw new BusinessError('Sadece admin kullanıcılar işlem düzenleyebilir', 'NOT_ADMIN');
+    }
+
+    // Get original transaction
+    const original = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        site: true,
+        partner: true,
+        financier: true,
+        external_party: true,
+        commission_snapshot: true,
+        category: true,
+        delivery_type: true,
+      },
+    });
+
+    if (!original) throw new NotFoundError('Transaction', transactionId);
+    if (original.status !== TransactionStatus.COMPLETED) {
+      throw new BusinessError('Sadece tamamlanmış işlemler düzenlenebilir', 'NOT_COMPLETED');
+    }
+    if (original.type === TransactionType.REVERSAL) {
+      throw new BusinessError('İptal işlemleri düzenlenemez', 'CANNOT_EDIT_REVERSAL');
+    }
+
+    // Determine what's changing
+    const newAmount = input.amount ? new Decimal(input.amount) : new Decimal(original.gross_amount);
+    const newSiteId = input.site_id || original.site_id;
+    const newFinancierId = input.financier_id || original.financier_id;
+    const newPartnerId = input.partner_id !== undefined ? input.partner_id : original.partner_id;
+    const newExternalPartyId = input.external_party_id !== undefined ? input.external_party_id : original.external_party_id;
+    const newDescription = input.description !== undefined ? input.description : original.description;
+    const newReferenceId = input.reference_id !== undefined ? input.reference_id : original.reference_id;
+    const newTransactionDate = input.transaction_date ? new Date(input.transaction_date) : original.transaction_date;
+    const newCategoryId = input.category_id !== undefined ? input.category_id : original.category_id;
+    const newDeliveryTypeId = input.delivery_type_id || original.delivery_type_id;
+
+    // Check if financial recalculation is needed
+    const financialFieldsChanged =
+      input.amount !== undefined ||
+      input.site_id !== undefined ||
+      input.financier_id !== undefined ||
+      input.partner_id !== undefined ||
+      input.external_party_id !== undefined ||
+      input.to_financier_id !== undefined ||
+      input.delivery_type_id !== undefined ||
+      input.override_commissions === true ||
+      input.source_type !== undefined ||
+      input.source_id !== undefined ||
+      input.topup_source_type !== undefined ||
+      input.topup_source_id !== undefined;
+
+    // Store old data for audit
+    const oldData = {
+      gross_amount: original.gross_amount.toString(),
+      net_amount: original.net_amount.toString(),
+      site_id: original.site_id,
+      financier_id: original.financier_id,
+      partner_id: original.partner_id,
+      external_party_id: original.external_party_id,
+      description: original.description,
+      reference_id: original.reference_id,
+      transaction_date: original.transaction_date,
+      category_id: original.category_id,
+      delivery_type_id: original.delivery_type_id,
+    };
+
+    return prisma.$transaction(async (tx) => {
+      let newNetAmount = newAmount;
+      let updateData: any = {
+        description: newDescription,
+        reference_id: newReferenceId,
+        transaction_date: newTransactionDate,
+        category_id: newCategoryId,
+        edited_at: new Date(),
+        edited_by: editedBy,
+        edit_count: { increment: 1 },
+        edit_reason: input.reason,
+      };
+
+      if (financialFieldsChanged) {
+        // === STEP 1: Undo old ledger entries ===
+        await ledgerService.undoEntries(transactionId, tx);
+
+        // Delete old commission snapshot if exists
+        if (original.commission_snapshot) {
+          await tx.commissionSnapshot.delete({
+            where: { transaction_id: transactionId },
+          });
+        }
+
+        // === STEP 2: Rebuild ledger entries based on transaction type ===
+        const entries: LedgerEntryData[] = [];
+
+        switch (original.type) {
+          case TransactionType.DEPOSIT: {
+            // Validate entities
+            const site = await tx.site.findUnique({ where: { id: newSiteId!, deleted_at: null }, include: { account: true } });
+            if (!site) throw new NotFoundError('Site', newSiteId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null }, include: { account: true } });
+            if (!financier) throw new NotFoundError('Financier', newFinancierId!);
+
+            // Calculate or use custom commissions
+            let commission;
+            if (input.override_commissions && input.custom_site_commission !== undefined) {
+              // Custom commission override
+              const customSiteComm = new Decimal(input.custom_site_commission || '0').toDecimalPlaces(2);
+              const customPartnerComm = new Decimal(input.custom_partner_commission || '0').toDecimalPlaces(2);
+              const customFinancierComm = new Decimal(input.custom_financier_commission || '0').toDecimalPlaces(2);
+              const customOrgAmount = new Decimal(input.custom_organization_amount || '0').toDecimalPlaces(2);
+
+              commission = {
+                site_commission_rate: new Decimal(0),
+                site_commission_amount: customSiteComm,
+                partner_commissions: customPartnerComm.gt(0) ? [{
+                  partner_id: newPartnerId || '',
+                  partner_name: '',
+                  rate: new Decimal(0),
+                  amount: customPartnerComm,
+                }] : [],
+                financier_commission_rate: new Decimal(0),
+                financier_commission_amount: customFinancierComm,
+                organization_amount: customOrgAmount,
+                total_commission: customSiteComm,
+              };
+            } else {
+              commission = await commissionService.calculateDepositCommission(newSiteId!, newFinancierId!, newAmount);
+            }
+
+            const financierNetAmount = newAmount.minus(commission.financier_commission_amount).toDecimalPlaces(2);
+            const siteNetAmount = newAmount.minus(commission.site_commission_amount).toDecimalPlaces(2);
+            newNetAmount = siteNetAmount;
+
+            // Create commission snapshot
+            await commissionService.createSnapshot(transactionId, commission, tx);
+
+            // Ledger entries: same pattern as processDeposit
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: financierNetAmount,
+              description: `Yatırım alındı: ${site.name} (Net: ${financierNetAmount}) [Düzenlendi]`,
+            });
+
+            entries.push({
+              account_id: newSiteId!,
+              account_type: EntityType.SITE,
+              account_name: site.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: siteNetAmount,
+              description: `Site bakiyesi: ${siteNetAmount} [Düzenlendi]`,
+            });
+
+            for (const pc of commission.partner_commissions) {
+              entries.push({
+                account_id: pc.partner_id,
+                account_type: EntityType.PARTNER,
+                account_name: pc.partner_name,
+                entry_type: LedgerEntryType.CREDIT,
+                amount: pc.amount,
+                description: `Partner komisyonu: ${site.name} [Düzenlendi]`,
+              });
+            }
+
+            const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+            entries.push({
+              account_id: orgAccount.entity_id,
+              account_type: EntityType.ORGANIZATION,
+              account_name: 'Organizasyon',
+              entry_type: LedgerEntryType.CREDIT,
+              amount: commission.organization_amount,
+              description: `Organizasyon geliri: ${site.name} [Düzenlendi]`,
+            });
+
+            updateData.site_id = newSiteId;
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.WITHDRAWAL: {
+            const site = await tx.site.findUnique({ where: { id: newSiteId!, deleted_at: null }, include: { account: true } });
+            if (!site) throw new NotFoundError('Site', newSiteId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null }, include: { account: true } });
+            if (!financier) throw new NotFoundError('Financier', newFinancierId!);
+
+            let commission;
+            if (input.override_commissions && input.custom_site_commission !== undefined) {
+              const customSiteComm = new Decimal(input.custom_site_commission || '0').toDecimalPlaces(2);
+              commission = {
+                site_commission_rate: new Decimal(0),
+                site_commission_amount: customSiteComm,
+                financier_commission_rate: new Decimal(0),
+                financier_commission_amount: new Decimal(0),
+                partner_commissions: [],
+                organization_amount: customSiteComm,
+                total_commission: customSiteComm,
+              };
+            } else {
+              commission = await commissionService.calculateWithdrawalCommission(newSiteId!, newFinancierId!, newAmount);
+            }
+
+            const siteTotalPay = newAmount.plus(commission.site_commission_amount).toDecimalPlaces(2);
+            newNetAmount = newAmount;
+
+            await commissionService.createSnapshot(transactionId, commission, tx);
+
+            entries.push({
+              account_id: newSiteId!,
+              account_type: EntityType.SITE,
+              account_name: site.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: siteTotalPay,
+              description: `Çekim işlemi: ${newAmount} + ${commission.site_commission_amount} kom [Düzenlendi]`,
+            });
+
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Müşteriye ödeme: ${site.name} [Düzenlendi]`,
+            });
+
+            const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+            entries.push({
+              account_id: orgAccount.entity_id,
+              account_type: EntityType.ORGANIZATION,
+              account_name: 'Organizasyon',
+              entry_type: LedgerEntryType.CREDIT,
+              amount: commission.site_commission_amount,
+              description: `Çekim komisyonu: ${site.name} [Düzenlendi]`,
+            });
+
+            updateData.site_id = newSiteId;
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.SITE_DELIVERY: {
+            const site = await tx.site.findUnique({ where: { id: newSiteId!, deleted_at: null } });
+            if (!site) throw new NotFoundError('Site', newSiteId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Financier', newFinancierId!);
+
+            entries.push({
+              account_id: newSiteId!,
+              account_type: EntityType.SITE,
+              account_name: site.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Kasa teslimi: ${financier.name}'dan [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Kasa teslimi: ${site.name}'a [Düzenlendi]`,
+            });
+
+            updateData.site_id = newSiteId;
+            updateData.financier_id = newFinancierId;
+            updateData.delivery_type_id = newDeliveryTypeId;
+            break;
+          }
+
+          case TransactionType.PARTNER_PAYMENT: {
+            const targetPartnerId = newPartnerId || original.partner_id;
+            const partner = await tx.partner.findUnique({ where: { id: targetPartnerId!, deleted_at: null } });
+            if (!partner) throw new NotFoundError('Partner', targetPartnerId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Financier', newFinancierId!);
+
+            entries.push({
+              account_id: targetPartnerId!,
+              account_type: EntityType.PARTNER,
+              account_name: partner.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Komisyon ödemesi [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Partner ödemesi: ${partner.name} [Düzenlendi]`,
+            });
+
+            updateData.partner_id = targetPartnerId;
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.FINANCIER_TRANSFER: {
+            const fromFinancierId = newFinancierId!;
+            const toFinancierId = input.to_financier_id || original.description?.match(/→ (.+)/)?.[1] ? undefined : undefined;
+            // For financier transfer, we need to get the to_financier from the original ledger entries
+            const originalEntries = await tx.ledgerEntry.findMany({
+              where: { transaction_id: transactionId },
+            });
+            // We already deleted entries in undoEntries, so use the description to find to_financier
+            // Better approach: to_financier_id is passed in input
+            const actualToFinancierId = input.to_financier_id;
+
+            if (!actualToFinancierId) {
+              throw new BusinessError('Hedef finansör belirtilmeli', 'MISSING_TO_FINANCIER');
+            }
+
+            const fromFinancier = await tx.financier.findUnique({ where: { id: fromFinancierId, deleted_at: null } });
+            if (!fromFinancier) throw new NotFoundError('Kaynak Finansör', fromFinancierId);
+            const toFinancier = await tx.financier.findUnique({ where: { id: actualToFinancierId, deleted_at: null } });
+            if (!toFinancier) throw new NotFoundError('Hedef Finansör', actualToFinancierId);
+
+            entries.push({
+              account_id: fromFinancierId,
+              account_type: EntityType.FINANCIER,
+              account_name: fromFinancier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Transfer çıkış: ${toFinancier.name}'a [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: actualToFinancierId,
+              account_type: EntityType.FINANCIER,
+              account_name: toFinancier.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Transfer giriş: ${fromFinancier.name}'dan [Düzenlendi]`,
+            });
+
+            updateData.financier_id = fromFinancierId;
+            break;
+          }
+
+          case TransactionType.EXTERNAL_DEBT_IN: {
+            const extPartyId = newExternalPartyId || original.external_party_id;
+            const externalParty = await tx.externalParty.findUnique({ where: { id: extPartyId!, deleted_at: null } });
+            if (!externalParty) throw new NotFoundError('Dış Kişi', extPartyId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Borç alındı: ${externalParty.name}'dan [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: extPartyId!,
+              account_type: EntityType.EXTERNAL_PARTY,
+              account_name: externalParty.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Borç verildi: Finansör ${financier.name}'a [Düzenlendi]`,
+            });
+
+            updateData.external_party_id = extPartyId;
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.EXTERNAL_DEBT_OUT: {
+            const extPartyId = newExternalPartyId || original.external_party_id;
+            const externalParty = await tx.externalParty.findUnique({ where: { id: extPartyId!, deleted_at: null } });
+            if (!externalParty) throw new NotFoundError('Dış Kişi', extPartyId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Borç verildi: ${externalParty.name}'a [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: extPartyId!,
+              account_type: EntityType.EXTERNAL_PARTY,
+              account_name: externalParty.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Borç alındı: Finansör ${financier.name}'dan [Düzenlendi]`,
+            });
+
+            updateData.external_party_id = extPartyId;
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.EXTERNAL_PAYMENT: {
+            const extPartyId = newExternalPartyId || original.external_party_id;
+            const externalParty = await tx.externalParty.findUnique({ where: { id: extPartyId!, deleted_at: null } });
+            if (!externalParty) throw new NotFoundError('Dış Kişi', extPartyId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+
+            entries.push({
+              account_id: extPartyId!,
+              account_type: EntityType.EXTERNAL_PARTY,
+              account_name: externalParty.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Ödeme alındı [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Dış kişi ödemesi: ${externalParty.name}'a [Düzenlendi]`,
+            });
+
+            updateData.external_party_id = extPartyId;
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.ORG_EXPENSE: {
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+            const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+
+            entries.push({
+              account_id: orgAccount.entity_id,
+              account_type: EntityType.ORGANIZATION,
+              account_name: 'Organizasyon',
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: newDescription || 'Organizasyon gideri [Düzenlendi]',
+            });
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Org gideri: ${newDescription || 'Gider'} [Düzenlendi]`,
+            });
+
+            updateData.financier_id = newFinancierId;
+            updateData.category_id = newCategoryId;
+            break;
+          }
+
+          case TransactionType.ORG_INCOME: {
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+            const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Org geliri: ${newDescription || 'Gelir'} [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: orgAccount.entity_id,
+              account_type: EntityType.ORGANIZATION,
+              account_name: 'Organizasyon',
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: newDescription || 'Organizasyon geliri [Düzenlendi]',
+            });
+
+            updateData.financier_id = newFinancierId;
+            updateData.category_id = newCategoryId;
+            break;
+          }
+
+          case TransactionType.ORG_WITHDRAW: {
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+            const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+
+            entries.push({
+              account_id: orgAccount.entity_id,
+              account_type: EntityType.ORGANIZATION,
+              account_name: 'Organizasyon',
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: newDescription || 'Hak ediş çekimi [Düzenlendi]',
+            });
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: 'Organizasyon hak ediş çekimi [Düzenlendi]',
+            });
+
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.PAYMENT: {
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+
+            // Resolve source entity
+            const sourceType = input.source_type || (original.source_type as any);
+            const sourceId = input.source_id !== undefined ? input.source_id : original.source_id;
+            let sourceEntity: { id: string; name: string; type: EntityType } | null = null;
+
+            if (sourceType === 'SITE' && sourceId) {
+              const site = await tx.site.findUnique({ where: { id: sourceId, deleted_at: null } });
+              if (!site) throw new NotFoundError('Site', sourceId);
+              sourceEntity = { id: site.id, name: site.name, type: EntityType.SITE };
+            } else if (sourceType === 'PARTNER' && sourceId) {
+              const partner = await tx.partner.findUnique({ where: { id: sourceId, deleted_at: null } });
+              if (!partner) throw new NotFoundError('Partner', sourceId);
+              sourceEntity = { id: partner.id, name: partner.name, type: EntityType.PARTNER };
+            } else if (sourceType === 'EXTERNAL_PARTY' && sourceId) {
+              const ext = await tx.externalParty.findUnique({ where: { id: sourceId, deleted_at: null } });
+              if (!ext) throw new NotFoundError('Dış Kişi', sourceId);
+              sourceEntity = { id: ext.id, name: ext.name, type: EntityType.EXTERNAL_PARTY };
+            } else if (sourceType === 'ORGANIZATION') {
+              const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+              sourceEntity = { id: orgAccount.entity_id, name: 'Organizasyon', type: EntityType.ORGANIZATION };
+            }
+
+            if (!sourceEntity) throw new BusinessError('Kaynak entity bulunamadı', 'SOURCE_NOT_FOUND');
+
+            entries.push({
+              account_id: sourceEntity.id,
+              account_type: sourceEntity.type,
+              account_name: sourceEntity.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Ödeme: ${newDescription || 'Ödeme işlemi'} [Düzenlendi]`,
+            });
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Ödeme: ${sourceEntity.name} adına [Düzenlendi]`,
+            });
+
+            updateData.financier_id = newFinancierId;
+            updateData.source_type = sourceEntity.type;
+            updateData.source_id = sourceEntity.id;
+            break;
+          }
+
+          case TransactionType.TOP_UP: {
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+
+            let sourceEntity: { id: string; name: string; type: EntityType } | null = null;
+            const topupSourceType = input.topup_source_type || (original.topup_source_type as any);
+            const topupSourceId = input.topup_source_id !== undefined ? input.topup_source_id : original.topup_source_id;
+
+            if (topupSourceType === 'PARTNER' && topupSourceId) {
+              const partner = await tx.partner.findUnique({ where: { id: topupSourceId, deleted_at: null } });
+              if (!partner) throw new NotFoundError('Partner', topupSourceId);
+              sourceEntity = { id: partner.id, name: partner.name, type: EntityType.PARTNER };
+            } else if (topupSourceType === 'ORGANIZATION') {
+              const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+              sourceEntity = { id: orgAccount.entity_id, name: 'Organizasyon', type: EntityType.ORGANIZATION };
+            }
+
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: newAmount,
+              description: `Takviye: ${sourceEntity?.name || 'Dış kaynak'} [Düzenlendi]`,
+            });
+
+            if (sourceEntity) {
+              entries.push({
+                account_id: sourceEntity.id,
+                account_type: sourceEntity.type,
+                account_name: sourceEntity.name,
+                entry_type: LedgerEntryType.CREDIT,
+                amount: newAmount,
+                description: `Takviye: Açık kapatma [Düzenlendi]`,
+              });
+            } else {
+              const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+              entries.push({
+                account_id: orgAccount.entity_id,
+                account_type: EntityType.ORGANIZATION,
+                account_name: 'Organizasyon',
+                entry_type: LedgerEntryType.CREDIT,
+                amount: newAmount,
+                description: `Takviye: Dış kaynak [Düzenlendi]`,
+              });
+            }
+
+            updateData.financier_id = newFinancierId;
+            break;
+          }
+
+          case TransactionType.DELIVERY: {
+            const site = await tx.site.findUnique({ where: { id: newSiteId!, deleted_at: null } });
+            if (!site) throw new NotFoundError('Site', newSiteId!);
+            const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
+            if (!financier) throw new NotFoundError('Finansör', newFinancierId!);
+
+            const deliveryTypeId = newDeliveryTypeId!;
+            const deliveryType = await tx.deliveryType.findUnique({ where: { id: deliveryTypeId } });
+            if (!deliveryType) throw new NotFoundError('Teslimat Türü', deliveryTypeId);
+
+            // Get delivery commission
+            const deliveryCommission = await tx.deliveryCommission.findUnique({
+              where: { site_id_delivery_type_id: { site_id: newSiteId!, delivery_type_id: deliveryTypeId } },
+            });
+
+            const commissionRate = deliveryCommission ? new Decimal(deliveryCommission.rate) : new Decimal(0);
+            const commissionAmount = newAmount.times(commissionRate).toDecimalPlaces(2);
+            const netAmount = newAmount.minus(commissionAmount).toDecimalPlaces(2);
+            newNetAmount = netAmount;
+
+            let partnerCommissionAmount = new Decimal(0);
+            let partnerInfo: { id: string; name: string } | null = null;
+            if (deliveryCommission?.partner_id && deliveryCommission?.partner_rate) {
+              const partnerRate = new Decimal(deliveryCommission.partner_rate);
+              partnerCommissionAmount = newAmount.times(partnerRate).toDecimalPlaces(2);
+              const partner = await tx.partner.findUnique({ where: { id: deliveryCommission.partner_id } });
+              if (partner) partnerInfo = { id: partner.id, name: partner.name };
+            }
+
+            const orgCommissionAmount = commissionAmount.minus(partnerCommissionAmount).toDecimalPlaces(2);
+
+            entries.push({
+              account_id: newSiteId!,
+              account_type: EntityType.SITE,
+              account_name: site.name,
+              entry_type: LedgerEntryType.DEBIT,
+              amount: netAmount,
+              description: `Teslimat: ${deliveryType.name} - Net tutar [Düzenlendi]`,
+            });
+
+            if (orgCommissionAmount.gt(0)) {
+              const orgAccount = await this.getOrCreateOrganizationAccount(tx);
+              entries.push({
+                account_id: orgAccount.entity_id,
+                account_type: EntityType.ORGANIZATION,
+                account_name: 'Organizasyon',
+                entry_type: LedgerEntryType.DEBIT,
+                amount: orgCommissionAmount,
+                description: `Teslimat komisyonu: ${site.name} [Düzenlendi]`,
+              });
+            }
+
+            if (partnerInfo && partnerCommissionAmount.gt(0)) {
+              entries.push({
+                account_id: partnerInfo.id,
+                account_type: EntityType.PARTNER,
+                account_name: partnerInfo.name,
+                entry_type: LedgerEntryType.CREDIT,
+                amount: partnerCommissionAmount,
+                description: `Teslimat komisyonu: ${site.name} [Düzenlendi]`,
+              });
+            }
+
+            entries.push({
+              account_id: newFinancierId!,
+              account_type: EntityType.FINANCIER,
+              account_name: financier.name,
+              entry_type: LedgerEntryType.CREDIT,
+              amount: newAmount,
+              description: `Teslimat: ${site.name} - ${deliveryType.name} [Düzenlendi]`,
+            });
+
+            updateData.site_id = newSiteId;
+            updateData.financier_id = newFinancierId;
+            updateData.delivery_type_id = deliveryTypeId;
+            updateData.delivery_commission_rate = commissionRate;
+            updateData.delivery_commission_amount = commissionAmount;
+            break;
+          }
+
+          default:
+            throw new BusinessError(`Bu işlem tipi düzenlenemez: ${original.type}`, 'UNSUPPORTED_EDIT_TYPE');
+        }
+
+        // === STEP 3: Create new ledger entries ===
+        await ledgerService.createEntries(transactionId, entries, tx);
+      }
+
+      // === STEP 4: Update transaction record ===
+      if (financialFieldsChanged) {
+        updateData.gross_amount = newAmount;
+        updateData.net_amount = newNetAmount;
+      }
+
+      const updatedTransaction = await tx.transaction.update({
+        where: { id: transactionId },
+        data: updateData,
+        include: {
+          site: { select: { id: true, name: true, code: true } },
+          partner: { select: { id: true, name: true, code: true } },
+          financier: { select: { id: true, name: true, code: true } },
+          external_party: { select: { id: true, name: true } },
+          category: { select: { id: true, name: true, color: true } },
+          delivery_type: { select: { id: true, name: true } },
+          commission_snapshot: true,
+        },
+      });
+
+      // Create audit log
+      await tx.auditLog.create({
+        data: {
+          action: 'EDIT_TRANSACTION',
+          entity_type: 'Transaction',
+          entity_id: transactionId,
+          old_data: oldData as unknown as Prisma.JsonObject,
+          new_data: {
+            ...updateData,
+            ...(financialFieldsChanged ? {
+              gross_amount: newAmount.toString(),
+              net_amount: newNetAmount.toString(),
+            } : {}),
+            reason: input.reason,
+          } as unknown as Prisma.JsonObject,
+          user_id: editedBy,
+          user_email: user.email,
+        },
+      });
+
+      logger.info(
+        {
+          transactionId,
+          type: original.type,
+          oldAmount: original.gross_amount.toString(),
+          newAmount: newAmount.toString(),
+          financialRecalc: financialFieldsChanged,
+          reason: input.reason,
+        },
+        'Transaction edited'
+      );
+
+      return updatedTransaction;
     });
   }
 

@@ -183,6 +183,56 @@ export const reverseTransactionSchema = z.object({
   reason: z.string().min(10, 'İptal sebebi en az 10 karakter olmalı').max(500),
 });
 
+// ==================== İŞLEM DÜZENLEME (Edit Transaction) ====================
+export const editTransactionSchema = z.object({
+  // Tutar değişikliği
+  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: 'Tutar pozitif bir sayı olmalı',
+  }).optional(),
+
+  // Entity değişiklikleri
+  site_id: z.string().uuid('Geçersiz site ID').optional(),
+  financier_id: z.string().uuid('Geçersiz finansör ID').optional(),
+  partner_id: z.string().uuid('Geçersiz partner ID').optional(),
+  external_party_id: z.string().uuid('Geçersiz dış kişi ID').optional(),
+
+  // Transfer tipi için
+  to_financier_id: z.string().uuid('Geçersiz hedef finansör ID').optional(),
+
+  // Teslimat tipi için
+  delivery_type_id: z.string().uuid('Geçersiz teslimat türü ID').optional(),
+
+  // Basit alanlar
+  description: z.string().max(500).optional(),
+  reference_id: z.string().max(100).optional().nullable(),
+  transaction_date: z.string().datetime().optional(),
+  category_id: z.string().uuid().optional().nullable(),
+
+  // Payment/TopUp source
+  source_type: z.enum(['SITE', 'PARTNER', 'EXTERNAL_PARTY', 'ORGANIZATION']).optional(),
+  source_id: z.string().uuid().optional().nullable(),
+  topup_source_type: z.enum(['PARTNER', 'ORGANIZATION', 'EXTERNAL']).optional(),
+  topup_source_id: z.string().uuid().optional().nullable(),
+
+  // Komisyon override
+  override_commissions: z.boolean().optional(),
+  custom_site_commission: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: 'Komisyon tutarı 0 veya pozitif olmalı',
+  }).optional(),
+  custom_partner_commission: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: 'Komisyon tutarı 0 veya pozitif olmalı',
+  }).optional(),
+  custom_financier_commission: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: 'Komisyon tutarı 0 veya pozitif olmalı',
+  }).optional(),
+  custom_organization_amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: 'Komisyon tutarı 0 veya pozitif olmalı',
+  }).optional(),
+
+  // Düzenleme sebebi (zorunlu)
+  reason: z.string().min(5, 'Düzenleme sebebi en az 5 karakter olmalı').max(500),
+});
+
 export const transactionQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -227,5 +277,6 @@ export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type CreateTopUpInput = z.infer<typeof createTopUpSchema>;
 export type CreateDeliveryInput = z.infer<typeof createDeliverySchema>;
 export type ReverseTransactionInput = z.infer<typeof reverseTransactionSchema>;
+export type EditTransactionInput = z.infer<typeof editTransactionSchema>;
 export type TransactionQueryInput = z.infer<typeof transactionQuerySchema>;
 

@@ -94,6 +94,11 @@ export interface Transaction {
   created_by: string;
   reversed_at?: string | null;
   reversal_reason?: string | null;
+  // Edit tracking
+  edited_at?: string | null;
+  edited_by?: string | null;
+  edit_count?: number;
+  edit_reason?: string | null;
   commission_snapshot?: {
     site_commission_amount: string;
     partner_commission_amount: string | null;
@@ -101,6 +106,13 @@ export interface Transaction {
     organization_amount: string;
   } | null;
   delivery_commission_amount?: string | null;
+  // Additional fields for edit context
+  reference_id?: string | null;
+  category_id?: string | null;
+  delivery_type_id?: string | null;
+  source_id?: string | null;
+  topup_source_type?: string | null;
+  topup_source_id?: string | null;
 }
 
 export interface FinancierBlock {
@@ -146,8 +158,9 @@ export function useApiAuth() {
 }
 
 // ==================== SITES ====================
-export function useSites(params?: { page?: number; limit?: number; search?: string }) {
+export function useSites(params?: { page?: number; limit?: number; search?: string; enabled?: boolean }) {
   const { accessToken } = useAuthStore();
+  const isEnabled = params?.enabled !== undefined ? params.enabled && !!accessToken : !!accessToken;
 
   return useQuery({
     queryKey: ["sites", params],
@@ -161,7 +174,7 @@ export function useSites(params?: { page?: number; limit?: number; search?: stri
         },
       });
     },
-    enabled: !!accessToken,
+    enabled: isEnabled,
   });
 }
 
@@ -273,8 +286,9 @@ export function useSiteStats(params?: { from?: string; to?: string }) {
 }
 
 // ==================== PARTNERS ====================
-export function usePartners(params?: { page?: number; limit?: number; search?: string }) {
+export function usePartners(params?: { page?: number; limit?: number; search?: string; enabled?: boolean }) {
   const { accessToken } = useAuthStore();
+  const isEnabled = params?.enabled !== undefined ? params.enabled && !!accessToken : !!accessToken;
 
   return useQuery({
     queryKey: ["partners", params],
@@ -288,7 +302,7 @@ export function usePartners(params?: { page?: number; limit?: number; search?: s
         },
       });
     },
-    enabled: !!accessToken,
+    enabled: isEnabled,
   });
 }
 
@@ -321,8 +335,9 @@ export function useCreatePartner() {
 }
 
 // ==================== FINANCIERS ====================
-export function useFinanciers(params?: { page?: number; limit?: number; search?: string }) {
+export function useFinanciers(params?: { page?: number; limit?: number; search?: string; enabled?: boolean }) {
   const { accessToken } = useAuthStore();
+  const isEnabled = params?.enabled !== undefined ? params.enabled && !!accessToken : !!accessToken;
 
   return useQuery({
     queryKey: ["financiers", params],
@@ -336,7 +351,7 @@ export function useFinanciers(params?: { page?: number; limit?: number; search?:
         },
       });
     },
-    enabled: !!accessToken,
+    enabled: isEnabled,
   });
 }
 
@@ -445,8 +460,9 @@ export function useFinancierTransactions(
 }
 
 // ==================== EXTERNAL PARTIES ====================
-export function useExternalParties(params?: { page?: number; limit?: number; search?: string }) {
+export function useExternalParties(params?: { page?: number; limit?: number; search?: string; enabled?: boolean }) {
   const { accessToken } = useAuthStore();
+  const isEnabled = params?.enabled !== undefined ? params.enabled && !!accessToken : !!accessToken;
 
   return useQuery({
     queryKey: ["external-parties", params],
@@ -460,7 +476,7 @@ export function useExternalParties(params?: { page?: number; limit?: number; sea
         },
       });
     },
-    enabled: !!accessToken,
+    enabled: isEnabled,
   });
 }
 
@@ -910,6 +926,7 @@ export function useDashboardStats() {
       };
     },
     enabled: !!accessToken,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -955,6 +972,7 @@ export function useActiveBlocks() {
       return allBlocks.flat();
     },
     enabled: !!accessToken,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -1291,8 +1309,9 @@ export interface DeliveryType {
   created_at: string;
 }
 
-export function useDeliveryTypes() {
+export function useDeliveryTypes(options?: { enabled?: boolean }) {
   const { accessToken } = useAuthStore();
+  const isEnabled = options?.enabled !== undefined ? options.enabled && !!accessToken : !!accessToken;
 
   return useQuery({
     queryKey: ["delivery-types"],
@@ -1300,7 +1319,7 @@ export function useDeliveryTypes() {
       api.setToken(accessToken);
       return api.get<DeliveryType[]>("/api/delivery-types");
     },
-    enabled: !!accessToken,
+    enabled: isEnabled,
   });
 }
 
@@ -1548,6 +1567,52 @@ export function useReverseTransaction() {
   });
 }
 
+// ==================== EDIT TRANSACTION ====================
+export interface EditTransactionData {
+  amount?: string;
+  site_id?: string;
+  financier_id?: string;
+  partner_id?: string | null;
+  external_party_id?: string | null;
+  to_financier_id?: string;
+  delivery_type_id?: string;
+  description?: string;
+  reference_id?: string | null;
+  transaction_date?: string;
+  category_id?: string | null;
+  source_type?: string;
+  source_id?: string | null;
+  topup_source_type?: string;
+  topup_source_id?: string | null;
+  override_commissions?: boolean;
+  custom_site_commission?: string;
+  custom_partner_commission?: string;
+  custom_financier_commission?: string;
+  custom_organization_amount?: string;
+  reason: string;
+}
+
+export function useEditTransaction() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: EditTransactionData }) => {
+      api.setToken(accessToken);
+      return api.put(`/api/transactions/${id}/edit`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({ queryKey: ["financiers"] });
+      queryClient.invalidateQueries({ queryKey: ["partners"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["org-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["organization"] });
+    },
+  });
+}
+
 // ==================== NOTIFICATIONS ====================
 export interface Notification {
   id: string;
@@ -1585,7 +1650,8 @@ export function useUnreadCount() {
       return api.get<{ count: number }>("/api/notifications/unread/count");
     },
     enabled: !!accessToken,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 60000,
   });
 }
 
@@ -1722,6 +1788,7 @@ export function useApprovalStats() {
       return api.get<ApprovalStats>("/api/approvals/stats");
     },
     enabled: !!accessToken,
-    refetchInterval: 60000,
+    refetchInterval: 120000,
+    staleTime: 60000,
   });
 }

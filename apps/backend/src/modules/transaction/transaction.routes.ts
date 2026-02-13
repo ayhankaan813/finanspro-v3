@@ -15,6 +15,7 @@ import {
   createTopUpSchema,
   createDeliverySchema,
   reverseTransactionSchema,
+  editTransactionSchema,
   transactionQuerySchema,
 } from './transaction.schema.js';
 import type {
@@ -32,6 +33,7 @@ import type {
   CreateTopUpInput,
   CreateDeliveryInput,
   ReverseTransactionInput,
+  EditTransactionInput,
   TransactionQueryInput,
 } from './transaction.schema.js';
 import { authenticate, requireAdmin } from '../auth/auth.routes.js';
@@ -279,6 +281,28 @@ export async function transactionRoutes(app: FastifyInstance) {
       );
 
       return { success: true, data: reversal };
+    }
+  );
+
+  /**
+   * PUT /transactions/:id/edit
+   * Edit a completed transaction (requires admin)
+   * Uses Undo & Recreate strategy for ledger consistency
+   */
+  app.put<{ Params: { id: string }; Body: EditTransactionInput }>(
+    '/:id/edit',
+    {
+      preHandler: [requireAdmin],
+    },
+    async (request, reply) => {
+      const input = editTransactionSchema.parse(request.body);
+      const updated = await transactionService.editTransaction(
+        request.params.id,
+        input,
+        request.user!.userId
+      );
+
+      return { success: true, data: updated };
     }
   );
 

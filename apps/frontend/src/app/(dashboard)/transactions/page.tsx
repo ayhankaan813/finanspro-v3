@@ -35,8 +35,11 @@ import {
   useCreateOrgIncome,
   useCreateOrgWithdraw,
   useReverseTransaction,
+  useEditTransaction,
   Transaction,
+  EditTransactionData,
 } from "@/hooks/use-api";
+import { useAuthStore } from "@/stores/auth.store";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,6 +92,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Activity,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -293,12 +297,12 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Data Hooks
-  const { data: sites } = useSites({ limit: 100 });
-  const { data: partners } = usePartners({ limit: 100 });
-  const { data: financiers } = useFinanciers({ limit: 100 });
-  const { data: externalParties } = useExternalParties({ limit: 100 });
-  const { data: deliveryTypes } = useDeliveryTypes();
+  // Data Hooks — only fetch when modal is open
+  const { data: sites } = useSites({ limit: 100, enabled: isOpen });
+  const { data: partners } = usePartners({ limit: 100, enabled: isOpen });
+  const { data: financiers } = useFinanciers({ limit: 100, enabled: isOpen });
+  const { data: externalParties } = useExternalParties({ limit: 100, enabled: isOpen });
+  const { data: deliveryTypes } = useDeliveryTypes({ enabled: isOpen });
 
   // Mutation Hooks
   const mutations = {
@@ -724,7 +728,14 @@ export default function TransactionsPage() {
   const [showReverseDialog, setShowReverseDialog] = useState(false);
   const [reverseReason, setReverseReason] = useState("");
   const [expandedReversals, setExpandedReversals] = useState<Set<string>>(new Set());
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState<Record<string, any>>({});
+  const [editReason, setEditReason] = useState("");
+  const [overrideCommissions, setOverrideCommissions] = useState(false);
   const reverseTransaction = useReverseTransaction();
+  const editTransaction = useEditTransaction();
+  const { user: authUser } = useAuthStore();
+  const isAdmin = authUser?.role === "ADMIN";
   const limit = 20;
 
   const { data: sites } = useSites({ page: 1, limit: 100 });
@@ -821,8 +832,8 @@ export default function TransactionsPage() {
               key={type}
               onClick={() => setFilters({ ...filters, type })}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filters.type === type
-                  ? "bg-twilight-900 text-white shadow-md"
-                  : "text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50"
+                ? "bg-twilight-900 text-white shadow-md"
+                : "text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50"
                 }`}
             >
               {type === "" ? "Tümü" : type === "DEPOSIT" ? "Yatırım" : "Çekim"}
@@ -833,8 +844,8 @@ export default function TransactionsPage() {
         <Button
           onClick={() => setShowFilters(true)}
           className={`h-11 px-5 rounded-xl border transition-all ${activeFilterCount > 0
-              ? "bg-twilight-900 text-white border-twilight-900 hover:bg-twilight-800 shadow-lg shadow-twilight-900/20"
-              : "bg-white text-twilight-700 border-twilight-200 hover:bg-twilight-50 hover:border-twilight-300"
+            ? "bg-twilight-900 text-white border-twilight-900 hover:bg-twilight-800 shadow-lg shadow-twilight-900/20"
+            : "bg-white text-twilight-700 border-twilight-200 hover:bg-twilight-50 hover:border-twilight-300"
             }`}
         >
           <Filter className="mr-2 h-4 w-4" />
@@ -883,28 +894,26 @@ export default function TransactionsPage() {
                 return (
                   <React.Fragment key={t.id}>
                     <tr
-                      className={`group transition-colors ${
-                        isReversed
-                          ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-4 border-rose-400'
-                          : 'hover:bg-twilight-50/30'
-                      }`}
+                      className={`group transition-colors ${isReversed
+                        ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-4 border-rose-400'
+                        : 'hover:bg-twilight-50/30'
+                        }`}
                       onClick={() => isReversed && toggleReversalDetails(t.id)}
                       style={{ cursor: isReversed ? 'pointer' : 'default' }}
                     >
                       {/* Islem Turu */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            isReversed ? 'bg-rose-100 text-rose-600' :
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isReversed ? 'bg-rose-100 text-rose-600' :
                             t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
-                            t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
-                            t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
-                            'bg-twilight-100 text-twilight-600'
-                          }`}>
+                              t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
+                                t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
+                                  'bg-twilight-100 text-twilight-600'
+                            }`}>
                             {isReversed ? <RotateCcw className="h-4 w-4" /> :
-                             t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
-                             t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
-                             <Send className="h-4 w-4" />}
+                              t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
+                                t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
+                                  <Send className="h-4 w-4" />}
                           </div>
                           <div>
                             <p className={`font-semibold text-sm ${isReversed ? 'text-rose-700 line-through' : 'text-twilight-900'}`}>
@@ -922,11 +931,19 @@ export default function TransactionsPage() {
 
                       {/* Durum */}
                       <td className="py-3 px-4">
-                        {isReversed ? (
-                          <Badge variant="destructive" className="bg-rose-100 text-rose-700 border-rose-300">
-                            🚫 İptal Edildi
-                          </Badge>
-                        ) : getStatusBadge(t.status)}
+                        <div className="flex items-center gap-1">
+                          {isReversed ? (
+                            <Badge variant="destructive" className="bg-rose-100 text-rose-700 border-rose-300">
+                              🚫 İptal Edildi
+                            </Badge>
+                          ) : getStatusBadge(t.status)}
+                          {(t.edit_count ?? 0) > 0 && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-[10px] px-1.5 py-0">
+                              <Pencil className="h-2.5 w-2.5 mr-0.5" />
+                              {t.edit_count}
+                            </Badge>
+                          )}
+                        </div>
                       </td>
 
                       {/* Site */}
@@ -978,14 +995,13 @@ export default function TransactionsPage() {
 
                       {/* Tutar */}
                       <td className="py-3 px-4 text-right">
-                        <span className={`text-sm font-bold ${
-                          isReversed ? 'text-rose-600 line-through' :
+                        <span className={`text-sm font-bold ${isReversed ? 'text-rose-600 line-through' :
                           t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
                             ? 'text-emerald-700' :
-                          t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
-                            ? 'text-rose-700' :
-                            'text-twilight-700'
-                        }`}>
+                            t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
+                              ? 'text-rose-700' :
+                              'text-twilight-700'
+                          }`}>
                           {formatMoney(parseFloat(t.gross_amount || "0"))}
                         </span>
                         {t.net_amount && t.net_amount !== t.gross_amount && (
@@ -1006,6 +1022,34 @@ export default function TransactionsPage() {
                               <Eye className="h-4 w-4 mr-2" />
                               Detay Goruntule
                             </DropdownMenuItem>
+                            {isAdmin && t.status === 'COMPLETED' && t.type !== 'REVERSAL' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedTransaction(t);
+                                    setEditFormData({
+                                      amount: t.gross_amount,
+                                      description: t.description || '',
+                                      reference_id: t.reference_id || '',
+                                      site_id: t.site_id || '',
+                                      financier_id: t.financier_id || '',
+                                      partner_id: t.partner_id || '',
+                                      external_party_id: t.external_party_id || '',
+                                      category_id: t.category_id || '',
+                                      delivery_type_id: t.delivery_type_id || '',
+                                    });
+                                    setEditReason('');
+                                    setOverrideCommissions(false);
+                                    setShowEditModal(true);
+                                  }}
+                                  className="text-blue-600 focus:text-blue-600"
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Duzenle
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => { setSelectedTransaction(t); setShowReverseDialog(true); }}
@@ -1306,6 +1350,282 @@ export default function TransactionsPage() {
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Iptal Ediliyor...</>
                 ) : (
                   'Iptal Et'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {showEditModal && selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8">
+          <div className="bg-white rounded-2xl p-6 w-[560px] shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <Pencil className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-twilight-900">Islemi Duzenle</h3>
+                <p className="text-sm text-twilight-500">
+                  {getTransactionTypeLabel(selectedTransaction.type)} - {selectedTransaction.site?.name || selectedTransaction.financier?.name || ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Current Info */}
+            <div className="bg-twilight-50 rounded-xl p-3 mb-5">
+              <div className="flex justify-between text-sm">
+                <span className="text-twilight-500">Mevcut Tutar</span>
+                <span className="font-bold text-twilight-900">{formatMoney(parseFloat(selectedTransaction.gross_amount || "0"))}</span>
+              </div>
+              {selectedTransaction.edit_count ? (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-twilight-500">Onceki Duzenleme</span>
+                  <span className="text-blue-600">{selectedTransaction.edit_count} kez duzenlendi</span>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-4">
+              {/* Amount */}
+              <div>
+                <Label className="text-sm font-semibold text-twilight-700">Tutar *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.amount || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                  className="mt-1 text-lg font-bold"
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Site - for types that have site */}
+              {['DEPOSIT', 'WITHDRAWAL', 'SITE_DELIVERY', 'DELIVERY'].includes(selectedTransaction.type) && (
+                <div>
+                  <Label className="text-sm font-semibold text-twilight-700">Site</Label>
+                  <Select
+                    value={editFormData.site_id || ''}
+                    onValueChange={(val) => setEditFormData({ ...editFormData, site_id: val })}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Site sec" /></SelectTrigger>
+                    <SelectContent>
+                      {sites?.items?.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name} ({s.code})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Financier - for most types */}
+              {!['REVERSAL', 'ADJUSTMENT'].includes(selectedTransaction.type) && (
+                <div>
+                  <Label className="text-sm font-semibold text-twilight-700">Finansor</Label>
+                  <Select
+                    value={editFormData.financier_id || ''}
+                    onValueChange={(val) => setEditFormData({ ...editFormData, financier_id: val })}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Finansor sec" /></SelectTrigger>
+                    <SelectContent>
+                      {financiers?.items?.map((f: any) => (
+                        <SelectItem key={f.id} value={f.id}>{f.name} ({f.code})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Partner - for PARTNER_PAYMENT */}
+              {selectedTransaction.type === 'PARTNER_PAYMENT' && (
+                <div>
+                  <Label className="text-sm font-semibold text-twilight-700">Partner</Label>
+                  <Select
+                    value={editFormData.partner_id || ''}
+                    onValueChange={(val) => setEditFormData({ ...editFormData, partner_id: val })}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Partner sec" /></SelectTrigger>
+                    <SelectContent>
+                      {partners?.items?.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name} ({p.code})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <Label className="text-sm font-semibold text-twilight-700">Aciklama</Label>
+                <Input
+                  value={editFormData.description || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  className="mt-1"
+                  placeholder="Aciklama"
+                />
+              </div>
+
+              {/* Reference */}
+              <div>
+                <Label className="text-sm font-semibold text-twilight-700">Referans</Label>
+                <Input
+                  value={editFormData.reference_id || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, reference_id: e.target.value })}
+                  className="mt-1"
+                  placeholder="Referans No"
+                />
+              </div>
+
+              {/* Commission Override - for DEPOSIT/WITHDRAWAL */}
+              {['DEPOSIT', 'WITHDRAWAL'].includes(selectedTransaction.type) && (
+                <div className="border border-blue-200 rounded-xl p-4 bg-blue-50/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      id="override-commissions"
+                      checked={overrideCommissions}
+                      onChange={(e) => setOverrideCommissions(e.target.checked)}
+                      className="rounded border-blue-300"
+                    />
+                    <Label htmlFor="override-commissions" className="text-sm font-semibold text-blue-700 cursor-pointer">
+                      Komisyonlari Manuel Belirle
+                    </Label>
+                  </div>
+                  {overrideCommissions && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-blue-600">Site Komisyonu</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editFormData.custom_site_commission || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, custom_site_commission: e.target.value })}
+                          className="mt-0.5 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-blue-600">Partner Komisyonu</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editFormData.custom_partner_commission || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, custom_partner_commission: e.target.value })}
+                          className="mt-0.5 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-blue-600">Finansor Komisyonu</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editFormData.custom_financier_commission || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, custom_financier_commission: e.target.value })}
+                          className="mt-0.5 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-blue-600">Organizasyon Payi</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editFormData.custom_organization_amount || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, custom_organization_amount: e.target.value })}
+                          className="mt-0.5 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Edit Reason */}
+              <div>
+                <Label className="text-sm font-semibold text-twilight-700">Duzenleme Sebebi *</Label>
+                <Textarea
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="Neden duzenleniyor? (en az 5 karakter)"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-6">
+              <Button
+                variant="outline"
+                onClick={() => { setShowEditModal(false); setEditFormData({}); setEditReason(''); setOverrideCommissions(false); }}
+              >
+                Vazgec
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={editReason.trim().length < 5 || editTransaction.isPending}
+                onClick={async () => {
+                  try {
+                    const payload: EditTransactionData = {
+                      reason: editReason,
+                    };
+
+                    // Only send changed fields
+                    if (editFormData.amount !== selectedTransaction.gross_amount) {
+                      payload.amount = editFormData.amount;
+                    }
+                    if (editFormData.site_id && editFormData.site_id !== selectedTransaction.site_id) {
+                      payload.site_id = editFormData.site_id;
+                    }
+                    if (editFormData.financier_id && editFormData.financier_id !== selectedTransaction.financier_id) {
+                      payload.financier_id = editFormData.financier_id;
+                    }
+                    if (editFormData.partner_id && editFormData.partner_id !== selectedTransaction.partner_id) {
+                      payload.partner_id = editFormData.partner_id;
+                    }
+                    if (editFormData.description !== (selectedTransaction.description || '')) {
+                      payload.description = editFormData.description;
+                    }
+                    if (editFormData.reference_id !== (selectedTransaction.reference_id || '')) {
+                      payload.reference_id = editFormData.reference_id || null;
+                    }
+                    if (overrideCommissions) {
+                      payload.override_commissions = true;
+                      payload.custom_site_commission = editFormData.custom_site_commission || '0';
+                      payload.custom_partner_commission = editFormData.custom_partner_commission || '0';
+                      payload.custom_financier_commission = editFormData.custom_financier_commission || '0';
+                      payload.custom_organization_amount = editFormData.custom_organization_amount || '0';
+                    }
+
+                    await editTransaction.mutateAsync({
+                      id: selectedTransaction.id,
+                      data: payload,
+                    });
+
+                    toast({
+                      title: "Islem Duzenlendi",
+                      description: "Islem basariyla duzenlendi ve bakiyeler guncellendi.",
+                      variant: "success",
+                    });
+                    setShowEditModal(false);
+                    setEditFormData({});
+                    setEditReason('');
+                    setOverrideCommissions(false);
+                    setSelectedTransaction(null);
+                  } catch (err: any) {
+                    toast({
+                      title: "Duzenleme Hatasi",
+                      description: err.message || "Islem duzenlenemedi. Lutfen tekrar deneyin.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                {editTransaction.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Kaydediliyor...</>
+                ) : (
+                  <><Pencil className="h-4 w-4 mr-2" /> Kaydet</>
                 )}
               </Button>
             </div>
