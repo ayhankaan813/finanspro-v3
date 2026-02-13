@@ -239,6 +239,39 @@ export function useUpdateSite() {
   });
 }
 
+export function useDeleteSite() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      api.setToken(accessToken);
+      return api.delete(`/api/sites/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sites"] });
+    },
+  });
+}
+
+export function useSiteStats(params?: { from?: string; to?: string }) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["site-stats", params],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<Record<string, { totalDeposit: string; totalWithdrawal: string }>>("/api/sites/stats", {
+        params: {
+          ...(params?.from && { from: params.from }),
+          ...(params?.to && { to: params.to }),
+        },
+      });
+    },
+    enabled: !!accessToken,
+  });
+}
+
 // ==================== PARTNERS ====================
 export function usePartners(params?: { page?: number; limit?: number; search?: string }) {
   const { accessToken } = useAuthStore();

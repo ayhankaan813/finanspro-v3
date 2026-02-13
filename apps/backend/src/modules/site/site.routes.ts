@@ -28,6 +28,30 @@ export async function siteRoutes(app: FastifyInstance) {
   );
 
   /**
+   * GET /sites/stats
+   * Get aggregated transaction stats for all sites within a date range
+   */
+  app.get<{ Querystring: { from?: string; to?: string } }>(
+    '/stats',
+    async (request, reply) => {
+      const now = new Date();
+      const from = request.query.from
+        ? new Date(request.query.from)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const to = request.query.to
+        ? new Date(request.query.to + 'T23:59:59.999Z')
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      const stats = await siteService.getAllSiteStats(from, to);
+
+      return {
+        success: true,
+        data: stats,
+      };
+    }
+  );
+
+  /**
    * GET /sites/:id
    * Get site by ID
    */

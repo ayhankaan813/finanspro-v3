@@ -648,6 +648,44 @@ export class SiteService {
       })),
     };
   }
+
+  /**
+   * Get transaction stats for ALL sites within a date range
+   * Returns deposit/withdrawal totals grouped by site_id
+   */
+  async getAllSiteStats(from: Date, to: Date) {
+    const transactions = await prisma.transaction.groupBy({
+      by: ['site_id', 'type'],
+      where: {
+        site_id: { not: null },
+        transaction_date: { gte: from, lte: to },
+        status: 'COMPLETED',
+        deleted_at: null,
+        type: { in: ['DEPOSIT', 'WITHDRAWAL'] },
+      },
+      _sum: {
+        gross_amount: true,
+      },
+    });
+
+    // Build a map: { siteId: { totalDeposit, totalWithdrawal } }
+    const statsMap: Record<string, { totalDeposit: string; totalWithdrawal: string }> = {};
+
+    transactions.forEach((row) => {
+      const siteId = row.site_id!;
+      if (!statsMap[siteId]) {
+        statsMap[siteId] = { totalDeposit: '0', totalWithdrawal: '0' };
+      }
+      const amount = row._sum.gross_amount?.toFixed(2) || '0';
+      if (row.type === 'DEPOSIT') {
+        statsMap[siteId].totalDeposit = amount;
+      } else if (row.type === 'WITHDRAWAL') {
+        statsMap[siteId].totalWithdrawal = amount;
+      }
+    });
+
+    return statsMap;
+  }
 }
 
 export const siteService = new SiteService();

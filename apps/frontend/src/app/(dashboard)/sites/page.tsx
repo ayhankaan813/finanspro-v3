@@ -11,12 +11,46 @@ import { formatMoney } from "@/lib/utils";
 import {
   useSites,
   useCreateSite,
+  useUpdateSite,
+  useDeleteSite,
+  useSiteStats,
   useSiteCommissionRates,
   useCreateSiteCommissionRate,
   useUpdateSiteCommissionRate,
   Site,
   CommissionRate,
 } from "@/hooks/use-api";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Building2,
   Plus,
@@ -45,6 +79,11 @@ import {
   MoreVertical,
   Wallet,
   GripVertical,
+  Pencil,
+  Trash2,
+  Power,
+  PowerOff,
+  Calendar,
 } from "lucide-react";
 import {
   DndContext,
@@ -76,9 +115,17 @@ const TRANSACTION_TYPES = [
 function SortableSiteCard({
   site,
   setCommissionSite,
+  siteStats,
+  onEditName,
+  onToggleActive,
+  onDelete,
 }: {
   site: Site;
   setCommissionSite: (site: Site) => void;
+  siteStats?: { totalDeposit: string; totalWithdrawal: string };
+  onEditName: (site: Site) => void;
+  onToggleActive: (site: Site) => void;
+  onDelete: (site: Site) => void;
 }) {
   const {
     attributes,
@@ -98,10 +145,10 @@ function SortableSiteCard({
     opacity: isDragging ? 0.9 : 1,
   };
 
-  // Site is a LIABILITY account - positive balance means we owe money to customers
-  // Display as-is (no sign flip needed)
   const accountBalance = parseFloat(site.account?.balance || "0");
-  const displayBalance = accountBalance; // Show as-is: 94 TL stays 94 TL
+  const displayBalance = accountBalance;
+  const totalDeposit = parseFloat(siteStats?.totalDeposit || "0");
+  const totalWithdrawal = parseFloat(siteStats?.totalWithdrawal || "0");
 
   const depositRate = rates?.find(r => r.transaction_type === "DEPOSIT" && r.is_active);
   const withdrawalRate = rates?.find(r => r.transaction_type === "WITHDRAWAL" && r.is_active);
@@ -110,15 +157,17 @@ function SortableSiteCard({
     return rate ? `${(parseFloat(rate.rate) * 100).toFixed(2)}%` : "-";
   };
 
+  const isInactive = !site.is_active;
+
   return (
     <div ref={setNodeRef} style={style} className={`relative ${isDragging ? "shadow-2xl scale-105" : ""}`}>
-      <Card className="group border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100">
+      <Card className={`group border-0 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden rounded-3xl ring-1 ${isInactive ? "ring-gray-200 bg-gray-50 opacity-60" : "ring-twilight-100 bg-white"
+        }`}>
         <CardHeader className="p-0 relative">
-          <div className="h-2 bg-gradient-to-r from-twilight-400 to-twilight-600"></div>
-          {/* Drag Handle Overlay - shows on hover of the header area */}
+          <div className={`h-2 bg-gradient-to-r ${isInactive ? "from-gray-300 to-gray-400" : "from-twilight-400 to-twilight-600"
+            }`}></div>
           <div className="px-6 pt-5 pb-2 flex justify-between items-start">
             <div className="flex items-center gap-4">
-              {/* Drag Handle */}
               <div
                 {...attributes}
                 {...listeners}
@@ -128,50 +177,78 @@ function SortableSiteCard({
                 <GripVertical className="h-5 w-5" />
               </div>
 
-              <div className="h-12 w-12 rounded-2xl bg-twilight-50 flex items-center justify-center text-twilight-700 font-bold text-xl shadow-inner">
+              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner ${isInactive ? "bg-gray-100 text-gray-400" : "bg-twilight-50 text-twilight-700"
+                }`}>
                 {site.name.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <h3 className="font-bold text-lg text-twilight-900 group-hover:text-twilight-600 transition-colors">
+                <h3 className={`font-bold text-lg transition-colors ${isInactive ? "text-gray-400 line-through" : "text-twilight-900 group-hover:text-twilight-600"
+                  }`}>
                   {site.name}
                 </h3>
                 <div className="flex items-center gap-2">
                   <BadgeCode code={site.code} />
                   {site.is_active && <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>}
+                  {isInactive && <span className="text-[10px] text-red-400 font-semibold uppercase">Pasif</span>}
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="text-twilight-300 hover:text-twilight-600">
-              <MoreVertical className="h-5 w-5" />
-            </Button>
+
+            {/* Three Dot Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-twilight-300 hover:text-twilight-600">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => onEditName(site)}>
+                  <Pencil className="mr-2 h-4 w-4" /> İsim Düzenle
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onToggleActive(site)}>
+                  {site.is_active ? (
+                    <><PowerOff className="mr-2 h-4 w-4 text-amber-500" /> Pasife Al</>
+                  ) : (
+                    <><Power className="mr-2 h-4 w-4 text-emerald-500" /> Aktif Et</>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onDelete(site)} className="text-red-600 focus:text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" /> Sil
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-6 pt-2">
           {/* Main Balance */}
-          <div className="py-4 text-center bg-twilight-50/50 rounded-2xl mb-4 border border-twilight-100/50">
-            <p className="text-xs font-semibold text-twilight-400 uppercase tracking-widest mb-1">Mevcut Bakiye</p>
-            <p className={`text-3xl font-bold font-mono tracking-tight ${displayBalance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+          <div className={`py-4 text-center rounded-2xl mb-4 border ${isInactive ? "bg-gray-100/50 border-gray-200/50" : "bg-twilight-50/50 border-twilight-100/50"
+            }`}>
+            <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isInactive ? "text-gray-400" : "text-twilight-400"
+              }`}>Mevcut Bakiye</p>
+            <p className={`text-3xl font-bold font-mono tracking-tight ${isInactive ? "text-gray-400" : displayBalance >= 0 ? "text-emerald-600" : "text-rose-600"
+              }`}>
               {formatMoney(displayBalance)}
             </p>
           </div>
 
-          {/* Mini Stats Grid - will show real transaction totals when available */}
+          {/* Mini Stats Grid - real transaction totals */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <MiniStat
               label="Toplam Giriş"
-              val={formatMoney(0)}
+              val={formatMoney(totalDeposit)}
               trend="up"
               icon={ArrowDownToLine}
-              color="text-emerald-600"
-              bg="bg-emerald-50"
+              color={isInactive ? "text-gray-400" : "text-emerald-600"}
+              bg={isInactive ? "bg-gray-50" : "bg-emerald-50"}
             />
             <MiniStat
               label="Toplam Çıkış"
-              val={formatMoney(0)}
+              val={formatMoney(totalWithdrawal)}
               trend="down"
               icon={ArrowUpFromLine}
-              color="text-rose-600"
-              bg="bg-rose-50"
+              color={isInactive ? "text-gray-400" : "text-rose-600"}
+              bg={isInactive ? "bg-gray-50" : "bg-rose-50"}
             />
           </div>
 
@@ -557,16 +634,51 @@ function CommissionModal({
   );
 }
 
+// Date presets
+const DATE_PRESETS = [
+  { label: "Bugün", days: 0 },
+  { label: "Son 7 Gün", days: 7 },
+  { label: "Son 30 Gün", days: 30 },
+  { label: "Bu Ay", days: -1 },
+];
+
+function getDateRange(preset: number): { from: string; to: string; label: string } {
+  const now = new Date();
+  const toStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  if (preset === 0) {
+    return { from: toStr, to: toStr, label: "Bugün" };
+  } else if (preset === -1) {
+    // This month
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    return { from: firstDay, to: toStr, label: "Bu Ay" };
+  } else {
+    const fromDate = new Date(now);
+    fromDate.setDate(fromDate.getDate() - preset);
+    const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, "0")}-${String(fromDate.getDate()).padStart(2, "0")}`;
+    return { from: fromStr, to: toStr, label: `Son ${preset} Gün` };
+  }
+}
+
 export default function SitesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commissionSite, setCommissionSite] = useState<Site | null>(null);
   const [orderedSites, setOrderedSites] = useState<Site[]>([]);
+  const [datePreset, setDatePreset] = useState(0); // 0 = today
+  const [editSite, setEditSite] = useState<Site | null>(null);
+  const [editName, setEditName] = useState("");
+  const [deleteSiteTarget, setDeleteSiteTarget] = useState<Site | null>(null);
 
+  const { toast } = useToast();
+  const dateRange = getDateRange(datePreset);
 
-  const { data, isLoading, error } = useSites({ page, limit: 20, search });
+  const { data, isLoading, error } = useSites({ page, limit: 100, search });
   const createSite = useCreateSite();
+  const updateSite = useUpdateSite();
+  const deleteSiteMut = useDeleteSite();
+  const { data: siteStatsData } = useSiteStats({ from: dateRange.from, to: dateRange.to });
 
   // Sync data to local sorted state when fetched
   useEffect(() => {
@@ -592,7 +704,6 @@ export default function SitesPage() {
 
         return arrayMove(items, oldIndex, newIndex);
       });
-      // Here you would typically also call an API to save the new order
     }
   };
 
@@ -611,14 +722,54 @@ export default function SitesPage() {
     }
   };
 
+  const handleEditName = async () => {
+    if (!editSite || !editName.trim()) return;
+    try {
+      await updateSite.mutateAsync({ id: editSite.id, data: { name: editName.trim() } });
+      toast({ title: "Başarılı", description: `Site ismi güncellendi: ${editName.trim()}` });
+      setEditSite(null);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Hata", description: err.message });
+    }
+  };
+
+  const handleToggleActive = async (site: Site) => {
+    try {
+      await updateSite.mutateAsync({ id: site.id, data: { is_active: !site.is_active } });
+      toast({
+        title: site.is_active ? "Pasife Alındı" : "Aktif Edildi",
+        description: `${site.name} ${site.is_active ? "pasif" : "aktif"} duruma getirildi.`,
+      });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Hata", description: err.message });
+    }
+  };
+
+  const handleDeleteSite = async () => {
+    if (!deleteSiteTarget) return;
+    try {
+      await deleteSiteMut.mutateAsync(deleteSiteTarget.id);
+      toast({ title: "Silindi", description: `${deleteSiteTarget.name} silindi.` });
+      setDeleteSiteTarget(null);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Hata", description: err.message });
+    }
+  };
+
+  // Calculate header stats from siteStatsData
+  const globalTotalIn = siteStatsData
+    ? Object.values(siteStatsData).reduce((acc, s) => acc + parseFloat(s.totalDeposit || "0"), 0)
+    : 0;
+  const globalTotalOut = siteStatsData
+    ? Object.values(siteStatsData).reduce((acc, s) => acc + parseFloat(s.totalWithdrawal || "0"), 0)
+    : 0;
+
   const stats = {
     total: data?.total || 0,
     active: data?.items.filter(s => s.is_active).length || 0,
-    // Site is LIABILITY - positive balance means we owe customers
-    // Show as-is (no sign flip)
     totalBalance: data?.items.reduce((acc, s) => acc + parseFloat(s.account?.balance || "0"), 0) || 0,
-    totalIn: 0, // Will come from real transaction data
-    totalOut: 0, // Will come from real transaction data
+    totalIn: globalTotalIn,
+    totalOut: globalTotalOut,
   };
 
   if (error) {
@@ -666,8 +817,8 @@ export default function SitesPage() {
             {[
               { label: "Toplam Site", val: stats.total, sub: `${stats.active} aktif`, icon: Globe },
               { label: "Toplam Bakiye", val: formatMoney(stats.totalBalance), sub: "Anlık Durum", icon: Wallet, highlight: true },
-              { label: "Toplam Giriş", val: formatMoney(stats.totalIn), sub: "Bu Ay", icon: ArrowDownToLine, color: "text-emerald-300" },
-              { label: "Toplam Çıkış", val: formatMoney(stats.totalOut), sub: "Bu Ay", icon: ArrowUpFromLine, color: "text-rose-300" }
+              { label: "Toplam Giriş", val: formatMoney(stats.totalIn), sub: dateRange.label, icon: ArrowDownToLine, color: "text-emerald-300" },
+              { label: "Toplam Çıkış", val: formatMoney(stats.totalOut), sub: dateRange.label, icon: ArrowUpFromLine, color: "text-rose-300" }
             ].map((stat, i) => (
               <div key={i} className={`rounded-2xl p-4 backdrop-blur-md border border-white/10 transition-all hover:bg-white/10 ${stat.highlight ? 'bg-white/15' : 'bg-white/5'}`}>
                 <div className="flex items-center gap-3 mb-3">
@@ -684,23 +835,39 @@ export default function SitesPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
+      {/* Date Filter + Toolbar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-2 rounded-2xl border border-twilight-100 shadow-sm">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-twilight-400 h-4 w-4" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="İsim veya kod ile ara..."
-            className="pl-10 h-11 border-none bg-transparent focus-visible:ring-0 text-base"
-          />
-        </div>
+        {/* Date Presets */}
         <div className="flex items-center gap-2 px-2">
-          <Button variant="ghost" size="sm" className="text-twilight-500">
-            <ArrowDownToLine className="h-4 w-4 mr-2" /> Dışa Aktar
-          </Button>
+          <Calendar className="h-4 w-4 text-twilight-400" />
+          {DATE_PRESETS.map((preset) => (
+            <Button
+              key={preset.days}
+              variant={datePreset === preset.days ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setDatePreset(preset.days)}
+              className={`h-8 text-xs rounded-lg ${datePreset === preset.days
+                  ? "bg-twilight-900 text-white hover:bg-twilight-800"
+                  : "text-twilight-500 hover:bg-twilight-50"
+                }`}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-twilight-400 h-4 w-4" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="İsim veya kod ile ara..."
+              className="pl-9 h-9 text-sm border-twilight-100"
+            />
+          </div>
           <div className="h-6 w-px bg-twilight-100"></div>
-          <span className="text-sm text-twilight-400 font-medium px-2">{data?.items.length || 0} Sonuç</span>
+          <span className="text-sm text-twilight-400 font-medium px-2 whitespace-nowrap">{data?.items.length || 0} Sonuç</span>
         </div>
       </div>
 
@@ -723,6 +890,10 @@ export default function SitesPage() {
                   key={site.id}
                   site={site}
                   setCommissionSite={setCommissionSite}
+                  siteStats={siteStatsData?.[site.id]}
+                  onEditName={(s) => { setEditSite(s); setEditName(s.name); }}
+                  onToggleActive={handleToggleActive}
+                  onDelete={setDeleteSiteTarget}
                 />
               ))}
             </div>
@@ -745,6 +916,54 @@ export default function SitesPage() {
           onClose={() => setCommissionSite(null)}
         />
       )}
+
+      {/* Edit Name Dialog */}
+      <Dialog open={!!editSite} onOpenChange={(open) => !open && setEditSite(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Site İsmini Düzenle</DialogTitle>
+            <DialogDescription>Sitenin görünen adını değiştirin.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="siteName">Site Adı</Label>
+            <Input
+              id="siteName"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="mt-2"
+              placeholder="Site adı"
+              onKeyDown={(e) => e.key === "Enter" && handleEditName()}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSite(null)}>İptal</Button>
+            <Button onClick={handleEditName} disabled={updateSite.isPending}>
+              {updateSite.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteSiteTarget} onOpenChange={(open) => !open && setDeleteSiteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Siteyi silmek istediğinize emin misiniz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{deleteSiteTarget?.name}</strong> kalıcı olarak silinecek. Bu işlem geri alınamaz.
+              İşlem kaydı bulunan siteler silinemez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSite} className="bg-red-600 hover:bg-red-700 text-white">
+              {deleteSiteMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
