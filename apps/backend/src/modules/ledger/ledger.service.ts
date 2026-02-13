@@ -74,8 +74,9 @@ export class LedgerService {
 
     for (const entry of entries) {
       // Get current account balance
+      // Note: entry.account_id is the UUID of the account, not entity_id
       const account = await tx.account.findUnique({
-        where: { entity_id: entry.account_id },
+        where: { id: entry.account_id },
         select: { id: true, balance: true },
       });
 

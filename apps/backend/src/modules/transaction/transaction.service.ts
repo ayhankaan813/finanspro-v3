@@ -1669,6 +1669,16 @@ export class TransactionService {
       throw new BusinessError('Bu işlem zaten iptal edilmiş', 'ALREADY_REVERSED');
     }
 
+    // Fetch user before transaction
+    const user = await prisma.user.findUnique({
+      where: { id: reversedBy },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User', reversedBy);
+    }
+
     return prisma.$transaction(async (tx) => {
       // Create reversal transaction
       const reversal = await tx.transaction.create({
@@ -1712,8 +1722,8 @@ export class TransactionService {
             reversal_id: reversal.id,
             reason: input.reason,
           } as unknown as Prisma.JsonObject,
-          user_id: reversedBy,
-          user_email: '',
+          user_id: user.id,
+          user_email: user.email,
         },
       });
 
