@@ -74,11 +74,20 @@ export class LedgerService {
 
     for (const entry of entries) {
       // Get current account balance
-      // Note: entry.account_id is the UUID of the account, not entity_id
-      const account = await tx.account.findUnique({
-        where: { id: entry.account_id },
+      // entry.account_id can be either entity_id (from transaction service) or account.id (from reverse)
+      // Try entity_id first (unique index), then fall back to id (primary key)
+      let account = await tx.account.findUnique({
+        where: { entity_id: entry.account_id },
         select: { id: true, balance: true },
       });
+
+      if (!account) {
+        // Fallback: try by primary key (used in reverseEntries where account_id comes from ledger)
+        account = await tx.account.findUnique({
+          where: { id: entry.account_id },
+          select: { id: true, balance: true },
+        });
+      }
 
       if (!account) {
         throw new NotFoundError('Account', entry.account_id);
