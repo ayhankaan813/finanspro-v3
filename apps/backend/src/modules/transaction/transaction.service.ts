@@ -67,10 +67,11 @@ export class TransactionService {
     );
 
     // Net amount to financier (after their commission deduction)
-    const financierNetAmount = amount.minus(commission.financier_commission_amount);
+    // toDecimalPlaces(2) ensures consistency with DB Decimal(15,2) columns
+    const financierNetAmount = amount.minus(commission.financier_commission_amount).toDecimalPlaces(2);
 
     // Net amount for site (after site commission deduction)
-    const siteNetAmount = amount.minus(commission.site_commission_amount);
+    const siteNetAmount = amount.minus(commission.site_commission_amount).toDecimalPlaces(2);
 
     // Check if approval required
     const user = await prisma.user.findUnique({ where: { id: createdBy } });
@@ -264,7 +265,7 @@ export class TransactionService {
     );
 
     // Site pays amount + commission
-    const siteTotalPay = amount.plus(commission.site_commission_amount);
+    const siteTotalPay = amount.plus(commission.site_commission_amount).toDecimalPlaces(2);
 
     // Check if approval required
     const user = await prisma.user.findUnique({ where: { id: createdBy } });

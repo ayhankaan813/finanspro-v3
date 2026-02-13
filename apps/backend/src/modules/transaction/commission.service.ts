@@ -48,7 +48,7 @@ export class CommissionService {
       siteId,
       TransactionType.DEPOSIT
     );
-    const siteCommissionAmount = amount.times(siteRate);
+    const siteCommissionAmount = amount.times(siteRate).toDecimalPlaces(2);
 
     // 2. Get partner commissions for this site
     // Partner commission is calculated from GROSS amount (not from site commission)
@@ -68,13 +68,15 @@ export class CommissionService {
       financierId,
       TransactionType.DEPOSIT
     );
-    const financierCommissionAmount = amount.times(financierRate);
+    const financierCommissionAmount = amount.times(financierRate).toDecimalPlaces(2);
 
     // 4. Calculate organization profit
     // Organization gets: Site Commission - Partner Commission - Financier Commission
+    // NOTE: Organization absorbs rounding differences to ensure DEBIT = CREDIT
     const organizationAmount = siteCommissionAmount
       .minus(totalPartnerCommission)
-      .minus(financierCommissionAmount);
+      .minus(financierCommissionAmount)
+      .toDecimalPlaces(2);
 
     // 5. CRITICAL VALIDATION: Total distributed commission cannot exceed site commission
     // Partner + Financier + Organization ≤ Site Commission
@@ -166,7 +168,7 @@ export class CommissionService {
       siteId,
       TransactionType.WITHDRAWAL
     );
-    const siteCommissionAmount = amount.times(siteRate);
+    const siteCommissionAmount = amount.times(siteRate).toDecimalPlaces(2);
 
     // 2. No partner commissions for withdrawals
     const partnerCommissions: Array<{
@@ -182,7 +184,7 @@ export class CommissionService {
       financierId,
       TransactionType.WITHDRAWAL
     );
-    const financierCommissionAmount = amount.times(financierRate);
+    const financierCommissionAmount = amount.times(financierRate).toDecimalPlaces(2);
 
     // 4. Organization gets the full site commission for withdrawals
     const organizationAmount = siteCommissionAmount;
@@ -260,8 +262,8 @@ export class CommissionService {
       );
 
       if (!shareRate.isZero()) {
-        // Partner gets their commission from gross amount
-        const commissionAmount = grossAmount.times(shareRate);
+        // Partner gets their commission from gross amount (rounded to 2dp for DB compatibility)
+        const commissionAmount = grossAmount.times(shareRate).toDecimalPlaces(2);
         partnerCommissions.push({
           partner_id: sp.partner.id,
           partner_name: sp.partner.name,
