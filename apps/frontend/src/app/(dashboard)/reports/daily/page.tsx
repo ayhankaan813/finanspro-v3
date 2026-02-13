@@ -51,11 +51,11 @@ export default function DailyReportPage() {
   );
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  // Fetch more items to ensure we have enough data for charts
+  // Fetch transactions for the selected day
   const { data: transactions, isLoading: txLoading } = useTransactions({
     date_from: selectedDate,
     date_to: selectedDate,
-    limit: 1000,
+    limit: 200,
   });
 
   const isLoading = statsLoading || txLoading;
