@@ -969,7 +969,7 @@ export default function TransactionsPage() {
         {/* Pagination */}
         <div className="border-t border-twilight-100 p-4 flex items-center justify-between">
           <span className="text-sm text-twilight-500">
-            Toplam {transactionCount} islem
+            Toplam {transactionsData?.total || 0} islem
           </span>
           <div className="flex gap-2">
             <Button
