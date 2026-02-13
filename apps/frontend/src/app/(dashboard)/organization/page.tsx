@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatMoney, cn } from "@/lib/utils";
 import {
     useOrganizationStats,
@@ -394,14 +395,18 @@ export default function OrganizationPage() {
                     <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 overflow-hidden h-[400px] flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 bg-slate-50/50 pb-4 shrink-0">
                             <CardTitle className="text-base font-semibold text-[#013a63]">Son İşlemler</CardTitle>
-                            <Button variant="ghost" size="sm" className="text-xs h-8 hover:bg-white hover:text-indigo-600">
-                                Tümü <ChevronRight className="ml-1 h-3 w-3" />
-                            </Button>
+                            <Link href="/transactions?scope=organization">
+                                <Button variant="ghost" size="sm" className="text-xs h-8 hover:bg-white hover:text-indigo-600">
+                                    Tümü <ChevronRight className="ml-1 h-3 w-3" />
+                                </Button>
+                            </Link>
                         </CardHeader>
                         <CardContent className="p-0 flex-1 min-h-0 overflow-y-auto">
                             {!transactions?.items?.length && !isLoading ? (
-                                <div className="h-full flex items-center justify-center">
-                                    <EmptyState icon={FileText} title="İşlem kaydı bulunamadı" height="h-auto" />
+                                <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                                    <FileText className="h-10 w-10 text-slate-300 mb-3" />
+                                    <p className="text-sm font-medium text-slate-500">Organizasyon işlemi bulunamadı</p>
+                                    <p className="text-xs text-slate-400 mt-1">Gider, gelir veya hak ediş çekimi gibi org işlemleri burada görünecek</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-100">

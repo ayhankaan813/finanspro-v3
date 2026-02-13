@@ -24,7 +24,7 @@ import {
   BarChart3,
   Calendar
 } from "lucide-react";
-import { useTransactions, useOrganizationAccount } from "@/hooks/use-api";
+import { useTransactions, useFinanciers } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDaysInMonth } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -49,18 +49,19 @@ export default function MonthlyReportPage() {
   const dateFrom = startOfMonth(currentDate).toISOString();
   const dateTo = endOfMonth(currentDate).toISOString();
 
-  // Fetch transactions
+  // Fetch transactions - sadece COMPLETED olanlar (REVERSED/REVERSAL hariç)
   const { data: transactions, isLoading: isTxLoading } = useTransactions({
     date_from: dateFrom,
     date_to: dateTo,
+    status: "COMPLETED",
     limit: 100, // API limit is 100
   });
 
-  // Fetch current organization account balance to calculate "Devir"
-  const { data: accountData, isLoading: isAccountLoading } = useOrganizationAccount();
+  // Fetch all financiers to calculate total "Kasa" (cash) balance
+  const { data: financiersData, isLoading: isFinanciersLoading } = useFinanciers({ limit: 100 });
 
   const processedData = useMemo(() => {
-    if (!transactions?.items || isAccountLoading) return null;
+    if (!transactions?.items || isFinanciersLoading) return null;
 
     const daysInMonth = eachDayOfInterval({
       start: startOfMonth(currentDate),
@@ -99,79 +100,86 @@ export default function MonthlyReportPage() {
       endBalance: 0, // Kasa
     };
 
-    // 2. Aggregate Transactions
-    transactions.items.forEach(tx => {
+    // 2. Aggregate Transactions (skip REVERSAL type - they are cancellation records)
+    const activeItems = transactions.items.filter(tx => tx.type !== "REVERSAL");
+    activeItems.forEach(tx => {
       const txDate = new Date(tx.transaction_date);
       const dayKey = format(txDate, "yyyy-MM-dd");
       const dayEntry = dailyMap.get(dayKey);
 
       if (dayEntry) {
         const amount = parseFloat(tx.gross_amount);
-        const netAmount = parseFloat(tx.net_amount); // Used for some calcs if needed
 
-        // Income (Money IN)
+        // === KASAYA GİREN (Money IN to Financier) ===
         if (tx.type === "DEPOSIT") {
           dayEntry.deposit += amount;
           totals.deposit += amount;
           dayEntry.netChange += amount;
         }
-        else if (tx.type === "TOP_UP") {
+        else if (tx.type === "TOP_UP" || tx.type === "EXTERNAL_DEBT_IN") {
+          // Takviye: Kasaya para girişi (partner, org, dış kaynak) + Dış borç alma
           dayEntry.topup += amount;
           totals.topup += amount;
           dayEntry.netChange += amount;
         }
 
-        // Expense (Money OUT)
+        // === KASADAN ÇIKAN (Money OUT from Financier) ===
         else if (tx.type === "WITHDRAWAL") {
           dayEntry.withdrawal += amount;
           totals.withdrawal += amount;
           dayEntry.netChange -= amount;
         }
-        else if (tx.type === "PAYMENT" || tx.type === "PARTNER_PAYMENT" || tx.type === "ORG_EXPENSE") {
+        else if (tx.type === "PAYMENT" || tx.type === "PARTNER_PAYMENT" ||
+                 tx.type === "ORG_EXPENSE" || tx.type === "ORG_WITHDRAW" ||
+                 tx.type === "ORG_INCOME" || tx.type === "EXTERNAL_PAYMENT" ||
+                 tx.type === "EXTERNAL_DEBT_OUT") {
+          // Ödeme: Tüm kasadan çıkışlar (partner, org gider/çekim, dış borç verme)
           dayEntry.payment += amount;
           totals.payment += amount;
           dayEntry.netChange -= amount;
         }
         else if (tx.type === "DELIVERY" || tx.type === "SITE_DELIVERY") {
-          // Delivery is money leaving the Kasa to the Site
+          // Teslim: Kasa → Site
           dayEntry.delivery += amount;
           totals.delivery += amount;
           dayEntry.netChange -= amount;
 
-          // Delivery Commission (if any)
+          // Teslim Komisyonu
           if (tx.delivery_commission_amount) {
             const comm = parseFloat(tx.delivery_commission_amount);
             dayEntry.deliveryCommission += comm;
             totals.deliveryCommission += comm;
-            // Commission is technically income retained or accounted for, but simplified here
           }
         }
+        // FINANCIER_TRANSFER: Kasalar arası transfer, toplam kasa değişmez (netChange = 0)
 
-        // Commission Income (Organization's profit from the tx)
+        // Komisyon Geliri (Org'un işlemden aldığı pay - bilgi amaçlı)
         if (tx.commission_snapshot) {
           const comm = parseFloat(tx.commission_snapshot.organization_amount || "0");
           dayEntry.commission += comm;
           totals.commission += comm;
-          // Note: Commission might not be a separate cash flow if it's deducted from net, 
-          // but usually it's tracked as income. 
-          // For Kasa flow: Recieved = Principal. 
         }
       }
     });
 
+    // 2b. Calculate total netChange from all days
+    dailyMap.forEach((day) => {
+      totals.netChange += day.netChange;
+    });
+
     // 3. Calculate Balances (Devir & Running Kasa)
-    // Logic: If current month, StartBalance = CurrentBalance - TotalNetChangeSoFar
-    // This assumes specific consistency. 
-    let currentBalance = parseFloat(accountData?.balance || "0");
+    // Kasa = Toplam Finansör Bakiyesi (tüm nakit finansörlerde tutulur)
+    const totalFinancierBalance = (financiersData?.items || []).reduce((sum, f) => {
+      return sum + parseFloat(f.account?.balance || "0");
+    }, 0);
+
     const isCurrentMonth = isSameDay(startOfMonth(new Date()), startOfMonth(currentDate));
 
     if (isCurrentMonth) {
-      // Back-calculate devir
-      totals.startBalance = currentBalance - totals.netChange;
+      // Back-calculate devir: Devir = Güncel Kasa - Ay İçi Net Değişim
+      totals.startBalance = totalFinancierBalance - totals.netChange;
     } else {
-      // For past months, we can't easily know without a snapshot. 
-      // We will default to 0 or leave it as "Undefined" visually if we want.
-      // For now, let's assume 0 for demo purposes to show logic.
+      // Geçmiş aylar için snapshot olmadığından 0 göster
       totals.startBalance = 0;
     }
 
@@ -186,12 +194,12 @@ export default function MonthlyReportPage() {
 
     return { dailyData, totals };
 
-  }, [transactions, currentDate, accountData]);
+  }, [transactions, currentDate, financiersData, isFinanciersLoading]);
 
   const goToPreviousMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const goToNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
 
-  if (isTxLoading || isAccountLoading) {
+  if (isTxLoading || isFinanciersLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-twilight-600" />

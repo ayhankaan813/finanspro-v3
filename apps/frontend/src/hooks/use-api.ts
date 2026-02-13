@@ -514,6 +514,7 @@ export function useTransactions(params?: {
   date_to?: string;
   min_amount?: string;
   max_amount?: string;
+  scope?: string;
 }) {
   const { accessToken } = useAuthStore();
 
@@ -535,6 +536,7 @@ export function useTransactions(params?: {
       if (params?.date_to) queryParams.date_to = params.date_to;
       if (params?.min_amount) queryParams.min_amount = params.min_amount;
       if (params?.max_amount) queryParams.max_amount = params.max_amount;
+      if (params?.scope && params.scope !== 'all') queryParams.scope = params.scope;
 
       return api.get<PaginatedResponse<Transaction>>("/api/transactions", { params: queryParams });
     },
@@ -1609,7 +1611,31 @@ export function useEditTransaction() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["org-balance"] });
       queryClient.invalidateQueries({ queryKey: ["organization"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-edit-history"] });
     },
+  });
+}
+
+// ==================== EDIT HISTORY ====================
+export interface EditHistoryEntry {
+  id: string;
+  edited_by: { id: string; name: string; email: string };
+  edited_at: string;
+  old_data: Record<string, any> | null;
+  new_data: Record<string, any> | null;
+  reason: string | null;
+}
+
+export function useTransactionEditHistory(transactionId: string | null) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["transaction-edit-history", transactionId],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<EditHistoryEntry[]>(`/api/transactions/${transactionId}/edit-history`);
+    },
+    enabled: !!accessToken && !!transactionId,
   });
 }
 

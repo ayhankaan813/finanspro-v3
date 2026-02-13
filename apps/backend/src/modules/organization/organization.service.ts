@@ -15,6 +15,14 @@ export class OrganizationService {
 
     /**
      * Get organization account details and balance
+     *
+     * NOTE: Organization is an ASSET account in the ledger (balance = DEBIT - CREDIT).
+     * However, org income is recorded as CREDIT (from deposit commissions, ORG_INCOME, etc.)
+     * and expenses as DEBIT (ORG_EXPENSE, ORG_WITHDRAW).
+     * This means: stored balance = expenses - income → negative when profitable.
+     *
+     * We negate the balance for display so positive = net income (what business users expect).
+     * The raw DB balance stays correct for ledger math (DEBIT = CREDIT always).
      */
     async getAccount() {
         let account = await prisma.account.findUnique({
@@ -34,7 +42,11 @@ export class OrganizationService {
             });
         }
 
-        return account;
+        // Negate balance for display: stored is (expenses - income), display as (income - expenses)
+        return {
+            ...account,
+            balance: new Decimal(account.balance).negated(),
+        };
     }
 
     /**
@@ -47,11 +59,15 @@ export class OrganizationService {
             : new Date(query.year + 1, 0, 1);
 
         // 1. Calculate Total Income (Commissions + ORG_INCOME)
-        // - Commission from snapshots
+        // - Commission from snapshots (only for COMPLETED, non-reversed transactions)
         const commissionIncome = await prisma.commissionSnapshot.aggregate({
             _sum: { organization_amount: true },
             where: {
                 created_at: { gte: startDate, lt: endDate },
+                transaction: {
+                    status: 'COMPLETED',
+                    deleted_at: null,
+                },
             },
         });
 
@@ -151,12 +167,22 @@ export class OrganizationService {
     async getTransactions(query: { page: number; limit: number }) {
         const account = await this.getAccount();
 
-        // We can use LedgerEntry to find all transactions affecting the Organization account
-        // This covers all types: commissions, expenses, incomes, payments, etc.
-        const ledgerEntries = await prisma.ledgerEntry.findMany({
-            where: {
-                account_id: account.id, // ID of the organization account
+        // Only show org-related transactions (expenses, income, withdrawals, org payments/topups)
+        const whereClause = {
+            account_id: account.id,
+            transaction: {
+                status: 'COMPLETED' as const,
+                deleted_at: null,
+                OR: [
+                    { type: { in: [TransactionType.ORG_EXPENSE, TransactionType.ORG_INCOME, TransactionType.ORG_WITHDRAW] } },
+                    { type: TransactionType.PAYMENT, source_type: 'ORGANIZATION' },
+                    { type: TransactionType.TOP_UP, topup_source_type: 'ORGANIZATION' },
+                ],
             },
+        };
+
+        const ledgerEntries = await prisma.ledgerEntry.findMany({
+            where: whereClause,
             orderBy: { created_at: 'desc' },
             skip: (query.page - 1) * query.limit,
             take: query.limit,
@@ -171,10 +197,12 @@ export class OrganizationService {
         });
 
         const total = await prisma.ledgerEntry.count({
-            where: { account_id: account.id },
+            where: whereClause,
         });
 
         // Map to a cleaner format
+        // NOTE: balance_after is negated for same reason as getAccount() -
+        // stored balance is (expenses - income), display as (income - expenses)
         const items = ledgerEntries.map((entry) => {
             // @ts-ignore - Transaction relation is loaded
             const tx = entry.transaction;
@@ -186,7 +214,7 @@ export class OrganizationService {
                 type: tx.type,
                 description: tx.description || entry.description,
                 amount: entry.amount,
-                balance_after: entry.balance_after,
+                balance_after: new Decimal(entry.balance_after).negated(),
                 entry_type: entry.entry_type, // DEBIT (Expense/Out) or CREDIT (Income/In)
                 category: tx.category,
                 related_entity: tx.site?.name || 'Organizasyon', // Financier relation missing, default to Org or enhance later
@@ -212,10 +240,14 @@ export class OrganizationService {
 
         // 1. Profit by Site
         // We need to look at CommissionSnapshots and sum organization_amount grouped by Site
-        // Prisma doesn't support grouping by relation field directly, so we fetch and aggregate
+        // Only include snapshots for COMPLETED (non-reversed) transactions
         const snapshots = await prisma.commissionSnapshot.findMany({
             where: {
                 created_at: { gte: startDate, lt: endDate },
+                transaction: {
+                    status: 'COMPLETED',
+                    deleted_at: null,
+                },
             },
             include: {
                 transaction: {
@@ -242,12 +274,13 @@ export class OrganizationService {
             .sort((a, b) => b.amount - a.amount); // Sort by highest profit
 
         // 2. Operational Intensity (Busy Days)
-        // Count transactions by day of week
-        // We fetch all transactions for the period (selecting only date)
+        // Count transactions by day of week (exclude reversals and reversed)
         const transactions = await prisma.transaction.findMany({
             where: {
                 transaction_date: { gte: startDate, lt: endDate },
                 status: 'COMPLETED',
+                type: { not: TransactionType.REVERSAL },
+                deleted_at: null,
             },
             select: { transaction_date: true },
         });
@@ -281,11 +314,15 @@ export class OrganizationService {
             const monthStart = new Date(query.year, m, 1);
             const monthEnd = new Date(query.year, m + 1, 1);
 
-            // Calculate income for this month
+            // Calculate income for this month (only COMPLETED, non-reversed transactions)
             const monthCommission = await prisma.commissionSnapshot.aggregate({
                 _sum: { organization_amount: true },
                 where: {
                     created_at: { gte: monthStart, lt: monthEnd },
+                    transaction: {
+                        status: 'COMPLETED',
+                        deleted_at: null,
+                    },
                 },
             });
 

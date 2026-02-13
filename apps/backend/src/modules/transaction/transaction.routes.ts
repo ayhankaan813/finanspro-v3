@@ -307,6 +307,18 @@ export async function transactionRoutes(app: FastifyInstance) {
   );
 
   /**
+   * GET /transactions/:id/edit-history
+   * Get edit history for a transaction from audit logs
+   */
+  app.get<{ Params: { id: string } }>(
+    '/:id/edit-history',
+    async (request, reply) => {
+      const history = await transactionService.getEditHistory(request.params.id);
+      return { success: true, data: history };
+    }
+  );
+
+  /**
    * POST /transactions/bulk
    * Bulk import transactions
    */

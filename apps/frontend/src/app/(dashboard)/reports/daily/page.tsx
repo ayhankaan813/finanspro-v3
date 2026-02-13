@@ -51,10 +51,11 @@ export default function DailyReportPage() {
   );
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  // Fetch transactions for the selected day
+  // Fetch transactions for the selected day - sadece COMPLETED (REVERSED/REVERSAL hariç)
   const { data: transactions, isLoading: txLoading } = useTransactions({
     date_from: selectedDate,
     date_to: selectedDate,
+    status: "COMPLETED",
     limit: 200,
   });
 
@@ -84,7 +85,9 @@ export default function DailyReportPage() {
     }
 
     if (transactions?.items) {
-      transactions.items.forEach((tx) => {
+      // REVERSAL tipini hariç tut - bunlar iptal kayıtları
+      const activeItems = transactions.items.filter(tx => tx.type !== "REVERSAL");
+      activeItems.forEach((tx) => {
         const amount = parseFloat(tx.gross_amount);
         const date = new Date(tx.transaction_date);
         const hour = date.getHours();

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +37,10 @@ import {
   useCreateOrgWithdraw,
   useReverseTransaction,
   useEditTransaction,
+  useTransactionEditHistory,
   Transaction,
   EditTransactionData,
+  EditHistoryEntry,
 } from "@/hooks/use-api";
 import { useAuthStore } from "@/stores/auth.store";
 import {
@@ -93,6 +96,8 @@ import {
   AlertTriangle,
   Activity,
   Pencil,
+  History,
+  Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -717,6 +722,16 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 }
 
 export default function TransactionsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full" /></div>}>
+      <TransactionsPageContent />
+    </Suspense>
+  );
+}
+
+function TransactionsPageContent() {
+  const searchParams = useSearchParams();
+  const scope = searchParams.get("scope") || "all";
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -736,13 +751,15 @@ export default function TransactionsPage() {
   const editTransaction = useEditTransaction();
   const { user: authUser } = useAuthStore();
   const isAdmin = authUser?.role === "ADMIN";
+  const editHistoryId = (selectedTransaction && (selectedTransaction.edit_count ?? 0) > 0) ? selectedTransaction.id : null;
+  const { data: editHistory } = useTransactionEditHistory(editHistoryId);
   const limit = 20;
 
   const { data: sites } = useSites({ page: 1, limit: 100 });
   const { data: partners } = usePartners({ page: 1, limit: 100 });
   const { data: financiers } = useFinanciers({ page: 1, limit: 100 });
 
-  const { data: transactionsData, isLoading } = useTransactions({
+  const { data: transactionsData, isLoading, isError } = useTransactions({
     page,
     limit,
     search: filters.search || searchTerm, // Search can come from header or filter
@@ -755,9 +772,15 @@ export default function TransactionsPage() {
     date_to: filters.end_date || undefined,
     min_amount: filters.min_amount || undefined,
     max_amount: filters.max_amount || undefined,
+    scope,
   });
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length - (filters.search ? 1 : 0);
+
+  // Scope değişince sayfa sıfırla
+  useEffect(() => {
+    setPage(1);
+  }, [scope]);
 
   const clearFilters = () => {
     setFilters(INITIAL_FILTERS);
@@ -795,8 +818,14 @@ export default function TransactionsPage() {
       {/* Header Area with Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">İşlem Yönetimi</h1>
-          <p className="text-twilight-500">Tüm finansal transferlerinizi tek yerden yönetin.</p>
+          <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">
+            {scope === "organization" ? "Organizasyon İşlemleri" : "İşlem Yönetimi"}
+          </h1>
+          <p className="text-twilight-500">
+            {scope === "organization"
+              ? "Organizasyon kasasından yapılan giderler, gelirler ve hak ediş çekimleri."
+              : "Tüm finansal transferlerinizi tek yerden yönetin."}
+          </p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="border-twilight-200 text-twilight-700 hover:bg-twilight-50">
@@ -812,6 +841,22 @@ export default function TransactionsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Scope Badge */}
+      {scope === "organization" && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-2xl">
+          <Building2 className="h-5 w-5 text-indigo-600 shrink-0" />
+          <span className="text-sm text-indigo-700 font-medium flex-1">
+            Sadece organizasyon kasasından yapılan işlemler gösteriliyor.
+          </span>
+          <a href="/transactions">
+            <Button variant="ghost" size="sm" className="text-xs h-7 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100">
+              <X className="mr-1 h-3 w-3" />
+              Filtreyi Kaldır
+            </Button>
+          </a>
+        </div>
+      )}
 
       {/* Modern Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -882,7 +927,51 @@ export default function TransactionsPage() {
                     <div className="animate-spin h-8 w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full mx-auto" />
                   </td>
                 </tr>
-              ) : transactionsData?.items.map((t) => {
+              ) : isError ? (
+                <tr>
+                  <td colSpan={9} className="py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <AlertTriangle className="h-10 w-10 text-amber-400" />
+                      <p className="text-twilight-500 text-sm">İşlemler yüklenirken bir hata oluştu.</p>
+                      <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="rounded-xl">
+                        Tekrar Dene
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ) : !transactionsData?.items?.length ? (
+                <tr>
+                  <td colSpan={9} className="py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      {scope === "organization" ? (
+                        <>
+                          <Building2 className="h-10 w-10 text-indigo-300" />
+                          <p className="text-twilight-500 text-sm">
+                            {activeFilterCount > 0 || searchTerm
+                              ? "Filtrelere uygun organizasyon işlemi bulunamadı."
+                              : "Henüz organizasyon kasasından yapılmış işlem yok."}
+                          </p>
+                          <p className="text-twilight-400 text-xs max-w-md">
+                            Org Gider, Org Gelir, Hak Ediş Çekimi veya Organizasyon adına yapılan Ödeme/Takviye işlemleri burada görünecek.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="h-10 w-10 text-twilight-300" />
+                          <p className="text-twilight-500 text-sm">
+                            {activeFilterCount > 0 || searchTerm ? "Filtrelere uygun işlem bulunamadı." : "Henüz işlem bulunmuyor."}
+                          </p>
+                        </>
+                      )}
+                      {(activeFilterCount > 0 || searchTerm) && (
+                        <Button variant="outline" size="sm" onClick={clearFilters} className="rounded-xl">
+                          Filtreleri Temizle
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : transactionsData.items.map((t) => {
                 const isReversed = t.status === 'REVERSED';
                 const isExpanded = expandedReversals.has(t.id);
 
@@ -896,7 +985,9 @@ export default function TransactionsPage() {
                     <tr
                       className={`group transition-colors ${isReversed
                         ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-4 border-rose-400'
-                        : 'hover:bg-twilight-50/30'
+                        : (t.edit_count ?? 0) > 0
+                          ? 'bg-blue-50/30 hover:bg-blue-50/50 border-l-4 border-blue-400'
+                          : 'hover:bg-twilight-50/30'
                         }`}
                       onClick={() => isReversed && toggleReversalDetails(t.id)}
                       style={{ cursor: isReversed ? 'pointer' : 'default' }}
@@ -938,9 +1029,9 @@ export default function TransactionsPage() {
                             </Badge>
                           ) : getStatusBadge(t.status)}
                           {(t.edit_count ?? 0) > 0 && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-[10px] px-1.5 py-0">
-                              <Pencil className="h-2.5 w-2.5 mr-0.5" />
-                              {t.edit_count}
+                            <Badge className="bg-blue-100 text-blue-700 border border-blue-300 text-[11px] px-2 py-0.5 gap-1 font-semibold">
+                              <Pencil className="h-3 w-3" />
+                              {t.edit_count}x Düzenlendi
                             </Badge>
                           )}
                         </div>
@@ -1158,7 +1249,15 @@ export default function TransactionsPage() {
                   </div>
                   <div>
                     <p className="font-bold text-lg text-twilight-900">{getTransactionTypeLabel(selectedTransaction.type)}</p>
-                    {getStatusBadge(selectedTransaction.status)}
+                    <div className="flex items-center gap-1.5">
+                      {getStatusBadge(selectedTransaction.status)}
+                      {(selectedTransaction.edit_count ?? 0) > 0 && (
+                        <Badge className="bg-blue-100 text-blue-700 border border-blue-300 text-[10px] px-1.5 py-0 gap-0.5">
+                          <Pencil className="h-2.5 w-2.5" />
+                          {selectedTransaction.edit_count}x
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1253,6 +1352,97 @@ export default function TransactionsPage() {
                 </div>
               )}
 
+              {/* Duzenleme Gecmisi */}
+              {(selectedTransaction.edit_count ?? 0) > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <History className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-twilight-900">Düzenleme Geçmişi</p>
+                      <p className="text-xs text-twilight-500">{selectedTransaction.edit_count} düzenleme yapıldı</p>
+                    </div>
+                  </div>
+
+                  {/* Timeline */}
+                  <div className="relative pl-4 border-l-2 border-blue-200 space-y-4 ml-1">
+                    {editHistory && editHistory.length > 0 ? editHistory.map((entry: EditHistoryEntry, idx: number) => {
+                      const oldData = entry.old_data || {};
+                      const newData = entry.new_data || {};
+                      const changes: { label: string; from: string; to: string }[] = [];
+
+                      if (oldData.gross_amount && newData.gross_amount && oldData.gross_amount !== newData.gross_amount) {
+                        changes.push({ label: 'Tutar', from: formatMoney(parseFloat(oldData.gross_amount)), to: formatMoney(parseFloat(newData.gross_amount)) });
+                      }
+                      if (oldData.net_amount && newData.net_amount && oldData.net_amount !== newData.net_amount) {
+                        changes.push({ label: 'Net Tutar', from: formatMoney(parseFloat(oldData.net_amount)), to: formatMoney(parseFloat(newData.net_amount)) });
+                      }
+                      if (oldData.description !== newData.description && (oldData.description || newData.description)) {
+                        changes.push({ label: 'Açıklama', from: oldData.description || '—', to: newData.description || '—' });
+                      }
+                      if (oldData.site_id !== newData.site_id && (oldData.site_id || newData.site_id)) {
+                        changes.push({ label: 'Site', from: oldData.site_id?.slice(0, 8) || '—', to: newData.site_id?.slice(0, 8) || '—' });
+                      }
+                      if (oldData.financier_id !== newData.financier_id && (oldData.financier_id || newData.financier_id)) {
+                        changes.push({ label: 'Finansör', from: oldData.financier_id?.slice(0, 8) || '—', to: newData.financier_id?.slice(0, 8) || '—' });
+                      }
+                      if (oldData.reference_id !== newData.reference_id && (oldData.reference_id || newData.reference_id)) {
+                        changes.push({ label: 'Referans', from: oldData.reference_id || '—', to: newData.reference_id || '—' });
+                      }
+
+                      return (
+                        <div key={entry.id} className="relative">
+                          {/* Timeline dot */}
+                          <div className={`absolute -left-[1.28rem] top-1 h-3 w-3 rounded-full border-2 border-white ${idx === 0 ? 'bg-blue-500' : 'bg-blue-300'}`} />
+
+                          <div className={`rounded-xl p-3 ${idx === 0 ? 'bg-blue-50 border border-blue-200' : 'bg-twilight-50 border border-twilight-200'}`}>
+                            {/* Header: Kişi + tarih */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${idx === 0 ? 'bg-blue-500' : 'bg-twilight-400'}`}>
+                                  {entry.edited_by.name?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
+                                <span className="text-xs font-semibold text-twilight-800">{entry.edited_by.name}</span>
+                              </div>
+                              <span className="text-[10px] text-twilight-400">
+                                {format(new Date(entry.edited_at), "d MMM yyyy, HH:mm", { locale: tr })}
+                              </span>
+                            </div>
+
+                            {/* Sebep */}
+                            {entry.reason && (
+                              <p className="text-xs text-twilight-600 mb-2 italic">&ldquo;{entry.reason}&rdquo;</p>
+                            )}
+
+                            {/* Değişiklikler */}
+                            {changes.length > 0 && (
+                              <div className="space-y-1">
+                                {changes.map((c, ci) => (
+                                  <div key={ci} className="flex items-center gap-1.5 text-[11px]">
+                                    <span className="text-twilight-500 font-medium min-w-[60px]">{c.label}:</span>
+                                    <span className="text-rose-600 line-through">{c.from}</span>
+                                    <span className="text-twilight-400">→</span>
+                                    <span className="text-emerald-600 font-semibold">{c.to}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {changes.length === 0 && (
+                              <p className="text-[11px] text-twilight-400 italic">Finansal olmayan değişiklikler</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <div className="py-2">
+                        <p className="text-xs text-twilight-400">Yükleniyor...</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Iptal Bilgisi */}
               {selectedTransaction.reversed_at && (
                 <div className="bg-rose-50 rounded-2xl p-4 space-y-1">
@@ -1281,6 +1471,12 @@ export default function TransactionsPage() {
                   <span className="text-twilight-400">Olusturulma</span>
                   <span className="text-twilight-500">{format(new Date(selectedTransaction.created_at), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
                 </div>
+                {selectedTransaction.edited_at && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-blue-400">Son Duzenleme</span>
+                    <span className="text-blue-500 font-medium">{format(new Date(selectedTransaction.edited_at), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

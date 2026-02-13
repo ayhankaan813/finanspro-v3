@@ -2534,6 +2534,20 @@ export class TransactionService {
       deleted_at: null,
     };
 
+    // AND koşulları: scope ve search gibi OR kullanan filtreleri AND ile birleştir
+    const andConditions: Prisma.TransactionWhereInput[] = [];
+
+    // Scope filtresi: organization → sadece org ile ilgili işlemler
+    if (query.scope === 'organization') {
+      andConditions.push({
+        OR: [
+          { type: { in: ['ORG_EXPENSE', 'ORG_INCOME', 'ORG_WITHDRAW'] as any } },
+          { type: 'PAYMENT' as any, source_type: 'ORGANIZATION' },
+          { type: 'TOP_UP' as any, topup_source_type: 'ORGANIZATION' },
+        ],
+      });
+    }
+
     if (query.type) where.type = query.type;
     if (query.status) where.status = query.status;
     if (query.site_id) where.site_id = query.site_id;
@@ -2543,7 +2557,41 @@ export class TransactionService {
     if (query.date_from || query.date_to) {
       where.transaction_date = {};
       if (query.date_from) where.transaction_date.gte = new Date(query.date_from);
-      if (query.date_to) where.transaction_date.lte = new Date(query.date_to);
+      if (query.date_to) {
+        // Gün sonuna kadar dahil et (YYYY-MM-DD formatı için 23:59:59)
+        const endDate = new Date(query.date_to);
+        endDate.setHours(23, 59, 59, 999);
+        where.transaction_date.lte = endDate;
+      }
+    }
+
+    // Tutar aralığı filtresi
+    if (query.min_amount !== undefined || query.max_amount !== undefined) {
+      where.gross_amount = {};
+      if (query.min_amount !== undefined) where.gross_amount.gte = query.min_amount;
+      if (query.max_amount !== undefined) where.gross_amount.lte = query.max_amount;
+    }
+
+    // Arama filtresi: açıklama, referans ID, veya ilişkili entity isimlerinde arama
+    if (query.search) {
+      andConditions.push({
+        OR: [
+          { description: { contains: query.search, mode: 'insensitive' } },
+          { reference_id: { contains: query.search, mode: 'insensitive' } },
+          { site: { name: { contains: query.search, mode: 'insensitive' } } },
+          { site: { code: { contains: query.search, mode: 'insensitive' } } },
+          { partner: { name: { contains: query.search, mode: 'insensitive' } } },
+          { partner: { code: { contains: query.search, mode: 'insensitive' } } },
+          { financier: { name: { contains: query.search, mode: 'insensitive' } } },
+          { financier: { code: { contains: query.search, mode: 'insensitive' } } },
+          { external_party: { name: { contains: query.search, mode: 'insensitive' } } },
+        ],
+      });
+    }
+
+    // AND koşullarını birleştir
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [items, total] = await Promise.all([
@@ -2676,6 +2724,34 @@ export class TransactionService {
     }
 
     return account;
+  }
+
+  /**
+   * Get edit history for a transaction from audit logs
+   */
+  async getEditHistory(transactionId: string) {
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        entity_type: 'Transaction',
+        entity_id: transactionId,
+        action: 'EDIT_TRANSACTION',
+      },
+      orderBy: { created_at: 'desc' },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    return logs.map((log) => ({
+      id: log.id,
+      edited_by: log.user,
+      edited_at: log.created_at,
+      old_data: log.old_data as Record<string, any> | null,
+      new_data: log.new_data as Record<string, any> | null,
+      reason: (log.new_data as Record<string, any>)?.reason || null,
+    }));
   }
 }
 
