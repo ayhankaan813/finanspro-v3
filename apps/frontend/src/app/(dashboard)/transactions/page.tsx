@@ -875,6 +875,11 @@ export default function TransactionsPage() {
                 const isReversed = t.status === 'REVERSED';
                 const isExpanded = expandedReversals.has(t.id);
 
+                // Hide REVERSAL transactions - only show original reversed transactions
+                if (t.type === 'REVERSAL') {
+                  return null;
+                }
+
                 return (
                   <React.Fragment key={t.id}>
                     <tr
