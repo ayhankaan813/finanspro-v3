@@ -751,9 +751,6 @@ export default function TransactionsPage() {
     setSearchTerm("");
   };
 
-  const totalVolume = transactionsData?.items.reduce((acc, t) => acc + parseFloat(t.gross_amount || "0"), 0) || 0;
-  const transactionCount = transactionsData?.total || 0;
-
   return (
     <div className="space-y-6 pb-20">
       <NewTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
@@ -770,7 +767,7 @@ export default function TransactionsPage() {
         }}
       />
 
-      {/* Header Area */}
+      {/* Header Area with Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">İşlem Yönetimi</h1>
@@ -789,48 +786,6 @@ export default function TransactionsPage() {
             Yeni İşlem
           </Button>
         </div>
-      </div>
-
-      {/* Summary Cards with Glassmorphism */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-0 shadow-xl shadow-indigo-100/50 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-3xl overflow-hidden relative group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
-          <CardContent className="p-6 flex items-center justify-between relative z-10">
-            <div>
-              <p className="text-indigo-100 font-medium mb-1">Toplam İşlem Hacmi</p>
-              <h3 className="text-3xl font-bold tracking-tight">{formatMoney(totalVolume)}</h3>
-            </div>
-            <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
-              <Activity className="h-6 w-6 text-white" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-xl shadow-emerald-100/50 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-3xl overflow-hidden relative group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
-          <CardContent className="p-6 flex items-center justify-between relative z-10">
-            <div>
-              <p className="text-emerald-100 font-medium mb-1">Toplam İşlem Adedi</p>
-              <h3 className="text-3xl font-bold tracking-tight">{transactionCount}</h3>
-            </div>
-            <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
-              <Repeat className="h-6 w-6 text-white" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-xl shadow-amber-100/50 bg-white ring-1 ring-twilight-100 rounded-3xl overflow-hidden relative group">
-          <CardContent className="p-6 flex items-center justify-between relative z-10">
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-50 to-transparent"></div>
-            <div className="relative">
-              <p className="text-twilight-500 font-medium mb-1">Bekleyen İşlemler</p>
-              <h3 className="text-3xl font-bold text-twilight-900 tracking-tight">0</h3>
-            </div>
-            <div className="relative h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
-              <MoreHorizontal className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Modern Filter Bar */}
