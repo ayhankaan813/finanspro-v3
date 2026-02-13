@@ -168,6 +168,51 @@ export async function financierRoutes(app: FastifyInstance) {
     }
   );
 
+  // ==================== STATISTICS ====================
+
+  /**
+   * GET /financiers/:id/statistics/:year
+   */
+  app.get<{ Params: { id: string; year: string } }>(
+    '/:id/statistics/:year',
+    async (request, reply) => {
+      const year = parseInt(request.params.year, 10);
+      if (isNaN(year) || year < 2000 || year > 2100) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'INVALID_YEAR', message: 'Geçersiz yıl' },
+        });
+      }
+      const statistics = await financierService.getYearlyStatistics(request.params.id, year);
+      return { success: true, data: statistics };
+    }
+  );
+
+  /**
+   * GET /financiers/:id/statistics/:year/:month
+   */
+  app.get<{ Params: { id: string; year: string; month: string } }>(
+    '/:id/statistics/:year/:month',
+    async (request, reply) => {
+      const year = parseInt(request.params.year, 10);
+      const month = parseInt(request.params.month, 10);
+      if (isNaN(year) || year < 2000 || year > 2100) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'INVALID_YEAR', message: 'Geçersiz yıl' },
+        });
+      }
+      if (isNaN(month) || month < 1 || month > 12) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'INVALID_MONTH', message: 'Geçersiz ay (1-12 arası olmalı)' },
+        });
+      }
+      const statistics = await financierService.getMonthlyStatistics(request.params.id, year, month);
+      return { success: true, data: statistics };
+    }
+  );
+
   // ==================== COMMISSION RATES ====================
 
   /**

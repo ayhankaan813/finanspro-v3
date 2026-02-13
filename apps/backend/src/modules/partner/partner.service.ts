@@ -396,6 +396,11 @@ export class PartnerService {
       where: {
         account_id: partnerAccount.id,
         created_at: { gte: startDate, lt: endDate },
+        transaction: {
+          status: 'COMPLETED',
+          type: { not: 'REVERSAL' },
+          deleted_at: null,
+        },
       },
       include: {
         transaction: {
@@ -492,6 +497,11 @@ export class PartnerService {
       where: {
         account_id: partnerAccount.id,
         created_at: { gte: startDate, lt: endDate },
+        transaction: {
+          status: 'COMPLETED',
+          type: { not: 'REVERSAL' },
+          deleted_at: null,
+        },
       },
       include: {
         transaction: {

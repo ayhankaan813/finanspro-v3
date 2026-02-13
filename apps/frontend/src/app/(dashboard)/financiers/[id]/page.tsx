@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
-import { useFinancier, useFinancierTransactions, useFinancierBlocks } from "@/hooks/use-api";
+import { useFinancier, useFinancierBlocks, useFinancierStatistics, useFinancierMonthlyStatistics } from "@/hooks/use-api";
 import {
   ArrowLeft,
   Wallet,
@@ -41,13 +41,15 @@ export default function FinancierDetailPage() {
   const [selectedYear] = useState<number>(new Date().getFullYear());
 
   const { data: financier, isLoading: isLoadingFinancier } = useFinancier(financierId);
-  const { data: transactionsData, isLoading: isLoadingTransactions } = useFinancierTransactions(
+  const { data: statistics, isLoading: isLoadingStats } = useFinancierStatistics(financierId, selectedYear);
+  const { data: monthlyStats, isLoading: isLoadingMonthlyStats } = useFinancierMonthlyStatistics(
     financierId,
-    { page: 1, limit: 1000 }
+    selectedYear,
+    selectedMonth
   );
   const { data: blocksData } = useFinancierBlocks(financierId);
 
-  if (isLoadingFinancier || isLoadingTransactions) {
+  if (isLoadingFinancier || isLoadingStats) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -73,159 +75,60 @@ export default function FinancierDetailPage() {
     );
   }
 
-  const transactions = transactionsData?.items || [];
+  // Get monthly data from API - backend returns 12 months with Decimal.js precision
+  const monthlyData = statistics?.monthlyData?.map((data) => ({
+    month: data.month,
+    monthName: MONTHS[data.month - 1],
+    deposit: parseFloat(data.deposit || "0"),
+    withdrawal: parseFloat(data.withdrawal || "0"),
+    delivery: parseFloat(data.delivery || "0"),
+    delivery_commission: parseFloat(data.delivery_commission || "0"),
+    topup: parseFloat(data.topup || "0"),
+    payment: parseFloat(data.payment || "0"),
+    commission: parseFloat(data.commission || "0"),
+    blocked: parseFloat(data.blocked || "0"),
+    balance: parseFloat(data.balance || "0"),
+  })) || Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    monthName: MONTHS[i],
+    deposit: 0,
+    withdrawal: 0,
+    delivery: 0,
+    delivery_commission: 0,
+    topup: 0,
+    payment: 0,
+    commission: 0,
+    blocked: 0,
+    balance: 0,
+  }));
 
-  // DEBUG: Log transactions
-  console.log('Financier transactions:', transactions.length);
-  console.log('Transactions:', transactions.map(t => ({
-    date: t.transaction_date,
-    type: t.type,
-    amount: t.gross_amount,
-    commission: t.commission_snapshot?.financier_commission_amount
-  })));
-
-  // Calculate monthly data with running balance
-  const monthlyDataTemp = Array.from({ length: 12 }, (_, i) => {
-    const month = i + 1;
-    const monthTransactions = transactions.filter((t) => {
-      const txDate = new Date(t.transaction_date);
-      return txDate.getMonth() + 1 === month && txDate.getFullYear() === selectedYear;
-    });
-
-    let deposit = 0;
-    let withdrawal = 0;
-    let payment = 0;
-    let topup = 0;
-    let commission = 0;
-
-    monthTransactions.forEach((t) => {
-      const grossAmount = parseFloat(t.gross_amount || "0");
-
-      if (t.type === "DEPOSIT" && t.financier_id === financierId) {
-        deposit += grossAmount;
-        const commissionAmount = parseFloat(t.commission_snapshot?.financier_commission_amount || "0");
-        commission += commissionAmount;
-      }
-
-      if (t.type === "WITHDRAWAL" && t.financier_id === financierId) {
-        withdrawal += grossAmount;
-        const commissionAmount = parseFloat(t.commission_snapshot?.financier_commission_amount || "0");
-        commission += commissionAmount;
-      }
-
-      if (t.type === "PAYMENT" && t.financier_id === financierId) {
-        payment += grossAmount;
-      }
-
-      if (t.type === "TOPUP" && t.financier_id === financierId) {
-        topup += grossAmount;
-      }
-    });
-
-    return {
-      month,
-      monthName: MONTHS[i],
-      deposit,
-      withdrawal,
-      payment,
-      topup,
-      commission,
-      netChange: deposit - commission - withdrawal - payment + topup,
-    };
-  });
-
-  // Calculate running balance (backwards from current balance)
-  const currentBalance = parseFloat(financier.account?.balance || "0");
-  let runningBalance = currentBalance;
-  const monthlyData = [];
-
-  for (let i = 11; i >= 0; i--) {
-    const data = monthlyDataTemp[i];
-    monthlyData.unshift({
-      month: data.month,
-      monthName: data.monthName,
-      deposit: data.deposit,
-      withdrawal: data.withdrawal,
-      payment: data.payment,
-      topup: data.topup,
-      commission: data.commission,
-      balance: runningBalance,
-    });
-    runningBalance -= data.netChange;
-  }
-
-  // Calculate daily data for selected month with running balance
+  // Get daily data from API - backend returns all days in month
   const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-  const dailyDataTemp = Array.from({ length: daysInMonth }, (_, i) => {
-    const day = i + 1;
-    const dayTransactions = transactions.filter((t) => {
-      const txDate = new Date(t.transaction_date);
-      return (
-        txDate.getDate() === day &&
-        txDate.getMonth() + 1 === selectedMonth &&
-        txDate.getFullYear() === selectedYear
-      );
-    });
-
-    let deposit = 0;
-    let withdrawal = 0;
-    let payment = 0;
-    let topup = 0;
-    let commission = 0;
-
-    dayTransactions.forEach((t) => {
-      const grossAmount = parseFloat(t.gross_amount || "0");
-
-      if (t.type === "DEPOSIT" && t.financier_id === financierId) {
-        deposit += grossAmount;
-        const commissionAmount = parseFloat(t.commission_snapshot?.financier_commission_amount || "0");
-        commission += commissionAmount;
-      }
-
-      if (t.type === "WITHDRAWAL" && t.financier_id === financierId) {
-        withdrawal += grossAmount;
-        const commissionAmount = parseFloat(t.commission_snapshot?.financier_commission_amount || "0");
-        commission += commissionAmount;
-      }
-
-      if (t.type === "PAYMENT" && t.financier_id === financierId) {
-        payment += grossAmount;
-      }
-
-      if (t.type === "TOPUP" && t.financier_id === financierId) {
-        topup += grossAmount;
-      }
-    });
-
-    return {
-      day,
-      date: `${day} ${MONTHS[selectedMonth - 1]}`,
-      deposit,
-      withdrawal,
-      payment,
-      topup,
-      commission,
-      netChange: deposit - commission - withdrawal - payment + topup,
-    };
-  });
-
-  // Calculate running balance for daily data
-  let dailyRunningBalance = currentBalance;
-  const dailyData = [];
-  for (let i = daysInMonth - 1; i >= 0; i--) {
-    const data = dailyDataTemp[i];
-    dailyData.unshift({
-      day: data.day,
-      date: data.date,
-      deposit: data.deposit,
-      withdrawal: data.withdrawal,
-      payment: data.payment,
-      topup: data.topup,
-      commission: data.commission,
-      balance: dailyRunningBalance,
-    });
-    dailyRunningBalance -= data.netChange;
-  }
+  const dailyData = monthlyStats?.dailyData?.map((data) => ({
+    day: data.day,
+    date: `${data.day} ${MONTHS[selectedMonth - 1]}`,
+    deposit: parseFloat(data.deposit || "0"),
+    withdrawal: parseFloat(data.withdrawal || "0"),
+    delivery: parseFloat(data.delivery || "0"),
+    delivery_commission: parseFloat(data.delivery_commission || "0"),
+    topup: parseFloat(data.topup || "0"),
+    payment: parseFloat(data.payment || "0"),
+    commission: parseFloat(data.commission || "0"),
+    blocked: parseFloat(data.blocked || "0"),
+    balance: parseFloat(data.balance || "0"),
+  })) || Array.from({ length: daysInMonth }, (_, i) => ({
+    day: i + 1,
+    date: `${i + 1} ${MONTHS[selectedMonth - 1]}`,
+    deposit: 0,
+    withdrawal: 0,
+    delivery: 0,
+    delivery_commission: 0,
+    topup: 0,
+    payment: 0,
+    commission: 0,
+    blocked: 0,
+    balance: 0,
+  }))
 
   const balance = parseFloat(financier.account?.balance || "0");
   const blockedAmount = parseFloat(financier.account?.blocked_amount || "0");
@@ -531,7 +434,7 @@ export default function FinancierDetailPage() {
                       <span className="font-bold text-orange-600">{formatMoney(row.commission)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-amber-700">{formatMoney(blockedAmount)}</span>
+                      <span className="font-bold text-amber-700">{formatMoney(row.blocked)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className={`font-bold ${row.balance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
@@ -540,6 +443,15 @@ export default function FinancierDetailPage() {
                     </td>
                   </motion.tr>
                 ))
+              ) : isLoadingMonthlyStats ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+                      <span className="text-twilight-500 font-medium">Günlük veriler yükleniyor...</span>
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 dailyData.map((row, idx) => (
                   <motion.tr
@@ -568,7 +480,7 @@ export default function FinancierDetailPage() {
                       <span className="font-bold text-orange-600">{formatMoney(row.commission)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-amber-700">{formatMoney(blockedAmount)}</span>
+                      <span className="font-bold text-amber-700">{formatMoney(row.blocked)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className={`font-bold ${row.balance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>

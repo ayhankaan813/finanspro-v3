@@ -1234,6 +1234,71 @@ export function useSiteMonthlyStatistics(siteId: string, year: number, month: nu
   });
 }
 
+export interface FinancierStatistics {
+  year: number;
+  financierId: string;
+  financierName: string;
+  currentBalance: string;
+  monthlyData: Array<{
+    month: number;
+    deposit: string;
+    withdrawal: string;
+    delivery: string;
+    delivery_commission: string;
+    topup: string;
+    payment: string;
+    commission: string;
+    blocked: string;
+    balance: string;
+  }>;
+}
+
+export function useFinancierStatistics(financierId: string, year: number) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["financier-statistics", financierId, year],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<FinancierStatistics>(`/api/financiers/${financierId}/statistics/${year}`);
+    },
+    enabled: !!accessToken && !!financierId && !!year,
+  });
+}
+
+export interface FinancierMonthlyStatistics {
+  year: number;
+  month: number;
+  financierId: string;
+  financierName: string;
+  currentBalance: string;
+  dailyData: Array<{
+    day: number;
+    deposit: string;
+    withdrawal: string;
+    delivery: string;
+    delivery_commission: string;
+    topup: string;
+    payment: string;
+    commission: string;
+    blocked: string;
+    balance: string;
+  }>;
+}
+
+export function useFinancierMonthlyStatistics(financierId: string, year: number, month: number) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["financier-monthly-statistics", financierId, year, month],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<FinancierMonthlyStatistics>(`/api/financiers/${financierId}/statistics/${year}/${month}`);
+    },
+    enabled: !!accessToken && !!financierId && !!year && !!month,
+  });
+}
+
 export function useFinancierCommissionRates(financierId: string) {
   const { accessToken } = useAuthStore();
 

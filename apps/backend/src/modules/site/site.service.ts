@@ -416,6 +416,7 @@ export class SiteService {
         site_id: siteId,
         transaction_date: { gte: startDate, lt: endDate },
         status: 'COMPLETED',
+        type: { not: 'REVERSAL' },
         deleted_at: null,
       },
       include: {
@@ -490,22 +491,15 @@ export class SiteService {
       monthlyStats[i].balance = runningBalance;
 
       // Going backwards: subtract this month's net change to get previous month's balance
-      // Site balance increases with deposits/topups, decreases with withdrawals/payments/commissions
-      // Site is stored as ASSET (Negative balance = Liability/Credit)
-      // Deposit/Topup (Credit) -> DECREASES balance (becomes more negative)
-      // Withdrawal/Payment (Debit) -> INCREASES balance (becomes less negative)
+      // Site balance is stored as positive (LIABILITY account)
+      // Deposit/Topup -> INCREASES balance (site owes more)
+      // Withdrawal/Payment/Commission -> DECREASES balance (site owes less)
       const monthChange = monthlyStats[i].deposit
         .plus(monthlyStats[i].topup)
         .minus(monthlyStats[i].withdrawal)
         .minus(monthlyStats[i].payment)
         .minus(monthlyStats[i].commission)
-        .minus(monthlyStats[i].delivery_commission)
-        .negated(); // Invert sign to match DB logic
-
-      // DEBUG LOG
-      if (site.code === 'A12') {
-        console.log(`🔍 NISAN Site - Month ${i + 1}: Balance=${runningBalance.toString()}, Change=${monthChange.toString()}, Deposit=${monthlyStats[i].deposit.toString()}, Commission=${monthlyStats[i].commission.toString()}`);
-      }
+        .minus(monthlyStats[i].delivery_commission);
 
       runningBalance = runningBalance.minus(monthChange);
     }
@@ -545,6 +539,7 @@ export class SiteService {
         site_id: siteId,
         transaction_date: { gte: startDate, lt: endDate },
         status: 'COMPLETED',
+        type: { not: 'REVERSAL' },
         deleted_at: null,
       },
       include: {
@@ -623,8 +618,7 @@ export class SiteService {
         .minus(dailyStats[i].withdrawal)
         .minus(dailyStats[i].payment)
         .minus(dailyStats[i].commission)
-        .minus(dailyStats[i].delivery_commission)
-        .negated(); // Invert to match DB logic
+        .minus(dailyStats[i].delivery_commission);
 
       runningBalance = runningBalance.minus(dayChange);
     }
