@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Download,
   Plus,
   X,
@@ -722,6 +723,7 @@ export default function TransactionsPage() {
   const [showDetail, setShowDetail] = useState(false);
   const [showReverseDialog, setShowReverseDialog] = useState(false);
   const [reverseReason, setReverseReason] = useState("");
+  const [expandedReversals, setExpandedReversals] = useState<Set<string>>(new Set());
   const reverseTransaction = useReverseTransaction();
   const limit = 20;
 
@@ -749,6 +751,18 @@ export default function TransactionsPage() {
   const clearFilters = () => {
     setFilters(INITIAL_FILTERS);
     setSearchTerm("");
+  };
+
+  const toggleReversalDetails = (transactionId: string) => {
+    setExpandedReversals(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(transactionId)) {
+        newSet.delete(transactionId);
+      } else {
+        newSet.add(transactionId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -857,111 +871,191 @@ export default function TransactionsPage() {
                     <div className="animate-spin h-8 w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full mx-auto" />
                   </td>
                 </tr>
-              ) : transactionsData?.items.map((t) => (
-                <tr key={t.id} className="group hover:bg-twilight-50/30 transition-colors">
-                  {/* Islem Turu */}
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
-                        t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
-                          t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
+              ) : transactionsData?.items.map((t) => {
+                const isReversed = t.status === 'REVERSED';
+                const isExpanded = expandedReversals.has(t.id);
+
+                return (
+                  <React.Fragment key={t.id}>
+                    <tr
+                      className={`group transition-colors ${
+                        isReversed
+                          ? 'bg-rose-50/30 hover:bg-rose-50/50 border-l-4 border-rose-400'
+                          : 'hover:bg-twilight-50/30'
+                      }`}
+                      onClick={() => isReversed && toggleReversalDetails(t.id)}
+                      style={{ cursor: isReversed ? 'pointer' : 'default' }}
+                    >
+                      {/* Islem Turu */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            isReversed ? 'bg-rose-100 text-rose-600' :
+                            t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
+                            t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
+                            t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
                             'bg-twilight-100 text-twilight-600'
+                          }`}>
+                            {isReversed ? <RotateCcw className="h-4 w-4" /> :
+                             t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
+                             t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
+                             <Send className="h-4 w-4" />}
+                          </div>
+                          <div>
+                            <p className={`font-semibold text-sm ${isReversed ? 'text-rose-700 line-through' : 'text-twilight-900'}`}>
+                              {getTransactionTypeLabel(t.type)}
+                            </p>
+                            <p className="text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
+                          </div>
+                          {isReversed && (
+                            <ChevronDown
+                              className={`h-4 w-4 text-rose-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            />
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Durum */}
+                      <td className="py-3 px-4">
+                        {isReversed ? (
+                          <Badge variant="destructive" className="bg-rose-100 text-rose-700 border-rose-300">
+                            🚫 İptal Edildi
+                          </Badge>
+                        ) : getStatusBadge(t.status)}
+                      </td>
+
+                      {/* Site */}
+                      <td className="py-3 px-4">
+                        <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                          {t.site?.name || '\u2014'}
+                        </span>
+                        {t.site?.code && <p className="text-[10px] text-twilight-400">{t.site.code}</p>}
+                      </td>
+
+                      {/* Finansor */}
+                      <td className="py-3 px-4">
+                        <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                          {t.financier?.name || '\u2014'}
+                        </span>
+                      </td>
+
+                      {/* Partner / Dis Kisi */}
+                      <td className="py-3 px-4">
+                        {t.partner ? (
+                          <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                            {t.partner.name}
+                          </span>
+                        ) : t.external_party ? (
+                          <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-purple-700'}`}>
+                            {t.external_party.name}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-twilight-300">{'\u2014'}</span>
+                        )}
+                      </td>
+
+                      {/* Aciklama */}
+                      <td className="py-3 px-4 max-w-[200px]">
+                        <p className={`text-sm truncate ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-600'}`}>
+                          {t.description || '\u2014'}
+                        </p>
+                      </td>
+
+                      {/* Tarih */}
+                      <td className="py-3 px-4">
+                        <p className={`text-sm whitespace-nowrap ${isReversed ? 'text-twilight-500' : 'text-twilight-600'}`}>
+                          {format(new Date(t.transaction_date), "d MMM yyyy", { locale: tr })}
+                        </p>
+                        <p className="text-[10px] text-twilight-400">
+                          {format(new Date(t.transaction_date), "HH:mm", { locale: tr })}
+                        </p>
+                      </td>
+
+                      {/* Tutar */}
+                      <td className="py-3 px-4 text-right">
+                        <span className={`text-sm font-bold ${
+                          isReversed ? 'text-rose-600 line-through' :
+                          t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
+                            ? 'text-emerald-700' :
+                          t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
+                            ? 'text-rose-700' :
+                            'text-twilight-700'
                         }`}>
-                        {t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
-                          t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
-                            <Send className="h-4 w-4" />}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-twilight-900">{getTransactionTypeLabel(t.type)}</p>
-                        <p className="text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
-                      </div>
-                    </div>
-                  </td>
+                          {formatMoney(parseFloat(t.gross_amount || "0"))}
+                        </span>
+                        {t.net_amount && t.net_amount !== t.gross_amount && (
+                          <p className="text-[10px] text-twilight-400">Net: {formatMoney(parseFloat(t.net_amount))}</p>
+                        )}
+                      </td>
 
-                  {/* Durum */}
-                  <td className="py-3 px-4">
-                    {getStatusBadge(t.status)}
-                  </td>
+                      {/* 3 Nokta Menu */}
+                      <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-twilight-400 hover:text-twilight-700">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => { setSelectedTransaction(t); setShowDetail(true); }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Detay Goruntule
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => { setSelectedTransaction(t); setShowReverseDialog(true); }}
+                              disabled={t.status === 'REVERSED' || t.status === 'FAILED'}
+                              className="text-rose-600 focus:text-rose-600"
+                            >
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Islemi Iptal Et
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
 
-                  {/* Site */}
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-twilight-700 font-medium">{t.site?.name || '\u2014'}</span>
-                    {t.site?.code && <p className="text-[10px] text-twilight-400">{t.site.code}</p>}
-                  </td>
-
-                  {/* Finansor */}
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-twilight-700 font-medium">{t.financier?.name || '\u2014'}</span>
-                  </td>
-
-                  {/* Partner / Dis Kisi */}
-                  <td className="py-3 px-4">
-                    {t.partner ? (
-                      <span className="text-sm text-twilight-700 font-medium">{t.partner.name}</span>
-                    ) : t.external_party ? (
-                      <span className="text-sm text-purple-700 font-medium">{t.external_party.name}</span>
-                    ) : (
-                      <span className="text-sm text-twilight-300">{'\u2014'}</span>
+                    {/* Accordion: Reversal Details */}
+                    {isReversed && isExpanded && (
+                      <tr className="bg-rose-50/50">
+                        <td colSpan={9} className="py-4 px-6">
+                          <div className="bg-white rounded-xl border-2 border-rose-200 p-4 space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <AlertTriangle className="h-5 w-5 text-rose-600" />
+                              <h4 className="font-bold text-rose-900">İptal Detayları</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p className="text-twilight-500 font-medium mb-1">İptal Tarihi</p>
+                                <p className="text-twilight-900 font-semibold">
+                                  {t.reversed_at ? format(new Date(t.reversed_at), "d MMM yyyy HH:mm", { locale: tr }) : '—'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-twilight-500 font-medium mb-1">İptal Nedeni</p>
+                                <p className="text-rose-700 font-semibold">{t.reversal_reason || '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-twilight-500 font-medium mb-1">Orijinal İşlem ID</p>
+                                <p className="text-twilight-900 font-mono text-xs">{t.id}</p>
+                              </div>
+                              <div>
+                                <p className="text-twilight-500 font-medium mb-1">İşlem Tutarı</p>
+                                <p className="text-twilight-900 font-bold">{formatMoney(parseFloat(t.gross_amount || "0"))}</p>
+                              </div>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-rose-200">
+                              <p className="text-xs text-twilight-500 italic">
+                                Bu işlem iptal edilmiştir. Tüm finansal hareketler geri alınmıştır.
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-
-                  {/* Aciklama */}
-                  <td className="py-3 px-4 max-w-[200px]">
-                    <p className="text-sm text-twilight-600 truncate">{t.description || '\u2014'}</p>
-                  </td>
-
-                  {/* Tarih */}
-                  <td className="py-3 px-4">
-                    <p className="text-sm text-twilight-600 whitespace-nowrap">
-                      {format(new Date(t.transaction_date), "d MMM yyyy", { locale: tr })}
-                    </p>
-                    <p className="text-[10px] text-twilight-400">
-                      {format(new Date(t.transaction_date), "HH:mm", { locale: tr })}
-                    </p>
-                  </td>
-
-                  {/* Tutar */}
-                  <td className="py-3 px-4 text-right">
-                    <span className={`text-sm font-bold ${t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
-                      ? 'text-emerald-700' :
-                      t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
-                        ? 'text-rose-700' :
-                        'text-twilight-700'
-                      }`}>
-                      {formatMoney(parseFloat(t.gross_amount || "0"))}
-                    </span>
-                    {t.net_amount && t.net_amount !== t.gross_amount && (
-                      <p className="text-[10px] text-twilight-400">Net: {formatMoney(parseFloat(t.net_amount))}</p>
-                    )}
-                  </td>
-
-                  {/* 3 Nokta Menu */}
-                  <td className="py-3 px-2 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-twilight-400 hover:text-twilight-700">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => { setSelectedTransaction(t); setShowDetail(true); }}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Detay Goruntule
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => { setSelectedTransaction(t); setShowReverseDialog(true); }}
-                          disabled={t.status === 'REVERSED' || t.status === 'FAILED'}
-                          className="text-rose-600 focus:text-rose-600"
-                        >
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Islemi Iptal Et
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
