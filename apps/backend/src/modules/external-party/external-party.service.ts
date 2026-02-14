@@ -280,6 +280,161 @@ export class ExternalPartyService {
       totalPages: Math.ceil(total / query.limit),
     };
   }
+
+  /**
+   * Get yearly statistics with monthly breakdown
+   */
+  async getYearlyStatistics(externalPartyId: string, year: number) {
+    const party = await this.findById(externalPartyId);
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year + 1, 0, 1);
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        external_party_id: externalPartyId,
+        transaction_date: { gte: startDate, lt: endDate },
+        status: 'COMPLETED',
+        type: { not: 'REVERSAL' },
+        deleted_at: null,
+      },
+      orderBy: { transaction_date: 'asc' },
+    });
+
+    // Initialize 12 months
+    const monthlyStats = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      debtIn: new Decimal(0),
+      debtOut: new Decimal(0),
+      payment: new Decimal(0),
+      balance: new Decimal(0),
+    }));
+
+    // Aggregate by month
+    for (const tx of transactions) {
+      const month = new Date(tx.transaction_date).getMonth(); // 0-11
+      const grossAmount = new Decimal(tx.gross_amount);
+
+      switch (tx.type) {
+        case 'EXTERNAL_DEBT_IN':
+          monthlyStats[month].debtIn = monthlyStats[month].debtIn.plus(grossAmount);
+          break;
+        case 'EXTERNAL_DEBT_OUT':
+          monthlyStats[month].debtOut = monthlyStats[month].debtOut.plus(grossAmount);
+          break;
+        case 'EXTERNAL_PAYMENT':
+          monthlyStats[month].payment = monthlyStats[month].payment.plus(grossAmount);
+          break;
+      }
+    }
+
+    // Running balance - BACKWARD from current balance
+    // External Party is LIABILITY: CREDIT increases (DEBT_IN), DEBIT decreases (DEBT_OUT, PAYMENT)
+    // monthChange = debtIn - debtOut - payment
+    const currentBalance = new Decimal(party.account?.balance || 0);
+    let runningBalance = currentBalance;
+
+    for (let i = 11; i >= 0; i--) {
+      monthlyStats[i].balance = runningBalance;
+
+      const monthChange = monthlyStats[i].debtIn
+        .minus(monthlyStats[i].debtOut)
+        .minus(monthlyStats[i].payment);
+
+      runningBalance = runningBalance.minus(monthChange);
+    }
+
+    return {
+      year,
+      externalPartyId,
+      externalPartyName: party.name,
+      currentBalance: currentBalance.toFixed(2),
+      monthlyData: monthlyStats.map((m) => ({
+        month: m.month,
+        debtIn: m.debtIn.toFixed(2),
+        debtOut: m.debtOut.toFixed(2),
+        payment: m.payment.toFixed(2),
+        balance: m.balance.toFixed(2),
+      })),
+    };
+  }
+
+  /**
+   * Get monthly statistics with daily breakdown
+   */
+  async getMonthlyStatistics(externalPartyId: string, year: number, month: number) {
+    const party = await this.findById(externalPartyId);
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        external_party_id: externalPartyId,
+        transaction_date: { gte: startDate, lt: endDate },
+        status: 'COMPLETED',
+        type: { not: 'REVERSAL' },
+        deleted_at: null,
+      },
+      orderBy: { transaction_date: 'asc' },
+    });
+
+    const dailyStats = Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      debtIn: new Decimal(0),
+      debtOut: new Decimal(0),
+      payment: new Decimal(0),
+      balance: new Decimal(0),
+    }));
+
+    for (const tx of transactions) {
+      const day = new Date(tx.transaction_date).getDate();
+      const dayIndex = day - 1;
+      const grossAmount = new Decimal(tx.gross_amount);
+
+      switch (tx.type) {
+        case 'EXTERNAL_DEBT_IN':
+          dailyStats[dayIndex].debtIn = dailyStats[dayIndex].debtIn.plus(grossAmount);
+          break;
+        case 'EXTERNAL_DEBT_OUT':
+          dailyStats[dayIndex].debtOut = dailyStats[dayIndex].debtOut.plus(grossAmount);
+          break;
+        case 'EXTERNAL_PAYMENT':
+          dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.plus(grossAmount);
+          break;
+      }
+    }
+
+    // Backward running balance
+    const currentBalance = new Decimal(party.account?.balance || 0);
+    let runningBalance = currentBalance;
+
+    for (let i = daysInMonth - 1; i >= 0; i--) {
+      dailyStats[i].balance = runningBalance;
+
+      const dayChange = dailyStats[i].debtIn
+        .minus(dailyStats[i].debtOut)
+        .minus(dailyStats[i].payment);
+
+      runningBalance = runningBalance.minus(dayChange);
+    }
+
+    return {
+      year,
+      month,
+      externalPartyId,
+      externalPartyName: party.name,
+      currentBalance: currentBalance.toFixed(2),
+      dailyData: dailyStats.map((d) => ({
+        day: d.day,
+        debtIn: d.debtIn.toFixed(2),
+        debtOut: d.debtOut.toFixed(2),
+        payment: d.payment.toFixed(2),
+        balance: d.balance.toFixed(2),
+      })),
+    };
+  }
 }
 
 export const externalPartyService = new ExternalPartyService();

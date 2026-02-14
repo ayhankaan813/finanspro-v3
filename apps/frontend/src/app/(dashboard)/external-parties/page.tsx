@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,6 +184,7 @@ function CreateExternalPartyModal({
 }
 
 export default function ExternalPartiesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { data, isLoading, error } = useExternalParties({ search });
@@ -271,7 +273,7 @@ export default function ExternalPartiesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Card className="group h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 hover:ring-indigo-500/50">
+                  <Card className="group h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 hover:ring-indigo-500/50 cursor-pointer" onClick={() => router.push(`/external-parties/${party.id}`)}>
                     <div className="h-20 bg-gradient-to-r from-indigo-50 to-violet-50 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-400/5 rounded-full blur-xl -mr-8 -mt-8"></div>
                       <div className="absolute top-4 right-4">

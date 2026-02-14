@@ -500,6 +500,86 @@ export function useCreateExternalParty() {
   });
 }
 
+export function useExternalParty(id: string) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["external-party", id],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<ExternalParty>(`/api/external-parties/${id}`);
+    },
+    enabled: !!accessToken && !!id,
+  });
+}
+
+export interface ExternalPartyStatistics {
+  year: number;
+  externalPartyId: string;
+  externalPartyName: string;
+  currentBalance: string;
+  monthlyData: Array<{
+    month: number;
+    debtIn: string;
+    debtOut: string;
+    payment: string;
+    balance: string;
+  }>;
+}
+
+export interface ExternalPartyMonthlyStatistics {
+  year: number;
+  month: number;
+  externalPartyId: string;
+  externalPartyName: string;
+  currentBalance: string;
+  dailyData: Array<{
+    day: number;
+    debtIn: string;
+    debtOut: string;
+    payment: string;
+    balance: string;
+  }>;
+}
+
+export function useExternalPartyStatistics(externalPartyId: string, year: number) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["external-party-statistics", externalPartyId, year],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<ExternalPartyStatistics>(`/api/external-parties/${externalPartyId}/statistics/${year}`);
+    },
+    enabled: !!accessToken && !!externalPartyId && !!year,
+  });
+}
+
+export function useExternalPartyMonthlyStatistics(externalPartyId: string, year: number, month: number) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["external-party-monthly-statistics", externalPartyId, year, month],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<ExternalPartyMonthlyStatistics>(`/api/external-parties/${externalPartyId}/statistics/${year}/${month}`);
+    },
+    enabled: !!accessToken && !!externalPartyId && !!year && !!month,
+  });
+}
+
+export function useExternalPartyTransactions(externalPartyId: string, params?: { page?: number; limit?: number }) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["external-party-transactions", externalPartyId, params],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      const queryParams: Record<string, string> = {};
+      if (params?.page) queryParams.page = String(params.page);
+      if (params?.limit) queryParams.limit = String(params.limit);
+      return api.get(`/api/external-parties/${externalPartyId}/transactions`, { params: queryParams });
+    },
+    enabled: !!accessToken && !!externalPartyId,
+  });
+}
+
 // ==================== TRANSACTIONS ====================
 export function useTransactions(params?: {
   page?: number;

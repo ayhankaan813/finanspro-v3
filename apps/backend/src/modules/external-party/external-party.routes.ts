@@ -109,4 +109,49 @@ export async function externalPartyRoutes(app: FastifyInstance) {
       return { success: true, data: result };
     }
   );
+
+  // ==================== STATISTICS ====================
+
+  /**
+   * GET /external-parties/:id/statistics/:year
+   */
+  app.get<{ Params: { id: string; year: string } }>(
+    '/:id/statistics/:year',
+    async (request, reply) => {
+      const year = parseInt(request.params.year, 10);
+      if (isNaN(year) || year < 2000 || year > 2100) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'INVALID_YEAR', message: 'Gecersiz yil' },
+        });
+      }
+      const statistics = await externalPartyService.getYearlyStatistics(request.params.id, year);
+      return { success: true, data: statistics };
+    }
+  );
+
+  /**
+   * GET /external-parties/:id/statistics/:year/:month
+   */
+  app.get<{ Params: { id: string; year: string; month: string } }>(
+    '/:id/statistics/:year/:month',
+    async (request, reply) => {
+      const year = parseInt(request.params.year, 10);
+      const month = parseInt(request.params.month, 10);
+      if (isNaN(year) || year < 2000 || year > 2100) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'INVALID_YEAR', message: 'Gecersiz yil' },
+        });
+      }
+      if (isNaN(month) || month < 1 || month > 12) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'INVALID_MONTH', message: 'Gecersiz ay (1-12 arasi olmali)' },
+        });
+      }
+      const statistics = await externalPartyService.getMonthlyStatistics(request.params.id, year, month);
+      return { success: true, data: statistics };
+    }
+  );
 }
