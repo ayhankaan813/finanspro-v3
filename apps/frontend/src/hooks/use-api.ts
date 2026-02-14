@@ -565,7 +565,7 @@ export function useExternalPartyMonthlyStatistics(externalPartyId: string, year:
   });
 }
 
-export function useExternalPartyTransactions(externalPartyId: string, params?: { page?: number; limit?: number }) {
+export function useExternalPartyTransactions(externalPartyId: string, params?: { page?: number; limit?: number; year?: number; month?: number }) {
   const { accessToken } = useAuthStore();
   return useQuery({
     queryKey: ["external-party-transactions", externalPartyId, params],
@@ -574,6 +574,8 @@ export function useExternalPartyTransactions(externalPartyId: string, params?: {
       const queryParams: Record<string, string> = {};
       if (params?.page) queryParams.page = String(params.page);
       if (params?.limit) queryParams.limit = String(params.limit);
+      if (params?.year) queryParams.year = String(params.year);
+      if (params?.month) queryParams.month = String(params.month);
       return api.get(`/api/external-parties/${externalPartyId}/transactions`, { params: queryParams });
     },
     enabled: !!accessToken && !!externalPartyId,

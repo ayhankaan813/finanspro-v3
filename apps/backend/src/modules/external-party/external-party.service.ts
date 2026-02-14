@@ -254,13 +254,22 @@ export class ExternalPartyService {
   /**
    * Get transactions
    */
-  async getTransactions(externalPartyId: string, query: { page: number; limit: number }) {
+  async getTransactions(externalPartyId: string, query: { page: number; limit: number; year?: number; month?: number }) {
     await this.findById(externalPartyId);
 
-    const where = {
+    const where: Prisma.TransactionWhereInput = {
       external_party_id: externalPartyId,
       deleted_at: null,
     };
+
+    // Tarih filtresi (ay bazında)
+    if (query.year && query.month) {
+      where.transaction_date = {
+        gte: new Date(query.year, query.month - 1, 1),
+        lt: new Date(query.year, query.month, 1),
+      };
+      where.status = 'COMPLETED';
+    }
 
     const [items, total] = await Promise.all([
       prisma.transaction.findMany({

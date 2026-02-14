@@ -97,13 +97,22 @@ export async function externalPartyRoutes(app: FastifyInstance) {
   /**
    * GET /external-parties/:id/transactions
    */
-  app.get<{ Params: { id: string }; Querystring: { page?: string; limit?: string } }>(
+  app.get<{ Params: { id: string }; Querystring: { page?: string; limit?: string; year?: string; month?: string } }>(
     '/:id/transactions',
     async (request, reply) => {
-      const query = {
+      const query: { page: number; limit: number; year?: number; month?: number } = {
         page: parseInt(request.query.page || '1', 10),
         limit: parseInt(request.query.limit || '20', 10),
       };
+
+      // Tarih filtresi
+      if (request.query.year) {
+        query.year = parseInt(request.query.year, 10);
+      }
+      if (request.query.month) {
+        query.month = parseInt(request.query.month, 10);
+      }
+
       const result = await externalPartyService.getTransactions(request.params.id, query);
 
       return { success: true, data: result };

@@ -36,6 +36,7 @@ import {
   Plus,
   Banknote,
   AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
@@ -242,9 +243,10 @@ export default function ExternalPartyDetailPage() {
   const router = useRouter();
   const externalPartyId = params.id as string;
 
-  const [viewMode, setViewMode] = useState<"monthly" | "daily">("monthly");
+  const [viewMode, setViewMode] = useState<"monthly" | "daily" | "ledger">("monthly");
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear] = useState<number>(new Date().getFullYear());
+  const [ledgerMonth, setLedgerMonth] = useState<number>(new Date().getMonth() + 1);
   const [showDebtOutModal, setShowDebtOutModal] = useState(false);
   const [showDebtInModal, setShowDebtInModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -256,7 +258,16 @@ export default function ExternalPartyDetailPage() {
     selectedYear,
     selectedMonth
   );
-  const { data: recentTxData } = useExternalPartyTransactions(externalPartyId, { page: 1, limit: 10 });
+  const { data: recentTxData } = useExternalPartyTransactions(externalPartyId, { page: 1, limit: 10 }) as { data: any };
+  const { data: ledgerTxData, isLoading: isLoadingLedgerTx } = useExternalPartyTransactions(
+    externalPartyId,
+    { page: 1, limit: 500, year: selectedYear, month: ledgerMonth }
+  ) as { data: any; isLoading: boolean };
+  const { data: ledgerMonthStats } = useExternalPartyMonthlyStatistics(
+    externalPartyId,
+    selectedYear,
+    ledgerMonth
+  );
 
   if (isLoadingParty || isLoadingStats) {
     return (
@@ -342,6 +353,63 @@ export default function ExternalPartyDetailPage() {
   const handleNextMonth = () => {
     if (selectedMonth < 12) setSelectedMonth(selectedMonth + 1);
   };
+
+  const handleLedgerPrevMonth = () => {
+    if (ledgerMonth > 1) setLedgerMonth(ledgerMonth - 1);
+  };
+
+  const handleLedgerNextMonth = () => {
+    if (ledgerMonth < 12) setLedgerMonth(ledgerMonth + 1);
+  };
+
+  // Group ledger transactions by day
+  const groupedLedgerDays = (() => {
+    if (!ledgerTxData?.items) return [];
+    const dayMap: Record<number, { debtOut: any[]; debtIn: any[]; payment: any[] }> = {};
+
+    for (const tx of ledgerTxData.items) {
+      const day = new Date(tx.transaction_date).getDate();
+      if (!dayMap[day]) dayMap[day] = { debtOut: [], debtIn: [], payment: [] };
+
+      if (tx.type === "EXTERNAL_DEBT_OUT") dayMap[day].debtOut.push(tx);
+      else if (tx.type === "EXTERNAL_DEBT_IN") dayMap[day].debtIn.push(tx);
+      else if (tx.type === "EXTERNAL_PAYMENT") dayMap[day].payment.push(tx);
+    }
+
+    // Sort days descending (newest first)
+    const days = Object.keys(dayMap)
+      .map(Number)
+      .sort((a, b) => b - a);
+
+    return days.map((day) => {
+      // Get opening balance from monthlyStats dailyData
+      const dayStats = ledgerMonthStats?.dailyData?.find((d: any) => d.day === day);
+      const dayDebtOut = dayMap[day].debtOut.reduce(
+        (sum: number, tx: any) => sum + parseFloat(tx.gross_amount || tx.amount || "0"),
+        0
+      );
+      const dayDebtIn = dayMap[day].debtIn.reduce(
+        (sum: number, tx: any) => sum + parseFloat(tx.gross_amount || tx.amount || "0"),
+        0
+      );
+      const dayPayment = dayMap[day].payment.reduce(
+        (sum: number, tx: any) => sum + parseFloat(tx.gross_amount || tx.amount || "0"),
+        0
+      );
+
+      // Opening balance = closing balance - net change
+      const closingBalance = parseFloat(dayStats?.balance || "0");
+      const netChange = dayDebtIn - dayDebtOut - dayPayment;
+      const openingBalance = closingBalance - netChange;
+
+      return {
+        day,
+        openingBalance,
+        closingBalance,
+        ...dayMap[day],
+      };
+    });
+  })();
 
   // Transaction type labels and colors
   const getTxTypeInfo = (type: string) => {
@@ -478,22 +546,184 @@ export default function ExternalPartyDetailPage() {
             <Calendar className="mr-2 h-4 w-4" />
             Gunluk Gorunum
           </Button>
+          <Button
+            variant={viewMode === "ledger" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("ledger")}
+            className={`rounded-lg ${viewMode === "ledger" ? "bg-twilight-800 text-white hover:bg-twilight-900" : "text-twilight-600"}`}
+          >
+            <BookOpen className="mr-2 h-4 w-4" />
+            Kasa Defteri
+          </Button>
         </div>
 
-        {viewMode === "daily" && (
+        {(viewMode === "daily" || viewMode === "ledger") && (
           <div className="flex items-center gap-3 bg-white rounded-xl p-2 shadow-sm border border-twilight-100">
-            <Button variant="ghost" size="sm" onClick={handlePrevMonth} disabled={selectedMonth === 1} className="h-8 w-8 p-0 rounded-lg">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={viewMode === "ledger" ? handleLedgerPrevMonth : handlePrevMonth}
+              disabled={(viewMode === "ledger" ? ledgerMonth : selectedMonth) === 1}
+              className="h-8 w-8 p-0 rounded-lg"
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-bold text-twilight-900 min-w-[100px] text-center">
-              {MONTHS[selectedMonth - 1]} {selectedYear}
+              {MONTHS[(viewMode === "ledger" ? ledgerMonth : selectedMonth) - 1]} {selectedYear}
             </span>
-            <Button variant="ghost" size="sm" onClick={handleNextMonth} disabled={selectedMonth === 12} className="h-8 w-8 p-0 rounded-lg">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={viewMode === "ledger" ? handleLedgerNextMonth : handleNextMonth}
+              disabled={(viewMode === "ledger" ? ledgerMonth : selectedMonth) === 12}
+              className="h-8 w-8 p-0 rounded-lg"
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         )}
       </div>
+
+      {/* ==================== KASA DEFTERİ VIEW ==================== */}
+      {viewMode === "ledger" && (
+        <div className="space-y-4">
+          {isLoadingLedgerTx ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-twilight-400" />
+              <span className="ml-3 text-twilight-500 font-medium">Islemler yukleniyor...</span>
+            </div>
+          ) : groupedLedgerDays.length === 0 ? (
+            <div className="rounded-2xl bg-twilight-50 border border-twilight-200 p-12 text-center">
+              <BookOpen className="h-12 w-12 text-twilight-300 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-twilight-700 mb-1">Islem Bulunamadi</h3>
+              <p className="text-twilight-500 text-sm">
+                {MONTHS[ledgerMonth - 1]} {selectedYear} icin kayitli islem yok.
+              </p>
+            </div>
+          ) : (
+            groupedLedgerDays.map((dayGroup) => (
+              <motion.div
+                key={dayGroup.day}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="rounded-2xl bg-white border border-twilight-200 shadow-lg overflow-hidden"
+              >
+                {/* Day Header */}
+                <div className="bg-gradient-to-r from-twilight-900 to-twilight-800 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-twilight-300" />
+                    <span className="text-lg font-bold text-white">
+                      {dayGroup.day} {MONTHS[ledgerMonth - 1]} {selectedYear}
+                    </span>
+                  </div>
+                  <span className="text-sm text-twilight-300 font-medium">
+                    {dayGroup.debtOut.length + dayGroup.debtIn.length + dayGroup.payment.length} islem
+                  </span>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  {/* Devir (Opening Balance) */}
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-twilight-50 border border-twilight-100">
+                    <span className="text-sm font-bold text-twilight-700 uppercase tracking-wider">Dunden Devir</span>
+                    <span className={`text-lg font-bold ${dayGroup.openingBalance >= 0 ? "text-twilight-900" : "text-emerald-700"}`}>
+                      {formatMoney(Math.abs(dayGroup.openingBalance))}
+                    </span>
+                  </div>
+
+                  {/* BORÇ VERİLEN */}
+                  {dayGroup.debtOut.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                        <ArrowUpRight className="h-4 w-4 text-rose-500" />
+                        <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Borc Verilen</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {dayGroup.debtOut.map((tx: any) => (
+                          <div key={tx.id} className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-rose-50 border border-rose-100 hover:bg-rose-100/70 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <ArrowUpRight className="h-4 w-4 text-rose-400 shrink-0" />
+                              <span className="text-sm text-twilight-700 font-medium">
+                                {tx.description || "Borc verme islemi"}
+                              </span>
+                            </div>
+                            <span className="text-sm font-bold text-rose-700 tabular-nums">
+                              {formatMoney(parseFloat(tx.gross_amount || tx.amount || "0"))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BORÇ ALINAN */}
+                  {dayGroup.debtIn.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                        <ArrowDownLeft className="h-4 w-4 text-violet-500" />
+                        <span className="text-xs font-bold text-violet-600 uppercase tracking-wider">Borc Alinan</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {dayGroup.debtIn.map((tx: any) => (
+                          <div key={tx.id} className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-violet-50 border border-violet-100 hover:bg-violet-100/70 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <ArrowDownLeft className="h-4 w-4 text-violet-400 shrink-0" />
+                              <span className="text-sm text-twilight-700 font-medium">
+                                {tx.description || "Borc alma islemi"}
+                              </span>
+                            </div>
+                            <span className="text-sm font-bold text-violet-700 tabular-nums">
+                              {formatMoney(parseFloat(tx.gross_amount || tx.amount || "0"))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ÖDEMELER */}
+                  {dayGroup.payment.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                        <HandCoins className="h-4 w-4 text-emerald-500" />
+                        <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Odemeler</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {dayGroup.payment.map((tx: any) => (
+                          <div key={tx.id} className="flex items-center justify-between px-4 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100 hover:bg-emerald-100/70 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <HandCoins className="h-4 w-4 text-emerald-400 shrink-0" />
+                              <span className="text-sm text-twilight-700 font-medium">
+                                {tx.description || "Odeme islemi"}
+                              </span>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-700 tabular-nums">
+                              {formatMoney(parseFloat(tx.gross_amount || tx.amount || "0"))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No transactions in any category for this day */}
+                  {dayGroup.debtOut.length === 0 && dayGroup.debtIn.length === 0 && dayGroup.payment.length === 0 && (
+                    <p className="text-sm text-twilight-400 text-center py-3">Bu gun islem yapilmamis</p>
+                  )}
+
+                  {/* Gün Sonu (Closing Balance) */}
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-twilight-900 to-twilight-800 border border-twilight-700">
+                    <span className="text-sm font-bold text-twilight-200 uppercase tracking-wider">Gun Sonu</span>
+                    <span className={`text-lg font-bold ${dayGroup.closingBalance >= 0 ? "text-orange-300" : "text-emerald-300"}`}>
+                      {formatMoney(Math.abs(dayGroup.closingBalance))}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Stats Cards - Only in Daily View */}
       {viewMode === "daily" && (
@@ -548,7 +778,8 @@ export default function ExternalPartyDetailPage() {
         </div>
       )}
 
-      {/* Data Table */}
+      {/* Data Table - Hidden in Ledger View */}
+      {viewMode !== "ledger" && (
       <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -657,9 +888,10 @@ export default function ExternalPartyDetailPage() {
           </table>
         </div>
       </Card>
+      )}
 
-      {/* Recent Transactions */}
-      {recentTxData?.items && recentTxData.items.length > 0 && (
+      {/* Recent Transactions - Hidden in Ledger View */}
+      {viewMode !== "ledger" && recentTxData?.items && recentTxData.items.length > 0 && (
         <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
@@ -710,7 +942,8 @@ export default function ExternalPartyDetailPage() {
         </Card>
       )}
 
-      {/* Contact Info Card */}
+      {/* Contact Info Card - Hidden in Ledger View */}
+      {viewMode !== "ledger" && (
       <Card className="border-0 shadow-lg rounded-2xl bg-gradient-to-r from-indigo-50 to-violet-50">
         <CardContent className="p-6">
           <h3 className="text-sm font-bold text-twilight-900 mb-4 flex items-center gap-2">
@@ -748,8 +981,10 @@ export default function ExternalPartyDetailPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
-      {/* Legend */}
+      {/* Legend - Hidden in Ledger View */}
+      {viewMode !== "ledger" && (
       <Card className="border-0 shadow-lg rounded-2xl bg-gradient-to-r from-indigo-50 to-violet-50">
         <CardContent className="p-6">
           <h3 className="text-sm font-bold text-twilight-900 mb-4 flex items-center gap-2">
@@ -781,6 +1016,7 @@ export default function ExternalPartyDetailPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Quick Action Modals */}
       <AnimatePresence>
