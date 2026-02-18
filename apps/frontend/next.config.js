@@ -38,16 +38,6 @@ const nextConfig = {
       "zod",
     ],
   },
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.watchOptions = {
-        ...config.watchOptions,
-        poll: false,
-        ignored: ['**/node_modules/**', '**/.next/**', '**/.git/**'],
-      };
-    }
-    return config;
-  },
 };
 
 module.exports = nextConfig;
