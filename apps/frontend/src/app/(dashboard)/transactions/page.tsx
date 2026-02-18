@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, formatTurkeyDate, formatTurkeyTime, formatTurkeyDateTime } from "@/lib/utils";
 import {
   useTransactions,
   useSites,
@@ -98,9 +98,8 @@ import {
   Pencil,
   History,
   Clock,
+  Info,
 } from "lucide-react";
-import { format } from "date-fns";
-import { tr } from "date-fns/locale/tr";
 import { toast } from "@/hooks/use-toast";
 
 // ===== TRANSACTION CONFIG & TABS =====
@@ -402,70 +401,70 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   const currentAction = ALL_ACTIONS.find(a => a.id === selectedType);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+    >
       <div className="absolute inset-0 bg-twilight-950/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-3xl sm:max-w-4xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+      <div className={`relative w-full sm:max-w-2xl lg:max-w-3xl bg-white rounded-t-[1.5rem] sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full sm:translate-y-12'}`}>
         {/* Header */}
-        <div className="bg-twilight-950 px-4 py-4 sm:px-8 sm:py-6 relative overflow-hidden shrink-0">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-twilight-800 rounded-full blur-3xl opacity-50 -mr-20 -mt-20 pointer-events-none" />
+        <div className="bg-twilight-950 px-4 py-3 sm:px-8 sm:py-6 relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-twilight-800 rounded-full blur-3xl opacity-50 -mr-10 -mt-10 sm:-mr-20 sm:-mt-20 pointer-events-none" />
           <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-twilight-800 flex items-center justify-center border border-twilight-700 shadow-lg">
-                <Sparkles className="h-6 w-6 text-twilight-300" />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-twilight-800 flex items-center justify-center border border-twilight-700 shadow-lg">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-twilight-300" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-white">Yeni İşlem</h2>
-                <p className="text-twilight-400 text-xs sm:text-sm">Finansal hareket kaydı oluşturun</p>
+                <h2 className="text-base sm:text-xl font-bold text-white">Yeni İşlem</h2>
+                <p className="text-twilight-400 text-[11px] sm:text-sm">Finansal hareket kaydı oluşturun</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors">
-              <X className="h-6 w-6" />
+            <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors">
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
         </div>
 
         {success ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-            <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center mb-6">
-              <CheckCircle className="h-10 w-10 text-emerald-600" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 text-center">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4 sm:mb-6">
+              <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
             </div>
-            <h3 className="text-2xl font-bold text-twilight-900 mb-2">İşlem Başarılı!</h3>
-            <p className="text-twilight-500">Kayıt başarıyla oluşturuldu, yönlendiriliyorsunuz...</p>
+            <h3 className="text-xl sm:text-2xl font-bold text-twilight-900 mb-2">İşlem Başarılı!</h3>
+            <p className="text-twilight-500 text-sm sm:text-base">Kayıt başarıyla oluşturuldu, yönlendiriliyorsunuz...</p>
           </div>
         ) : !selectedType ? (
           // TYPE SELECTION
           <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Tabs Header - Premium Style */}
-            <div className="px-4 py-3 sm:px-8 sm:pt-6 sm:pb-4 bg-gradient-to-b from-twilight-50/50 to-white">
-              <div className="flex gap-2 p-1.5 bg-twilight-100/60 rounded-2xl backdrop-blur-sm">
+            {/* Tabs Header - Compact on mobile */}
+            <div className="px-3 py-2 sm:px-8 sm:pt-6 sm:pb-4 bg-gradient-to-b from-twilight-50/50 to-white">
+              <div className="flex gap-1 sm:gap-2 p-1 sm:p-1.5 bg-twilight-100/60 rounded-xl sm:rounded-2xl backdrop-blur-sm">
                 {TABS.map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-2.5 px-5 py-3.5 text-sm font-semibold rounded-xl transition-all ${activeTab === tab.id
-                      ? "bg-white text-twilight-900 shadow-lg shadow-twilight-200/50 scale-[1.02]"
+                    className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-5 sm:py-3.5 text-[11px] sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-all ${activeTab === tab.id
+                      ? "bg-white text-twilight-900 shadow-md sm:shadow-lg shadow-twilight-200/50"
                       : "text-twilight-500 hover:text-twilight-700 hover:bg-white/40"
                       }`}
                   >
-                    <tab.icon className="h-4.5 w-4.5" />
-                    {tab.label}
+                    <tab.icon className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5" />
+                    <span className="truncate">{tab.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Grid Content - Larger Cards */}
-            <div className="p-4 sm:p-8 overflow-y-auto bg-gradient-to-b from-white to-twilight-50/30 flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+            {/* Grid Content - Compact cards on mobile */}
+            <div className="px-3 py-2 sm:p-8 overflow-y-auto bg-gradient-to-b from-white to-twilight-50/30 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-5 max-w-4xl mx-auto">
                 {ACTIONS_BY_TAB[activeTab].map(action => (
                   <button
                     key={action.id}
                     onClick={() => setSelectedType(action.id)}
-                    className="group relative flex items-start gap-5 p-6 bg-white rounded-2xl border-2 border-twilight-100 shadow-sm hover:shadow-xl hover:border-twilight-300 hover:-translate-y-1 transition-all duration-200 text-left"
+                    className="group relative flex items-center gap-3 sm:gap-5 p-3 sm:p-6 bg-white rounded-xl sm:rounded-2xl border border-twilight-100 sm:border-2 shadow-sm hover:shadow-xl hover:border-twilight-300 sm:hover:-translate-y-1 transition-all duration-200 text-left active:scale-[0.98]"
                   >
                     {/* Icon */}
                     <div className={`h-10 w-10 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
@@ -473,14 +472,14 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <h3 className="font-bold text-sm sm:text-lg text-twilight-900 mb-0.5 sm:mb-1.5 group-hover:text-twilight-950">{action.name}</h3>
-                      <p className="text-xs sm:text-sm text-twilight-600 leading-relaxed line-clamp-2 sm:line-clamp-none">{action.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm sm:text-lg text-twilight-900 group-hover:text-twilight-950">{action.name}</h3>
+                      <p className="text-[11px] sm:text-sm text-twilight-500 leading-snug sm:leading-relaxed line-clamp-2">{action.description}</p>
                     </div>
 
                     {/* Arrow hint */}
-                    <div className="shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ChevronRight className="h-5 w-5 text-twilight-400" />
+                    <div className="shrink-0 self-center">
+                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-twilight-300 group-hover:text-twilight-500 transition-colors" />
                     </div>
                   </button>
                 ))}
@@ -490,33 +489,33 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         ) : (
           // FORM
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center gap-2 sm:gap-4 px-4 py-3 sm:px-8 sm:py-4 border-b border-twilight-100 bg-white">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedType(null)} className="-ml-2 gap-2 text-twilight-600">
-                <ChevronLeft className="h-4 w-4" />
-                Geri Dön
+            <div className="flex items-center gap-2 px-3 py-2 sm:px-8 sm:py-4 border-b border-twilight-100 bg-white shrink-0">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedType(null)} className="-ml-1 gap-1.5 text-twilight-600 text-xs sm:text-sm h-8 px-2">
+                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Geri
               </Button>
-              <div className="h-6 w-px bg-twilight-200" />
+              <div className="h-5 w-px bg-twilight-200" />
               <div className="flex items-center gap-2">
                 {currentAction && (
-                  <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${currentAction.gradient} flex items-center justify-center`}>
-                    <currentAction.icon className="h-4 w-4 text-white" />
+                  <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-gradient-to-br ${currentAction.gradient} flex items-center justify-center`}>
+                    <currentAction.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                   </div>
                 )}
-                <span className="font-bold text-twilight-900">{currentAction?.name}</span>
+                <span className="font-bold text-sm sm:text-base text-twilight-900">{currentAction?.name}</span>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-8 bg-twilight-50/30">
-              <div className="max-w-2xl mx-auto space-y-6">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-3 sm:p-8 bg-twilight-50/30">
+              <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
 
                 {/* Amount Input */}
-                <div className="bg-white p-6 rounded-2xl border border-twilight-200 shadow-sm space-y-2">
-                  <Label className="text-twilight-600 font-medium">İşlem Tutarı</Label>
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-twilight-200 shadow-sm space-y-1.5 sm:space-y-2">
+                  <Label className="text-twilight-600 font-medium text-xs sm:text-sm">İşlem Tutarı</Label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl sm:text-2xl font-bold text-twilight-300">₺</span>
+                    <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-lg sm:text-2xl font-bold text-twilight-300">₺</span>
                     <Input
                       placeholder="0,00"
-                      className="pl-10 h-12 sm:h-16 text-xl sm:text-3xl font-bold border-twilight-200 rounded-xl focus:ring-twilight-500"
+                      className="pl-8 sm:pl-10 h-11 sm:h-16 text-lg sm:text-3xl font-bold border-twilight-200 rounded-xl focus:ring-twilight-500"
                       value={formData.amount}
                       onChange={e => setFormData({ ...formData, amount: e.target.value })}
                       autoFocus
@@ -528,13 +527,13 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 </div>
 
                 {/* Dynamic Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
                   {/* Financier Selection (Required for most) */}
                   {selectedType !== "FINANCIER_TRANSFER" && (
                     <div className="space-y-2">
                       <Label>Hangi Kasadan/Kasaya?</Label>
                       <Select value={formData.financier_id} onValueChange={v => setFormData({ ...formData, financier_id: v })} required>
-                        <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Kasa Seçin" /></SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Kasa Seçin" /></SelectTrigger>
                         <SelectContent>
                           {financiers?.items.map(f => (
                             <SelectItem key={f.id} value={f.id}>{f.name} ({formatMoney(parseFloat(f.account?.balance || "0"))})</SelectItem>
@@ -549,7 +548,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     <div className="space-y-2">
                       <Label>Hangi Site?</Label>
                       <Select value={formData.site_id} onValueChange={v => setFormData({ ...formData, site_id: v })} required>
-                        <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Site Seçin" /></SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Site Seçin" /></SelectTrigger>
                         <SelectContent>
                           {sites?.items.map(s => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
@@ -564,7 +563,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     <div className="space-y-2">
                       <Label>Teslimat Yöntemi</Label>
                       <Select value={formData.delivery_type_id} onValueChange={v => setFormData({ ...formData, delivery_type_id: v })} required>
-                        <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Yöntem Seçin" /></SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Yöntem Seçin" /></SelectTrigger>
                         <SelectContent>
                           {deliveryTypes?.map(d => (
                             <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
@@ -579,7 +578,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     <div className="space-y-2">
                       <Label>Hangi Partner?</Label>
                       <Select value={formData.partner_id} onValueChange={v => setFormData({ ...formData, partner_id: v })} required>
-                        <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Partner Seçin" /></SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Partner Seçin" /></SelectTrigger>
                         <SelectContent>
                           {partners?.items.map(p => (
                             <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -594,7 +593,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     <div className="space-y-2">
                       <Label>Dış Kişi</Label>
                       <Select value={formData.external_party_id} onValueChange={v => setFormData({ ...formData, external_party_id: v })} required>
-                        <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Kişi Seçin" /></SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Kişi Seçin" /></SelectTrigger>
                         <SelectContent>
                           {externalParties?.items.map(p => (
                             <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -610,7 +609,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       <div className="space-y-2">
                         <Label>Kimin Adına?</Label>
                         <Select value={formData.source_type} onValueChange={v => setFormData({ ...formData, source_type: v as any, source_id: "" })} required>
-                          <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Tip Seçin" /></SelectTrigger>
+                          <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Tip Seçin" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="SITE">Site</SelectItem>
                             <SelectItem value="PARTNER">Partner</SelectItem>
@@ -623,7 +622,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         <div className="space-y-2">
                           <Label>Kaynak Seçimi</Label>
                           <Select value={formData.source_id} onValueChange={v => setFormData({ ...formData, source_id: v })} required>
-                            <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Seçin..." /></SelectTrigger>
+                            <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Seçin..." /></SelectTrigger>
                             <SelectContent>
                               {formData.source_type === "SITE" && sites?.items.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}
                               {formData.source_type === "PARTNER" && partners?.items.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}
@@ -641,7 +640,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       <div className="space-y-2">
                         <Label>Takviye Kaynağı</Label>
                         <Select value={formData.topup_source_type} onValueChange={v => setFormData({ ...formData, topup_source_type: v as any, topup_source_id: "" })} required>
-                          <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Kaynak Tipi" /></SelectTrigger>
+                          <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Kaynak Tipi" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="PARTNER">Partner</SelectItem>
                             <SelectItem value="ORGANIZATION">Organizasyon</SelectItem>
@@ -653,7 +652,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         <div className="space-y-2">
                           <Label>Partner Seçin</Label>
                           <Select value={formData.topup_source_id} onValueChange={v => setFormData({ ...formData, topup_source_id: v })} required>
-                            <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Partner..." /></SelectTrigger>
+                            <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Partner..." /></SelectTrigger>
                             <SelectContent>
                               {partners?.items.map(x => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}
                             </SelectContent>
@@ -669,7 +668,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       <div className="space-y-2">
                         <Label>Çıkış Kasası</Label>
                         <Select value={formData.from_financier_id} onValueChange={v => setFormData({ ...formData, from_financier_id: v })} required>
-                          <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Seçin" /></SelectTrigger>
+                          <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Seçin" /></SelectTrigger>
                           <SelectContent>
                             {financiers?.items.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                           </SelectContent>
@@ -678,7 +677,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       <div className="space-y-2">
                         <Label>Giriş Kasası</Label>
                         <Select value={formData.to_financier_id} onValueChange={v => setFormData({ ...formData, to_financier_id: v })} required>
-                          <SelectTrigger className="h-12 bg-white"><SelectValue placeholder="Seçin" /></SelectTrigger>
+                          <SelectTrigger className="h-10 sm:h-12 bg-white text-sm"><SelectValue placeholder="Seçin" /></SelectTrigger>
                           <SelectContent>
                             {financiers?.items.filter(f => f.id !== formData.from_financier_id).map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                           </SelectContent>
@@ -688,28 +687,28 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-twilight-600">Açıklama (Opsiyonel)</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-twilight-600 text-xs sm:text-sm">Açıklama (Opsiyonel)</Label>
                   <Textarea
                     placeholder="İşlem detayı..."
-                    className="resize-none bg-white border-twilight-200 rounded-xl"
-                    rows={3}
+                    className="resize-none bg-white border-twilight-200 rounded-xl text-sm"
+                    rows={2}
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                   />
                 </div>
 
                 {error && (
-                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-medium flex items-center gap-2">
-                    <TrendingDown className="h-4 w-4" />
+                  <div className="p-3 sm:p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-xs sm:text-sm font-medium flex items-center gap-2">
+                    <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                     {error}
                   </div>
                 )}
 
-                <div className="pt-4 flex gap-4">
-                  <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl border-twilight-200 hover:bg-twilight-50 text-twilight-700">İptal</Button>
-                  <Button type="submit" disabled={isPending} className="flex-[2] h-12 rounded-xl bg-twilight-600 hover:bg-twilight-500 text-white shadow-lg shadow-twilight-900/10">
-                    {isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "İşlemi Tamamla"}
+                <div className="pt-2 sm:pt-4 pb-2 flex gap-3 sm:gap-4">
+                  <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-10 sm:h-12 rounded-xl border-twilight-200 hover:bg-twilight-50 text-twilight-700 text-sm">İptal</Button>
+                  <Button type="submit" disabled={isPending} className="flex-[2] h-10 sm:h-12 rounded-xl bg-twilight-600 hover:bg-twilight-500 text-white shadow-lg shadow-twilight-900/10 text-sm sm:text-base">
+                    {isPending ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin mr-2" /> : "İşlemi Tamamla"}
                   </Button>
                 </div>
               </div>
@@ -800,7 +799,7 @@ function TransactionsPageContent() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-3 sm:space-y-6 pb-20">
       <NewTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
       <TransactionFilters
@@ -816,16 +815,16 @@ function TransactionsPageContent() {
       />
 
       {/* Header Area with Filters */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-4">
         <div>
           <h1 className="text-lg sm:text-2xl font-bold text-twilight-900 tracking-tight">
             {scope === "organization" ? "Organizasyon İşlemleri" : "İşlem Yönetimi"}
           </h1>
-          <p className="text-twilight-500">
-            {scope === "organization"
-              ? "Organizasyon kasasından yapılan giderler, gelirler ve hak ediş çekimleri."
-              : "Tüm finansal transferlerinizi tek yerden yönetin."}
-          </p>
+          {scope === "organization" && (
+            <p className="text-twilight-500">
+              Organizasyon kasasından yapılan giderler, gelirler ve hak ediş çekimleri.
+            </p>
+          )}
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="h-9 sm:h-10 border-twilight-200 text-twilight-700 hover:bg-twilight-50 text-xs sm:text-sm px-3">
@@ -905,31 +904,32 @@ function TransactionsPageContent() {
 
       {/* Transactions List */}
       <Card className="border-0 shadow-xl shadow-twilight-100/50 bg-white rounded-3xl overflow-hidden ring-1 ring-twilight-100">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed sm:table-auto">
             <thead>
               <tr className="border-b border-twilight-100 bg-twilight-50/50">
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Islem Turu</th>
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden sm:table-cell">Durum</th>
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden md:table-cell">Site</th>
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden lg:table-cell">Finansor</th>
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden lg:table-cell">Partner / Kisi</th>
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden xl:table-cell">Aciklama</th>
-                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden sm:table-cell">Tarih</th>
-                <th className="text-right py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar</th>
-                <th className="w-14"></th>
+                <th className="text-left py-3 pl-3 pr-1 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider w-[72px] sm:w-auto">Islem</th>
+                <th className="text-left py-3 px-2 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden sm:table-cell">Durum</th>
+                <th className="text-left py-3 px-1 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider w-[60px] sm:w-auto">Site</th>
+                <th className="text-left py-3 px-1 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider w-[60px] sm:w-auto">Finansor</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden md:table-cell">Partner / Kisi</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden xl:table-cell">Aciklama</th>
+                <th className="text-left py-3 px-1 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider w-[50px] sm:w-auto">Tarih</th>
+                <th className="text-right py-3 px-1 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar</th>
+                <th className="w-[32px] sm:hidden"></th>
+                <th className="w-10 sm:w-14"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-twilight-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-10 sm:py-20 text-center">
+                  <td colSpan={10} className="py-10 sm:py-20 text-center">
                     <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full mx-auto" />
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={9} className="py-20 text-center">
+                  <td colSpan={10} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <AlertTriangle className="h-10 w-10 text-amber-400" />
                       <p className="text-twilight-500 text-sm">İşlemler yüklenirken bir hata oluştu.</p>
@@ -941,7 +941,7 @@ function TransactionsPageContent() {
                 </tr>
               ) : !transactionsData?.items?.length ? (
                 <tr>
-                  <td colSpan={9} className="py-20 text-center">
+                  <td colSpan={10} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       {scope === "organization" ? (
                         <>
@@ -993,87 +993,77 @@ function TransactionsPageContent() {
                       style={{ cursor: isReversed ? 'pointer' : 'default' }}
                     >
                       {/* Islem Turu */}
-                      {/* Islem Turu */}
-                      <td className="py-2.5 px-3 sm:py-3 sm:px-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isReversed ? 'bg-rose-100 text-rose-600' :
+                      <td className="py-2 pl-3 pr-1 sm:py-3 sm:px-4">
+                        {/* Mobile: text only, no icon */}
+                        <div className="sm:hidden">
+                          <p className={`font-bold text-[10px] leading-tight ${isReversed ? 'text-rose-600 line-through' :
+                            t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'text-emerald-700' :
+                              t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'text-rose-700' :
+                                'text-twilight-800'
+                            }`}>
+                            {getTransactionTypeLabel(t.type)}
+                          </p>
+                        </div>
+                        {/* Desktop: icon + text */}
+                        <div className="hidden sm:flex items-center gap-2">
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isReversed ? 'bg-rose-100 text-rose-600' :
                             t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
                               t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
                                 t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
                                   'bg-twilight-100 text-twilight-600'
                             }`}>
-                            {isReversed ? <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> :
-                              t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> :
-                                t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> :
-                                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                            {isReversed ? <RotateCcw className="h-4 w-4" /> :
+                              t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
+                                t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
+                                  <Send className="h-4 w-4" />}
                           </div>
                           <div className="min-w-0">
-                            <p className={`font-semibold text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none ${isReversed ? 'text-rose-700 line-through' : 'text-twilight-900'}`}>
+                            <p className={`font-semibold text-sm ${isReversed ? 'text-rose-700 line-through' : 'text-twilight-900'}`}>
                               {getTransactionTypeLabel(t.type)}
                             </p>
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-[9px] sm:text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
-                              {/* Mobile Status Indicator */}
-                              <div className="sm:hidden">
-                                {isReversed ? (
-                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                ) : t.status === 'COMPLETED' ? (
-                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                ) : t.status === 'PENDING' ? (
-                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                ) : (
-                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-500" />
-                                )}
-                              </div>
-                            </div>
+                            <p className="text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
                           </div>
                           {isReversed && (
                             <ChevronDown
-                              className={`h-3 w-3 sm:h-4 sm:w-4 text-rose-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              className={`h-4 w-4 text-rose-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             />
                           )}
                         </div>
                       </td>
 
-                      {/* Durum */}
-                      {/* Durum */}
+                      {/* Durum - desktop only */}
                       <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden sm:table-cell">
                         <div className="flex items-center gap-1">
                           {isReversed ? (
                             <Badge variant="destructive" className="bg-rose-100 text-rose-700 border-rose-300 text-[10px] sm:text-xs">
-                              🚫 İptal Edildi
+                              İptal
                             </Badge>
                           ) : getStatusBadge(t.status)}
                           {(t.edit_count ?? 0) > 0 && (
                             <Badge className="bg-blue-100 text-blue-700 border border-blue-300 text-[9px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 gap-1 font-semibold">
                               <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                              <span className="hidden sm:inline">{t.edit_count}x Düzenlendi</span>
-                              <span className="sm:hidden">{t.edit_count}x</span>
+                              <span>{t.edit_count}x Düzenlendi</span>
                             </Badge>
                           )}
                         </div>
                       </td>
 
                       {/* Site */}
-                      {/* Site */}
-                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden md:table-cell">
-                        <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                      <td className="py-2 px-1 sm:py-3 sm:px-4">
+                        <span className={`text-[10px] sm:text-sm font-medium truncate block sm:max-w-none ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
                           {t.site?.name || '\u2014'}
                         </span>
-                        {t.site?.code && <p className="text-[9px] sm:text-[10px] text-twilight-400">{t.site.code}</p>}
                       </td>
 
                       {/* Finansor */}
-                      {/* Finansor */}
-                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden lg:table-cell">
-                        <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                      <td className="py-2 px-1 sm:py-3 sm:px-4">
+                        <span className={`text-[10px] sm:text-sm font-medium truncate block sm:max-w-none ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
                           {t.financier?.name || '\u2014'}
                         </span>
                       </td>
 
                       {/* Partner / Dis Kisi */}
-                      {/* Partner / Dis Kisi */}
-                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden lg:table-cell">
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden md:table-cell">
                         {t.partner ? (
                           <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
                             {t.partner.name}
@@ -1088,7 +1078,6 @@ function TransactionsPageContent() {
                       </td>
 
                       {/* Aciklama */}
-                      {/* Aciklama */}
                       <td className="py-2.5 px-3 sm:py-3 sm:px-4 max-w-[200px] hidden xl:table-cell">
                         <p className={`text-xs sm:text-sm truncate ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-600'}`}>
                           {t.description || '\u2014'}
@@ -1096,19 +1085,18 @@ function TransactionsPageContent() {
                       </td>
 
                       {/* Tarih */}
-                      {/* Tarih */}
-                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden sm:table-cell">
-                        <p className={`text-xs sm:text-sm whitespace-nowrap ${isReversed ? 'text-twilight-500' : 'text-twilight-600'}`}>
-                          {format(new Date(t.transaction_date), "d MMM yyyy", { locale: tr })}
+                      <td className="py-2 px-1 sm:py-3 sm:px-4">
+                        <p className={`text-[10px] sm:text-sm whitespace-nowrap ${isReversed ? 'text-twilight-500' : 'text-twilight-600'}`}>
+                          <span className="sm:hidden">{formatTurkeyDateTime(t.transaction_date, "d MMM HH:mm")}</span>
+                          <span className="hidden sm:inline">{formatTurkeyDate(t.transaction_date)}</span>
                         </p>
-                        <p className="text-[9px] sm:text-[10px] text-twilight-400">
-                          {format(new Date(t.transaction_date), "HH:mm", { locale: tr })}
+                        <p className="text-[9px] sm:text-[10px] text-twilight-400 hidden sm:block">
+                          {formatTurkeyTime(t.transaction_date)}
                         </p>
                       </td>
 
                       {/* Tutar */}
-                      {/* Tutar */}
-                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 text-right">
+                      <td className="py-2 px-1 sm:py-3 sm:px-4 text-right">
                         <div className="flex flex-col items-end">
                           <span className={`text-xs sm:text-sm font-bold ${isReversed ? 'text-rose-600 line-through' :
                             t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
@@ -1122,19 +1110,25 @@ function TransactionsPageContent() {
                           {t.net_amount && t.net_amount !== t.gross_amount && (
                             <p className="text-[9px] sm:text-[10px] text-twilight-400">Net: {formatMoney(parseFloat(t.net_amount))}</p>
                           )}
-                          {/* Mobile Date Display under amount */}
-                          <div className="sm:hidden text-[9px] text-twilight-300 mt-0.5">
-                            {format(new Date(t.transaction_date), "d MMM", { locale: tr })}
-                          </div>
                         </div>
                       </td>
 
+                      {/* Detay butonu - sadece mobil */}
+                      <td className="py-2 px-0 text-center sm:hidden">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedTransaction(t); setShowDetail(true); }}
+                          className="h-6 w-6 rounded-full bg-twilight-50 hover:bg-twilight-100 inline-flex items-center justify-center text-twilight-400 hover:text-twilight-600 transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+
                       {/* 3 Nokta Menu */}
-                      <td className="py-3 px-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-2 pl-0 pr-2 sm:px-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-twilight-400 hover:text-twilight-700">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-8 sm:w-8 text-twilight-400 hover:text-twilight-700">
+                              <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
@@ -1187,7 +1181,7 @@ function TransactionsPageContent() {
                     {/* Accordion: Reversal Details */}
                     {isReversed && isExpanded && (
                       <tr className="bg-rose-50/50">
-                        <td colSpan={9} className="py-4 px-6">
+                        <td colSpan={10} className="py-4 px-6">
                           <div className="bg-white rounded-xl border-2 border-rose-200 p-4 space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <AlertTriangle className="h-5 w-5 text-rose-600" />
@@ -1197,7 +1191,7 @@ function TransactionsPageContent() {
                               <div>
                                 <p className="text-twilight-500 font-medium mb-1">İptal Tarihi</p>
                                 <p className="text-twilight-900 font-semibold">
-                                  {t.reversed_at ? format(new Date(t.reversed_at), "d MMM yyyy HH:mm", { locale: tr }) : '—'}
+                                  {t.reversed_at ? formatTurkeyDateTime(t.reversed_at) : '—'}
                                 </p>
                               </div>
                               <div>
@@ -1435,7 +1429,7 @@ function TransactionsPageContent() {
                                 <span className="text-xs font-semibold text-twilight-800">{entry.edited_by.name}</span>
                               </div>
                               <span className="text-[10px] text-twilight-400">
-                                {format(new Date(entry.edited_at), "d MMM yyyy, HH:mm", { locale: tr })}
+                                {formatTurkeyDateTime(entry.edited_at)}
                               </span>
                             </div>
 
@@ -1482,7 +1476,7 @@ function TransactionsPageContent() {
                   {selectedTransaction.reversal_reason && (
                     <p className="text-sm text-rose-600">Neden: {selectedTransaction.reversal_reason}</p>
                   )}
-                  <p className="text-xs text-rose-400">{format(new Date(selectedTransaction.reversed_at), "d MMMM yyyy, HH:mm", { locale: tr })}</p>
+                  <p className="text-xs text-rose-400">{formatTurkeyDateTime(selectedTransaction.reversed_at, "d MMMM yyyy, HH:mm")}</p>
                 </div>
               )}
 
@@ -1494,16 +1488,16 @@ function TransactionsPageContent() {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-twilight-400">Islem Tarihi</span>
-                  <span className="text-twilight-500">{format(new Date(selectedTransaction.transaction_date), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
+                  <span className="text-twilight-500">{formatTurkeyDateTime(selectedTransaction.transaction_date, "d MMMM yyyy, HH:mm:ss")}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-twilight-400">Olusturulma</span>
-                  <span className="text-twilight-500">{format(new Date(selectedTransaction.created_at), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
+                  <span className="text-twilight-500">{formatTurkeyDateTime(selectedTransaction.created_at, "d MMMM yyyy, HH:mm:ss")}</span>
                 </div>
                 {selectedTransaction.edited_at && (
                   <div className="flex justify-between text-xs">
                     <span className="text-blue-400">Son Duzenleme</span>
-                    <span className="text-blue-500 font-medium">{format(new Date(selectedTransaction.edited_at), "d MMMM yyyy, HH:mm:ss", { locale: tr })}</span>
+                    <span className="text-blue-500 font-medium">{formatTurkeyDateTime(selectedTransaction.edited_at, "d MMMM yyyy, HH:mm:ss")}</span>
                   </div>
                 )}
               </div>

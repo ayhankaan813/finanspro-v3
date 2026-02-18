@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatMoney, cn } from "@/lib/utils";
+import { formatMoney, cn, formatTurkeyTime } from "@/lib/utils";
 import {
   Calendar,
   Download,
@@ -389,10 +389,7 @@ export default function DailyReportPage() {
                         {transactions.items.slice(0, 8).map((tx) => (
                           <tr key={tx.id} className="hover:bg-twilight-50/50 transition-colors">
                             <td className="py-4 px-6 text-sm text-twilight-600 font-medium">
-                              {new Date(tx.transaction_date).toLocaleTimeString("tr-TR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatTurkeyTime(tx.transaction_date)}
                             </td>
                             <td className="py-4 px-6">
                               <span className={cn(
@@ -445,7 +442,7 @@ export default function DailyReportPage() {
                                   {tx.site ? tx.site.name : tx.partner ? tx.partner.name : "İşlem"}
                                 </span>
                                 <span className="text-xs text-twilight-400 font-mono">
-                                  {new Date(tx.transaction_date).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                                  {formatTurkeyTime(tx.transaction_date)}
                                 </span>
                               </div>
                               <p className="text-xs text-twilight-500 font-medium mt-0.5">

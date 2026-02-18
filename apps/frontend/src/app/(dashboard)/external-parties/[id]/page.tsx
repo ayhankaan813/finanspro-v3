@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, formatTurkeyDate, formatTurkeyDateTime } from "@/lib/utils";
 import {
   useExternalParty,
   useExternalPartyStatistics,
@@ -910,8 +910,6 @@ export default function ExternalPartyDetailPage() {
               {recentTxData.items.map((tx: any) => {
                 const txInfo = getTxTypeInfo(tx.type);
                 const TxIcon = txInfo.icon;
-                const txDate = new Date(tx.transaction_date);
-
                 return (
                   <div
                     key={tx.id}
@@ -924,7 +922,7 @@ export default function ExternalPartyDetailPage() {
                       <div>
                         <p className={`font-bold text-sm ${txInfo.color}`}>{txInfo.label}</p>
                         <p className="text-xs text-twilight-400 mt-0.5">
-                          {txDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
+                          {formatTurkeyDateTime(tx.transaction_date)}
                         </p>
                         {tx.description && (
                           <p className="text-xs text-twilight-500 mt-1">{tx.description}</p>
@@ -974,7 +972,7 @@ export default function ExternalPartyDetailPage() {
               <div>
                 <span className="font-bold text-twilight-900">Kayit:</span>
                 <span className="text-twilight-600 ml-1">
-                  {new Date(party.created_at).toLocaleDateString("tr-TR")}
+                  {formatTurkeyDate(party.created_at)}
                 </span>
               </div>
             </div>

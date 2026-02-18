@@ -1,5 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale/tr";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -53,4 +55,36 @@ export function getInitials(name: string): string {
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + "...";
+}
+
+/**
+ * Convert UTC date to Turkey time (GMT+3) Date object
+ */
+function toTurkeyDate(dateStr: string): Date {
+  const date = new Date(dateStr);
+  return new Date(date.getTime() + 3 * 60 * 60 * 1000);
+}
+
+/**
+ * Format date in Turkey timezone (GMT+3)
+ * Default format: "d MMM yyyy" → "17 Şub 2026"
+ */
+export function formatTurkeyDate(dateStr: string, fmt: string = "d MMM yyyy"): string {
+  return format(toTurkeyDate(dateStr), fmt, { locale: tr });
+}
+
+/**
+ * Format time in Turkey timezone (GMT+3)
+ * Returns: "HH:mm" → "14:30"
+ */
+export function formatTurkeyTime(dateStr: string): string {
+  return format(toTurkeyDate(dateStr), "HH:mm", { locale: tr });
+}
+
+/**
+ * Format full datetime in Turkey timezone (GMT+3)
+ * Returns: "d MMM yyyy, HH:mm" → "17 Şub 2026, 14:30"
+ */
+export function formatTurkeyDateTime(dateStr: string, fmt: string = "d MMM yyyy, HH:mm"): string {
+  return format(toTurkeyDate(dateStr), fmt, { locale: tr });
 }

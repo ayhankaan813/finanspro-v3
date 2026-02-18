@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatMoney, cn } from "@/lib/utils";
+import { formatMoney, cn, formatTurkeyDate } from "@/lib/utils";
 import {
     useOrganizationStats,
     useOrganizationTransactions,
@@ -445,7 +445,7 @@ export default function OrganizationPage() {
                                                             {typeof tx.category === 'object' && tx.category !== null ? tx.category.name : (tx.category || "Genel")}
                                                         </Badge>
                                                         <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                                                            {new Date(tx.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long' })}
+                                                            {formatTurkeyDate(tx.date, "d MMMM")}
                                                         </p>
                                                     </div>
                                                 </div>

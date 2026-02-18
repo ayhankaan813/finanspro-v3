@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, formatTurkeyDate } from "@/lib/utils";
 import { useFinancier, useFinancierBlocks, useFinancierStatistics, useFinancierMonthlyStatistics } from "@/hooks/use-api";
 import {
   ArrowLeft,
@@ -544,7 +544,7 @@ export default function FinancierDetailPage() {
                           <p className="text-sm text-twilight-600">{block.reason}</p>
                         )}
                         <p className="text-xs text-twilight-400 mt-1">
-                          Başlangıç: {startDate.toLocaleDateString('tr-TR')}
+                          Başlangıç: {formatTurkeyDate(block.started_at)}
                           {block.estimated_days && ` • Tahmini süre: ${block.estimated_days} gün`}
                         </p>
                       </div>

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, formatTurkeyDate, formatTurkeyDateTime } from "@/lib/utils";
 import {
   usePendingApprovals,
   useApprovalStats,
@@ -50,8 +50,6 @@ import {
   ShieldX,
   Inbox,
 } from "lucide-react";
-import { format } from "date-fns";
-import { tr } from "date-fns/locale/tr";
 
 // Transaction type labels
 const TX_TYPE_LABELS: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -83,7 +81,7 @@ function formatTimeAgo(dateStr: string): string {
   if (diffHour < 24) return `${diffHour} saat önce`;
   if (diffDay === 1) return "Dün";
   if (diffDay < 7) return `${diffDay} gün önce`;
-  return format(date, "d MMM yyyy", { locale: tr });
+  return formatTurkeyDate(dateStr);
 }
 
 export default function ApprovalsPage() {
@@ -310,7 +308,7 @@ export default function ApprovalsPage() {
                             <span>•</span>
                             <span>{formatTimeAgo(tx.created_at)}</span>
                             <span>•</span>
-                            <span>{format(new Date(tx.transaction_date), "d MMM yyyy", { locale: tr })}</span>
+                            <span>{formatTurkeyDateTime(tx.transaction_date)}</span>
                           </div>
                         </div>
 
