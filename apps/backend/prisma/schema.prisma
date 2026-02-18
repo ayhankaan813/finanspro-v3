@@ -715,3 +715,54 @@ enum NotificationPriority {
   HIGH
   URGENT
 }
+
+// ==================== PERSONNEL (Personel) ====================
+
+enum PersonnelStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PersonnelPaymentType {
+  SALARY
+  ADVANCE
+  BONUS
+  OTHER
+}
+
+model Personnel {
+  id             String          @id @default(uuid())
+  first_name     String
+  last_name      String
+  phone          String?
+  role           String // görev/pozisyon
+  monthly_salary Decimal         @db.Decimal(15, 2)
+  start_date     DateTime
+  status         PersonnelStatus @default(ACTIVE)
+  notes          String?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  deleted_at     DateTime?
+
+  payments PersonnelPayment[]
+
+  @@map("personnel")
+}
+
+model PersonnelPayment {
+  id           String               @id @default(uuid())
+  personnel_id String
+  amount       Decimal              @db.Decimal(15, 2)
+  payment_type PersonnelPaymentType
+  payment_date DateTime
+  period_month Int // 1-12
+  period_year  Int
+  description  String?
+  created_at   DateTime             @default(now())
+
+  personnel Personnel @relation(fields: [personnel_id], references: [id])
+
+  @@index([personnel_id])
+  @@index([period_year, period_month])
+  @@map("personnel_payment")
+}

@@ -22,6 +22,7 @@ import { ledgerRoutes } from './modules/ledger/index.js';
 import { organizationRoutes } from './modules/organization/index.js';
 import { notificationRoutes } from './modules/notification/notification.routes.js';
 import { approvalRoutes } from './modules/approval/approval.routes.js';
+import { personnelRoutes } from './modules/personnel/index.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -130,6 +131,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
     // Approval routes
     api.register(approvalRoutes, { prefix: '/approvals' });
+
+    // Personnel routes
+    api.register(personnelRoutes, { prefix: '/organization/personnel' });
 
     // Report routes (will be added later)
     // api.register(reportRoutes, { prefix: '/reports' });

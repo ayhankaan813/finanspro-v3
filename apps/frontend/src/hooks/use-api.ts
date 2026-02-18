@@ -2085,3 +2085,156 @@ export function useApprovalStats() {
     staleTime: 60000,
   });
 }
+
+// ==================== PERSONNEL ====================
+
+export interface Personnel {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  role: string;
+  monthly_salary: string;
+  start_date: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  total_paid: string;
+  paid_this_month: string;
+  months_employed: number;
+}
+
+export interface PersonnelPayment {
+  id: string;
+  personnel_id: string;
+  amount: string;
+  payment_type: 'SALARY' | 'ADVANCE' | 'BONUS' | 'OTHER';
+  payment_date: string;
+  period_month: number;
+  period_year: number;
+  description: string | null;
+  created_at: string;
+}
+
+export interface PersonnelSummary {
+  totalPersonnel: number;
+  totalSalaryObligation: string;
+  totalPaidThisMonth: string;
+  totalAdvances: string;
+}
+
+export function usePersonnelList() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["personnel-list"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<Personnel[]>("/api/organization/personnel");
+    },
+    enabled: !!accessToken,
+    staleTime: 30000,
+  });
+}
+
+export function usePersonnel(id: string | null) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["personnel", id],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<Personnel>(`/api/organization/personnel/${id}`);
+    },
+    enabled: !!accessToken && !!id,
+  });
+}
+
+export function usePersonnelSummary() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["personnel-summary"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<PersonnelSummary>("/api/organization/personnel/summary");
+    },
+    enabled: !!accessToken,
+    staleTime: 30000,
+  });
+}
+
+export function usePersonnelPayments(personnelId: string | null, page = 1, limit = 20) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["personnel-payments", personnelId, page, limit],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ items: PersonnelPayment[]; total: number; page: number; limit: number; totalPages: number }>(
+        `/api/organization/personnel/${personnelId}/payments?page=${page}&limit=${limit}`
+      );
+    },
+    enabled: !!accessToken && !!personnelId,
+  });
+}
+
+export function useCreatePersonnel() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async (data: { first_name: string; last_name: string; phone?: string; role: string; monthly_salary: number; start_date: string; notes?: string }) => {
+      api.setToken(accessToken);
+      return api.post<Personnel>("/api/organization/personnel", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["personnel-list"] });
+      queryClient.invalidateQueries({ queryKey: ["personnel-summary"] });
+    },
+  });
+}
+
+export function useUpdatePersonnel() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; first_name?: string; last_name?: string; phone?: string | null; role?: string; monthly_salary?: number; start_date?: string; status?: 'ACTIVE' | 'INACTIVE'; notes?: string | null }) => {
+      api.setToken(accessToken);
+      return api.put<Personnel>(`/api/organization/personnel/${id}`, data);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["personnel-list"] });
+      queryClient.invalidateQueries({ queryKey: ["personnel", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["personnel-summary"] });
+    },
+  });
+}
+
+export function useDeletePersonnel() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      api.setToken(accessToken);
+      return api.delete(`/api/organization/personnel/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["personnel-list"] });
+      queryClient.invalidateQueries({ queryKey: ["personnel-summary"] });
+    },
+  });
+}
+
+export function useAddPersonnelPayment() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ personnelId, ...data }: { personnelId: string; amount: number; payment_type: 'SALARY' | 'ADVANCE' | 'BONUS' | 'OTHER'; payment_date: string; period_month: number; period_year: number; description?: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/organization/personnel/${personnelId}/payments`, data);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["personnel-payments", vars.personnelId] });
+      queryClient.invalidateQueries({ queryKey: ["personnel", vars.personnelId] });
+      queryClient.invalidateQueries({ queryKey: ["personnel-list"] });
+      queryClient.invalidateQueries({ queryKey: ["personnel-summary"] });
+    },
+  });
+}

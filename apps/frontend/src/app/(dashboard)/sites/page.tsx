@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, cn } from "@/lib/utils";
+import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { tr } from "date-fns/locale";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
 import {
   useSites,
   useCreateSite,
@@ -153,6 +157,11 @@ function SortableSiteCard({
   const depositRate = rates?.find(r => r.transaction_type === "DEPOSIT" && r.is_active);
   const withdrawalRate = rates?.find(r => r.transaction_type === "WITHDRAWAL" && r.is_active);
 
+  // Calculate commission amounts
+  const depositCommission = depositRate ? totalDeposit * parseFloat(depositRate.rate) : 0;
+  const withdrawalCommission = withdrawalRate ? totalWithdrawal * parseFloat(withdrawalRate.rate) : 0;
+  const totalCommission = depositCommission + withdrawalCommission;
+
   const formatRate = (rate?: CommissionRate) => {
     return rate ? `${(parseFloat(rate.rate) * 100).toFixed(2)}%` : "-";
   };
@@ -232,8 +241,8 @@ function SortableSiteCard({
             </p>
           </div>
 
-          {/* Mini Stats Grid - real transaction totals */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
+          {/* Mini Stats Grid */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <MiniStat
               label="Aylık Yatırım"
               val={formatMoney(totalDeposit)}
@@ -249,6 +258,14 @@ function SortableSiteCard({
               icon={ArrowUpFromLine}
               color={isInactive ? "text-gray-400" : "text-rose-600"}
               bg={isInactive ? "bg-gray-50" : "bg-rose-50"}
+            />
+            <MiniStat
+              label="Komisyon"
+              val={formatMoney(totalCommission)}
+              trend="neutral"
+              icon={Percent}
+              color={isInactive ? "text-gray-400" : "text-amber-600"}
+              bg={isInactive ? "bg-gray-50" : "bg-amber-50"}
             />
           </div>
 
@@ -543,34 +560,37 @@ function CommissionModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-twilight-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-twilight-900/60 backdrop-blur-md transition-opacity" onClick={onClose} />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden transform transition-all border border-twilight-100" onClick={e => e.stopPropagation()}>
+        <div
+          className="relative w-[85%] max-w-[340px] sm:w-full sm:max-w-md rounded-[2rem] bg-white shadow-2xl overflow-hidden transform transition-all border border-twilight-100 ring-4 ring-twilight-900/5 origin-center"
+          onClick={e => e.stopPropagation()}
+        >
           {/* Header - consistently using the premium gradient */}
-          <div className="relative bg-gradient-to-br from-twilight-900 via-twilight-800 to-twilight-900 px-6 py-5 flex justify-between items-center text-white">
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/5 blur-2xl" />
-            <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-twilight-400/10 blur-3xl" />
+          <div className="relative bg-gradient-to-br from-twilight-900 via-twilight-800 to-twilight-900 px-5 py-4 sm:px-6 sm:py-5 flex justify-between items-center text-white overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-2 -mr-2 h-16 w-16 rounded-full bg-white/5 blur-xl" />
+            <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-24 w-24 rounded-full bg-twilight-400/10 blur-2xl" />
 
-            <div className="relative flex items-center gap-4 z-10">
-              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
-                <Percent className="h-6 w-6 text-twilight-50" />
+            <div className="relative flex items-center gap-3 z-10">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
+                <Percent className="h-5 w-5 sm:h-6 sm:w-6 text-twilight-50" />
               </div>
-              <div>
-                <h2 className="font-bold text-xl text-white tracking-tight">{site.name}</h2>
-                <p className="text-sm text-twilight-200/80 font-medium">Komisyon Ayarları</p>
+              <div className="flex flex-col">
+                <h2 className="font-bold text-base sm:text-xl text-white tracking-tight leading-tight">{site.name}</h2>
+                <span className="text-[10px] sm:text-sm text-twilight-200/80 font-medium tracking-wide uppercase">Komisyon Ayarları</span>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="relative z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-110 transition-all shadow-lg shadow-black/10"
+              className="relative z-10 -mr-1 p-1.5 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all active:scale-95"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 bg-gray-50/50">
             {isLoading ? (
-              <div className="py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-twilight-600" /></div>
+              <div className="py-8 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-twilight-600" /></div>
             ) : (
               TRANSACTION_TYPES.map(type => {
                 const current = getCurrentRate(type.value);
@@ -578,47 +598,49 @@ function CommissionModal({
                 const val = isEditing ? editingRates[current.id]! : newRates[type.value];
 
                 return (
-                  <div key={type.value} className="border border-twilight-100 rounded-xl overflow-hidden">
-                    <div className="bg-twilight-50/50 px-4 py-3 flex items-center justify-between border-b border-twilight-100">
+                  <div key={type.value} className="bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden transition-shadow hover:shadow-md">
+                    <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white">
                       <div className="flex items-center gap-2">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${type.bg} text-white`}>
-                          <type.icon className="h-4 w-4" />
+                        <div className={`h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center ${type.bg} text-white shadow-sm`}>
+                          <type.icon className="h-3 w-3 sm:h-4 sm:w-4" />
                         </div>
-                        <span className="font-medium text-twilight-900">{type.label}</span>
+                        <span className="font-bold text-xs sm:text-sm text-twilight-900 tracking-tight">{type.label}</span>
                       </div>
                       {current && !isEditing && (
-                        <Button variant="ghost" size="sm" onClick={() => setEditingRates({ ...editingRates, [current.id]: (parseFloat(current.rate) * 100).toFixed(2) })} className="h-8 text-twilight-600 hover:text-twilight-900 hover:bg-twilight-100">
-                          <Settings className="h-3.5 w-3.5 mr-1" /> Düzenle
+                        <Button variant="ghost" size="sm" onClick={() => setEditingRates({ ...editingRates, [current.id]: (parseFloat(current.rate) * 100).toFixed(2) })} className="h-6 w-auto px-2 text-[10px] sm:text-xs text-twilight-500 hover:text-twilight-900 hover:bg-twilight-50 rounded-lg">
+                          DÜZENLE
                         </Button>
                       )}
                     </div>
-                    <div className="p-4 flex items-center gap-4">
+                    <div className="p-3 sm:p-4">
                       {current && !isEditing ? (
-                        <div className="flex items-baseline gap-1">
-                          <span className={`text-3xl font-bold ${type.color}`}>%{(parseFloat(current.rate) * 100).toFixed(2)}</span>
-                          <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">Aktif</span>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-2xl sm:text-3xl font-bold tracking-tight ${type.color}`}>%{(parseFloat(current.rate) * 100).toFixed(2)}</span>
+                          <span className="text-[9px] sm:text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-widest">Aktif</span>
                         </div>
                       ) : (
-                        <div className="flex-1 flex gap-2">
+                        <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <Input
                               type="number"
                               placeholder="0.00"
-                              className="pr-8 font-semibold text-lg"
+                              className="pr-6 font-bold text-base h-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                               value={isEditing ? editingRates[current!.id] || "" : newRates[type.value]}
                               onChange={e => isEditing ? setEditingRates({ ...editingRates, [current!.id]: e.target.value }) : setNewRates({ ...newRates, [type.value]: e.target.value })}
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
                           </div>
                           <Button
                             onClick={() => handleSave(type.value, isEditing ? editingRates[current!.id] : newRates[type.value], current?.id)}
                             disabled={createRate.isPending || updateRate.isPending}
-                            className="bg-twilight-600 hover:bg-twilight-700 text-white"
+                            className="bg-twilight-900 hover:bg-twilight-800 text-white h-9 w-9 p-0 rounded-xl shadow-lg shadow-twilight-900/20"
                           >
-                            <Save className="h-4 w-4" />
+                            <Save className="h-3.5 w-3.5" />
                           </Button>
                           {isEditing && (
-                            <Button variant="outline" onClick={() => { const n = { ...editingRates }; delete n[current!.id]; setEditingRates(n); }}>İptal</Button>
+                            <Button variant="ghost" className="h-9 w-9 p-0 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100" onClick={() => { const n = { ...editingRates }; delete n[current!.id]; setEditingRates(n); }}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
                           )}
                         </div>
                       )}
@@ -636,29 +658,13 @@ function CommissionModal({
 
 // Date presets
 const DATE_PRESETS = [
-  { label: "Bugün", days: 0 },
-  { label: "Son 7 Gün", days: 7 },
-  { label: "Son 30 Gün", days: 30 },
-  { label: "Bu Ay", days: -1 },
+  { label: "Bugün", getValue: () => ({ from: new Date(), to: new Date() }) },
+  { label: "Dün", getValue: () => ({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) }) },
+  { label: "Son 7 Gün", getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }) },
+  { label: "Son 30 Gün", getValue: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+  { label: "Bu Ay", getValue: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Geçen Ay", getValue: () => ({ from: startOfMonth(subDays(startOfMonth(new Date()), 1)), to: endOfMonth(subDays(startOfMonth(new Date()), 1)) }) },
 ];
-
-function getDateRange(preset: number): { from: string; to: string; label: string } {
-  const now = new Date();
-  const toStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
-  if (preset === 0) {
-    return { from: toStr, to: toStr, label: "Bugün" };
-  } else if (preset === -1) {
-    // This month
-    const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-    return { from: firstDay, to: toStr, label: "Bu Ay" };
-  } else {
-    const fromDate = new Date(now);
-    fromDate.setDate(fromDate.getDate() - preset);
-    const fromStr = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, "0")}-${String(fromDate.getDate()).padStart(2, "0")}`;
-    return { from: fromStr, to: toStr, label: `Son ${preset} Gün` };
-  }
-}
 
 export default function SitesPage() {
   const [search, setSearch] = useState("");
@@ -666,13 +672,19 @@ export default function SitesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commissionSite, setCommissionSite] = useState<Site | null>(null);
   const [orderedSites, setOrderedSites] = useState<Site[]>([]);
-  const [datePreset, setDatePreset] = useState(0); // 0 = today
+  const [date, setDate] = useState<DateRange | undefined>(DATE_PRESETS[0].getValue());
   const [editSite, setEditSite] = useState<Site | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteSiteTarget, setDeleteSiteTarget] = useState<Site | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { toast } = useToast();
-  const dateRange = getDateRange(datePreset);
+
+  const dateRange = {
+    from: date?.from ? format(date.from, "yyyy-MM-dd") : "",
+    to: date?.to ? format(date.to, "yyyy-MM-dd") : "",
+    label: date?.from ? (date.to ? `${format(date.from, "d MMM", { locale: tr })} - ${format(date.to, "d MMM", { locale: tr })}` : format(date.from, "d MMM", { locale: tr })) : "Tarih Seçiniz"
+  };
 
   const { data, isLoading, error } = useSites({ page, limit: 100, search });
   const createSite = useCreateSite();
@@ -682,10 +694,10 @@ export default function SitesPage() {
 
   // Calculate Monthly Range for Card Stats (Fixed to Current Month)
   const now = new Date();
-  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const currentMonthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-  const { data: monthlyStatsData } = useSiteStats({ from: startOfMonth, to: todayStr });
+  const { data: monthlyStatsData } = useSiteStats({ from: currentMonthStartStr, to: todayStr });
 
   // Sync data to local sorted state when fetched
   useEffect(() => {
@@ -805,14 +817,10 @@ export default function SitesPage() {
                 <GripVertical className="h-6 w-6 sm:h-8 sm:w-8 text-twilight-200" />
                 Site Yönetimi
               </h1>
-              <p className="text-twilight-200/80 text-lg max-w-xl">
-                Bahis sitelerini ve finansal verilerini profesyonelce yönetin.
-                Kartları sürükleyerek sıralayabilirsiniz.
-              </p>
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-white text-twilight-900 hover:bg-twilight-50 font-bold px-4 py-4 sm:px-6 sm:py-6 rounded-xl sm:rounded-2xl shadow-xl transition-transform hover:scale-105 text-sm sm:text-base"
+              className="bg-white text-twilight-900 hover:bg-twilight-50 font-bold px-4 py-4 sm:px-6 sm:py-6 rounded-xl sm:rounded-2xl shadow-xl transition-transform hover:scale-105 text-sm sm:text-base w-full sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Yeni Site Ekle
@@ -820,22 +828,22 @@ export default function SitesPage() {
           </div>
 
           {/* Glass Stats Cards Overlay */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
               { label: "Toplam Site", val: stats.total, sub: `${stats.active} aktif`, icon: Globe },
               { label: "Toplam Bakiye", val: formatMoney(stats.totalBalance), sub: "Anlık Durum", icon: Wallet, highlight: true },
               { label: "Toplam Giriş", val: formatMoney(stats.totalIn), sub: dateRange.label, icon: ArrowDownToLine, color: "text-emerald-300" },
               { label: "Toplam Çıkış", val: formatMoney(stats.totalOut), sub: dateRange.label, icon: ArrowUpFromLine, color: "text-rose-300" }
             ].map((stat, i) => (
-              <div key={i} className={`rounded-2xl p-4 backdrop-blur-md border border-white/10 transition-all hover:bg-white/10 ${stat.highlight ? 'bg-white/15' : 'bg-white/5'}`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg bg-white/10">
-                    <stat.icon className={`h-5 w-5 ${stat.color || 'text-white'}`} />
+              <div key={i} className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 backdrop-blur-md border border-white/10 transition-all hover:bg-white/10 ${stat.highlight ? 'bg-white/15' : 'bg-white/5'}`}>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-white/10">
+                    <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color || 'text-white'}`} />
                   </div>
-                  <span className="text-sm font-medium text-twilight-100/70">{stat.label}</span>
+                  <span className="text-xs sm:text-sm font-medium text-twilight-100/70 truncate">{stat.label}</span>
                 </div>
-                <div className="text-2xl font-bold font-mono tracking-tight">{stat.val}</div>
-                {stat.sub && <div className="text-xs text-twilight-300 mt-1">{stat.sub}</div>}
+                <div className="text-lg sm:text-2xl font-bold font-mono tracking-tight truncate">{stat.val}</div>
+                {stat.sub && <div className="text-[10px] sm:text-xs text-twilight-300 mt-0.5 sm:mt-1 truncate">{stat.sub}</div>}
               </div>
             ))}
           </div>
@@ -844,36 +852,77 @@ export default function SitesPage() {
 
       {/* Date Filter + Toolbar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-2 rounded-2xl border border-twilight-100 shadow-sm">
-        {/* Date Presets */}
-        <div className="flex items-center gap-2 px-2">
-          <Calendar className="h-4 w-4 text-twilight-400" />
-          {DATE_PRESETS.map((preset) => (
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <PopoverTrigger asChild>
             <Button
-              key={preset.days}
-              variant={datePreset === preset.days ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setDatePreset(preset.days)}
-              className={`h-8 text-xs rounded-lg ${datePreset === preset.days
-                ? "bg-twilight-900 text-white hover:bg-twilight-800"
-                : "text-twilight-500 hover:bg-twilight-50"
-                }`}
+              id="date"
+              variant={"outline"}
+              className={cn(
+                "w-full md:w-[260px] justify-start text-left font-medium h-9 rounded-xl border-dashed border-twilight-200 text-twilight-600 bg-white hover:bg-twilight-50 transition-colors",
+                !date && "text-muted-foreground"
+              )}
             >
-              {preset.label}
+              <Calendar className="mr-2 h-4 w-4 text-twilight-400" />
+              {date?.from ? (
+                date.to ? (
+                  <>
+                    {format(date.from, "d MMM yyyy", { locale: tr })} -{" "}
+                    {format(date.to, "d MMM yyyy", { locale: tr })}
+                  </>
+                ) : (
+                  format(date.from, "d MMM yyyy", { locale: tr })
+                )
+              ) : (
+                <span>Tarih filtrele</span>
+              )}
             </Button>
-          ))}
-        </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <div className="flex flex-col sm:flex-row">
+              <div className="flex flex-col gap-1 p-3 border-b sm:border-b-0 sm:border-r border-twilight-100 bg-twilight-50/50 min-w-[160px]">
+                <div className="text-[10px] font-bold text-twilight-400 mb-2 px-2 uppercase tracking-wider">Hızlı Seçim</div>
+                {DATE_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDate(preset.getValue());
+                      setIsCalendarOpen(false);
+                    }}
+                    className="justify-start text-left font-medium text-xs h-8 px-2 hover:bg-white/80 hover:text-twilight-900 border border-transparent hover:border-twilight-100"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="p-0">
+                <CalendarComponent
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from}
+                  selected={date}
+                  onSelect={setDate}
+                  numberOfMonths={1}
+                  locale={tr}
+                  className="p-3"
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-twilight-400 h-4 w-4" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="İsim veya kod ile ara..."
-              className="pl-9 h-9 text-sm border-twilight-100"
+              className="pl-9 h-9 text-sm border-twilight-100 w-full"
             />
           </div>
-          <div className="h-6 w-px bg-twilight-100"></div>
+          <div className="h-6 w-px bg-twilight-100 shrink-0"></div>
           <span className="text-sm text-twilight-400 font-medium px-2 whitespace-nowrap">{data?.items.length || 0} Sonuç</span>
         </div>
       </div>

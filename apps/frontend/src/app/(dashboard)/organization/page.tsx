@@ -24,7 +24,8 @@ import {
     PieChart,
     ChevronRight,
     Search,
-    FileText
+    FileText,
+    Users
 } from "lucide-react";
 
 // UI Components
@@ -180,7 +181,14 @@ export default function OrganizationPage() {
                     </p>
                 </div>
 
-                {/* Filters */}
+                {/* Actions & Filters */}
+                <div className="flex items-center gap-3">
+                <Link href="/organization/personnel">
+                    <Button variant="outline" className="gap-2 rounded-xl border-twilight-200 text-twilight-700 hover:bg-twilight-50">
+                        <Users className="h-4 w-4" />
+                        <span className="hidden sm:inline">Personeller</span>
+                    </Button>
+                </Link>
                 <div className="flex items-center gap-2 p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
                     <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
                         <SelectTrigger className="h-9 w-[100px] border-0 bg-transparent focus:ring-0 font-medium">
@@ -200,6 +208,7 @@ export default function OrganizationPage() {
                             {MONTHS.map((m, i) => <SelectItem key={m} value={i.toString()}>{m}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                </div>
                 </div>
             </div>
 
