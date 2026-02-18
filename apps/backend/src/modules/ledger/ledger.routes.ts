@@ -25,8 +25,8 @@ export async function ledgerRoutes(app: FastifyInstance) {
     '/account/:entityId',
     async (request, reply) => {
       const query = {
-        page: parseInt(request.query.page || '1', 10),
-        limit: parseInt(request.query.limit || '20', 10),
+        page: Math.max(1, parseInt(request.query.page || '1', 10) || 1),
+        limit: Math.min(100, Math.max(1, parseInt(request.query.limit || '20', 10) || 20)),
       };
       const result = await ledgerService.getEntriesByAccount(request.params.entityId, query);
       return { success: true, data: result };

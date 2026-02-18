@@ -101,8 +101,8 @@ export async function externalPartyRoutes(app: FastifyInstance) {
     '/:id/transactions',
     async (request, reply) => {
       const query: { page: number; limit: number; year?: number; month?: number } = {
-        page: parseInt(request.query.page || '1', 10),
-        limit: parseInt(request.query.limit || '20', 10),
+        page: Math.max(1, parseInt(request.query.page || '1', 10) || 1),
+        limit: Math.min(100, Math.max(1, parseInt(request.query.limit || '20', 10) || 20)),
       };
 
       // Tarih filtresi

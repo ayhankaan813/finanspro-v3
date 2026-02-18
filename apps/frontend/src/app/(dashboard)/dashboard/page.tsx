@@ -22,8 +22,16 @@ import {
   useActiveBlocks,
   useOrganizationStats,
 } from "@/hooks/use-api";
-import { OverviewChart } from "@/components/dashboard/overview-chart";
+import dynamic from "next/dynamic";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+const OverviewChart = dynamic(
+  () => import("@/components/dashboard/overview-chart").then((mod) => ({ default: mod.OverviewChart })),
+  {
+    loading: () => <div className="h-[300px] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-twilight-300" /></div>,
+    ssr: false,
+  }
+);
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();

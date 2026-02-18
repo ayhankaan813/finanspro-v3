@@ -17,6 +17,7 @@ import {
   reverseTransactionSchema,
   editTransactionSchema,
   transactionQuerySchema,
+  bulkImportSchema,
 } from './transaction.schema.js';
 import type {
   CreateDepositInput,
@@ -35,6 +36,7 @@ import type {
   ReverseTransactionInput,
   EditTransactionInput,
   TransactionQueryInput,
+  BulkImportInput,
 } from './transaction.schema.js';
 import { authenticate, requireAdmin } from '../auth/auth.routes.js';
 
@@ -322,12 +324,11 @@ export async function transactionRoutes(app: FastifyInstance) {
    * POST /transactions/bulk
    * Bulk import transactions
    */
-  app.post<{ Body: { transactions: any[] } }>(
+  app.post<{ Body: BulkImportInput }>(
     '/bulk',
     async (request, reply) => {
-      // Schema validation is done inside service or we can add a specific schema here
-      // prioritizing the service implementation for now
-      const result = await transactionService.processBulkImport(request.body, request.user!.userId);
+      const input = bulkImportSchema.parse(request.body);
+      const result = await transactionService.processBulkImport(input, request.user!.userId);
       return reply.status(201).send({ success: true, data: result });
     }
   );

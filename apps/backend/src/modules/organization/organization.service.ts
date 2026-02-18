@@ -58,55 +58,51 @@ export class OrganizationService {
             ? new Date(query.year, query.month, 1)
             : new Date(query.year + 1, 0, 1);
 
-        // 1. Calculate Total Income (Commissions + ORG_INCOME)
-        // - Commission from snapshots (only for COMPLETED, non-reversed transactions)
-        const commissionIncome = await prisma.commissionSnapshot.aggregate({
-            _sum: { organization_amount: true },
-            where: {
-                created_at: { gte: startDate, lt: endDate },
-                transaction: {
+        // Parallelize all 4 aggregate queries
+        const [commissionIncome, directIncome, expenses, payments] = await Promise.all([
+            // 1a. Commission from snapshots (only for COMPLETED, non-reversed transactions)
+            prisma.commissionSnapshot.aggregate({
+                _sum: { organization_amount: true },
+                where: {
+                    created_at: { gte: startDate, lt: endDate },
+                    transaction: {
+                        status: 'COMPLETED',
+                        deleted_at: null,
+                    },
+                },
+            }),
+            // 1b. Direct ORG_INCOME transactions
+            prisma.transaction.aggregate({
+                _sum: { net_amount: true },
+                where: {
+                    type: TransactionType.ORG_INCOME,
+                    transaction_date: { gte: startDate, lt: endDate },
                     status: 'COMPLETED',
                     deleted_at: null,
                 },
-            },
-        });
-
-        // - Direct ORG_INCOME transactions
-        const directIncome = await prisma.transaction.aggregate({
-            _sum: { net_amount: true },
-            where: {
-                type: TransactionType.ORG_INCOME,
-                transaction_date: { gte: startDate, lt: endDate },
-                status: 'COMPLETED',
-                deleted_at: null,
-            },
-        });
-
-        // 2. Calculate Total Expenses (ORG_EXPENSE + Salaries via PAYMENT)
-        // - ORG_EXPENSE transactions
-        const expenses = await prisma.transaction.aggregate({
-            _sum: { net_amount: true },
-            where: {
-                type: TransactionType.ORG_EXPENSE,
-                transaction_date: { gte: startDate, lt: endDate },
-                status: 'COMPLETED',
-                deleted_at: null,
-            },
-        });
-
-        // - Salary Payments (PAYMENT type where source is Organization)
-        // expenses via PAYMENT type are recorded as DEBIT on Organization account
-        // We can query transactions of type PAYMENT where source_type = ORGANIZATION
-        const payments = await prisma.transaction.aggregate({
-            _sum: { net_amount: true },
-            where: {
-                type: TransactionType.PAYMENT,
-                source_type: EntityType.ORGANIZATION,
-                transaction_date: { gte: startDate, lt: endDate },
-                status: 'COMPLETED',
-                deleted_at: null,
-            },
-        });
+            }),
+            // 2a. ORG_EXPENSE transactions
+            prisma.transaction.aggregate({
+                _sum: { net_amount: true },
+                where: {
+                    type: TransactionType.ORG_EXPENSE,
+                    transaction_date: { gte: startDate, lt: endDate },
+                    status: 'COMPLETED',
+                    deleted_at: null,
+                },
+            }),
+            // 2b. Salary Payments (PAYMENT type where source is Organization)
+            prisma.transaction.aggregate({
+                _sum: { net_amount: true },
+                where: {
+                    type: TransactionType.PAYMENT,
+                    source_type: EntityType.ORGANIZATION,
+                    transaction_date: { gte: startDate, lt: endDate },
+                    status: 'COMPLETED',
+                    deleted_at: null,
+                },
+            }),
+        ]);
 
         const totalIncome = new Decimal(commissionIncome._sum.organization_amount || 0)
             .plus(directIncome._sum.net_amount || 0);
@@ -238,25 +234,36 @@ export class OrganizationService {
             ? new Date(query.year, query.month, 1)
             : new Date(query.year + 1, 0, 1);
 
-        // 1. Profit by Site
-        // We need to look at CommissionSnapshots and sum organization_amount grouped by Site
-        // Only include snapshots for COMPLETED (non-reversed) transactions
-        const snapshots = await prisma.commissionSnapshot.findMany({
-            where: {
-                created_at: { gte: startDate, lt: endDate },
-                transaction: {
-                    status: 'COMPLETED',
-                    deleted_at: null,
-                },
-            },
-            include: {
-                transaction: {
-                    select: {
-                        site: { select: { id: true, name: true } },
+        // Fetch profitBySite snapshots and busyDays transactions in parallel
+        const [snapshots, transactions] = await Promise.all([
+            // 1. Profit by Site - CommissionSnapshots grouped by Site
+            prisma.commissionSnapshot.findMany({
+                where: {
+                    created_at: { gte: startDate, lt: endDate },
+                    transaction: {
+                        status: 'COMPLETED',
+                        deleted_at: null,
                     },
                 },
-            },
-        });
+                include: {
+                    transaction: {
+                        select: {
+                            site: { select: { id: true, name: true } },
+                        },
+                    },
+                },
+            }),
+            // 2. Operational Intensity (Busy Days) - transaction dates
+            prisma.transaction.findMany({
+                where: {
+                    transaction_date: { gte: startDate, lt: endDate },
+                    status: 'COMPLETED',
+                    type: { not: TransactionType.REVERSAL },
+                    deleted_at: null,
+                },
+                select: { transaction_date: true },
+            }),
+        ]);
 
         const siteProfitMap = new Map<string, { name: string; amount: Decimal }>();
 
@@ -271,19 +278,7 @@ export class OrganizationService {
 
         const profitBySite = Array.from(siteProfitMap.values())
             .map(item => ({ name: item.name, amount: item.amount.toNumber() }))
-            .sort((a, b) => b.amount - a.amount); // Sort by highest profit
-
-        // 2. Operational Intensity (Busy Days)
-        // Count transactions by day of week (exclude reversals and reversed)
-        const transactions = await prisma.transaction.findMany({
-            where: {
-                transaction_date: { gte: startDate, lt: endDate },
-                status: 'COMPLETED',
-                type: { not: TransactionType.REVERSAL },
-                deleted_at: null,
-            },
-            select: { transaction_date: true },
-        });
+            .sort((a, b) => b.amount - a.amount);
 
         const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
         const busyDaysMap = new Array(7).fill(0);
@@ -306,71 +301,81 @@ export class OrganizationService {
         ];
 
         // 3. Monthly Trend (Income vs Expense for the year)
-        // Calculate for the entire year regardless of month filter
-        const monthlyTrend = [];
+        // Use groupBy queries instead of 48 sequential queries (4 per month x 12)
+        const yearStart = new Date(query.year, 0, 1);
+        const yearEnd = new Date(query.year + 1, 0, 1);
         const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
-        for (let m = 0; m < 12; m++) {
-            const monthStart = new Date(query.year, m, 1);
-            const monthEnd = new Date(query.year, m + 1, 1);
-
-            // Calculate income for this month (only COMPLETED, non-reversed transactions)
-            const monthCommission = await prisma.commissionSnapshot.aggregate({
-                _sum: { organization_amount: true },
+        // Fetch all yearly data in 4 parallel queries instead of 48 sequential
+        const [yearCommissions, yearDirectIncome, yearExpenses, yearPayments] = await Promise.all([
+            // Commission income by month - use raw query for month extraction
+            prisma.commissionSnapshot.findMany({
                 where: {
-                    created_at: { gte: monthStart, lt: monthEnd },
-                    transaction: {
-                        status: 'COMPLETED',
-                        deleted_at: null,
-                    },
+                    created_at: { gte: yearStart, lt: yearEnd },
+                    transaction: { status: 'COMPLETED', deleted_at: null },
                 },
-            });
-
-            const monthDirectIncome = await prisma.transaction.aggregate({
-                _sum: { net_amount: true },
+                select: { organization_amount: true, created_at: true },
+            }),
+            // Direct ORG_INCOME by month
+            prisma.transaction.findMany({
                 where: {
                     type: TransactionType.ORG_INCOME,
-                    transaction_date: { gte: monthStart, lt: monthEnd },
+                    transaction_date: { gte: yearStart, lt: yearEnd },
                     status: 'COMPLETED',
                     deleted_at: null,
                 },
-            });
-
-            // Calculate expenses for this month
-            const monthExpenses = await prisma.transaction.aggregate({
-                _sum: { net_amount: true },
+                select: { net_amount: true, transaction_date: true },
+            }),
+            // ORG_EXPENSE by month
+            prisma.transaction.findMany({
                 where: {
                     type: TransactionType.ORG_EXPENSE,
-                    transaction_date: { gte: monthStart, lt: monthEnd },
+                    transaction_date: { gte: yearStart, lt: yearEnd },
                     status: 'COMPLETED',
                     deleted_at: null,
                 },
-            });
-
-            const monthPayments = await prisma.transaction.aggregate({
-                _sum: { net_amount: true },
+                select: { net_amount: true, transaction_date: true },
+            }),
+            // PAYMENT (org source) by month
+            prisma.transaction.findMany({
                 where: {
                     type: TransactionType.PAYMENT,
                     source_type: EntityType.ORGANIZATION,
-                    transaction_date: { gte: monthStart, lt: monthEnd },
+                    transaction_date: { gte: yearStart, lt: yearEnd },
                     status: 'COMPLETED',
                     deleted_at: null,
                 },
-            });
+                select: { net_amount: true, transaction_date: true },
+            }),
+        ]);
 
-            const income = new Decimal(monthCommission._sum.organization_amount || 0)
-                .plus(monthDirectIncome._sum.net_amount || 0);
+        // Aggregate into monthly buckets in JS (much faster than 48 DB queries)
+        const monthlyIncome = new Array(12).fill(null).map(() => new Decimal(0));
+        const monthlyExpense = new Array(12).fill(null).map(() => new Decimal(0));
 
-            const expense = new Decimal(monthExpenses._sum.net_amount || 0)
-                .plus(monthPayments._sum.net_amount || 0);
-
-            monthlyTrend.push({
-                month: monthNames[m],
-                income: income.toNumber(),
-                expense: expense.toNumber(),
-                profit: income.minus(expense).toNumber(),
-            });
+        for (const snap of yearCommissions) {
+            const m = snap.created_at.getMonth();
+            monthlyIncome[m] = monthlyIncome[m].plus(snap.organization_amount);
         }
+        for (const tx of yearDirectIncome) {
+            const m = tx.transaction_date.getMonth();
+            monthlyIncome[m] = monthlyIncome[m].plus(tx.net_amount);
+        }
+        for (const tx of yearExpenses) {
+            const m = tx.transaction_date.getMonth();
+            monthlyExpense[m] = monthlyExpense[m].plus(tx.net_amount);
+        }
+        for (const tx of yearPayments) {
+            const m = tx.transaction_date.getMonth();
+            monthlyExpense[m] = monthlyExpense[m].plus(tx.net_amount);
+        }
+
+        const monthlyTrend = monthNames.map((name, i) => ({
+            month: name,
+            income: monthlyIncome[i].toNumber(),
+            expense: monthlyExpense[i].toNumber(),
+            profit: monthlyIncome[i].minus(monthlyExpense[i]).toNumber(),
+        }));
 
         return {
             period: { year: query.year, month: query.month },

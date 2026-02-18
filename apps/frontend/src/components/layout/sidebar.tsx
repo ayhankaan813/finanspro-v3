@@ -40,7 +40,7 @@ import {
   X,
   Briefcase,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
 import { useApprovalStats } from "@/hooks/use-api";
 
 interface NavItem {
@@ -231,8 +231,9 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   );
 }
 
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const [open, setOpen] = useState(false);
+  const handleClose = useCallback(() => setOpen(false), []);
 
   return (
     <>
@@ -248,7 +249,7 @@ export function Sidebar() {
           <SheetContent side="left" className="w-72 p-0">
             <SheetTitle className="sr-only">Navigasyon Menüsü</SheetTitle>
             <SheetDescription className="sr-only">Ana navigasyon menüsü</SheetDescription>
-            <NavContent onNavClick={() => setOpen(false)} />
+            <NavContent onNavClick={handleClose} />
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
@@ -265,7 +266,7 @@ export function Sidebar() {
       </aside>
     </>
   );
-}
+});
 
 export function MobileNav() {
   return null; // Now handled by Sidebar component

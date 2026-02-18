@@ -74,8 +74,8 @@ export async function personnelRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string }; Querystring: { page?: string; limit?: string } }>(
     '/:id/payments',
     async (request, reply) => {
-      const page = parseInt(request.query.page || '1', 10);
-      const limit = parseInt(request.query.limit || '20', 10);
+      const page = Math.max(1, parseInt(request.query.page || '1', 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '20', 10) || 20));
       const result = await personnelService.getPayments(request.params.id, page, limit);
       return { success: true, data: result };
     }

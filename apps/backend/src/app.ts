@@ -1,4 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify';
+import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
@@ -30,13 +31,16 @@ export async function buildApp(): Promise<FastifyInstance> {
     trustProxy: true,
   });
 
+  // Response compression
+  await app.register(compress, { global: true });
+
   // Security
   await app.register(helmet, {
     contentSecurityPolicy: isDev ? false : undefined,
   });
 
   await app.register(cors, {
-    origin: true, // Allow all origins in development
+    origin: isDev ? true : env.CORS_ORIGIN.split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

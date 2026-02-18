@@ -194,6 +194,7 @@ export function useSites(params?: { page?: number; limit?: number; search?: stri
       });
     },
     enabled: isEnabled,
+    staleTime: 30000,
   });
 }
 
@@ -207,6 +208,7 @@ export function useSite(id: string) {
       return api.get<Site>(`/api/sites/${id}`);
     },
     enabled: !!accessToken && !!id,
+    staleTime: 60000,
   });
 }
 
@@ -301,6 +303,7 @@ export function useSiteStats(params?: { from?: string; to?: string }) {
       });
     },
     enabled: !!accessToken,
+    staleTime: 120000,
   });
 }
 
@@ -322,6 +325,7 @@ export function usePartners(params?: { page?: number; limit?: number; search?: s
       });
     },
     enabled: isEnabled,
+    staleTime: 30000,
   });
 }
 
@@ -335,6 +339,7 @@ export function usePartner(id: string) {
       return api.get<Partner>(`/api/partners/${id}`);
     },
     enabled: !!accessToken && !!id,
+    staleTime: 60000,
   });
 }
 
@@ -371,6 +376,7 @@ export function useFinanciers(params?: { page?: number; limit?: number; search?:
       });
     },
     enabled: isEnabled,
+    staleTime: 30000,
   });
 }
 
@@ -384,6 +390,7 @@ export function useFinancier(id: string) {
       return api.get<Financier>(`/api/financiers/${id}`);
     },
     enabled: !!accessToken && !!id,
+    staleTime: 60000,
   });
 }
 
@@ -579,6 +586,7 @@ export function useExternalParties(params?: { page?: number; limit?: number; sea
       });
     },
     enabled: isEnabled,
+    staleTime: 30000,
   });
 }
 
@@ -652,6 +660,7 @@ export function useExternalPartyStatistics(externalPartyId: string, year: number
       return api.get<ExternalPartyStatistics>(`/api/external-parties/${externalPartyId}/statistics/${year}`);
     },
     enabled: !!accessToken && !!externalPartyId && !!year,
+    staleTime: 120000,
   });
 }
 
@@ -664,6 +673,7 @@ export function useExternalPartyMonthlyStatistics(externalPartyId: string, year:
       return api.get<ExternalPartyMonthlyStatistics>(`/api/external-parties/${externalPartyId}/statistics/${year}/${month}`);
     },
     enabled: !!accessToken && !!externalPartyId && !!year && !!month,
+    staleTime: 120000,
   });
 }
 
@@ -1191,6 +1201,7 @@ export function useSiteCommissionRates(siteId: string) {
       return api.get<CommissionRate[]>(`/api/sites/${siteId}/commission-rates`);
     },
     enabled: !!accessToken && !!siteId,
+    staleTime: 300000,
   });
 }
 
@@ -1258,6 +1269,7 @@ export function usePartnerCommissionRates(partnerId: string) {
       return api.get<CommissionRate[]>(`/api/partners/${partnerId}/commission-rates`);
     },
     enabled: !!accessToken && !!partnerId,
+    staleTime: 300000,
   });
 }
 
@@ -1342,6 +1354,7 @@ export function usePartnerStatistics(partnerId: string, year: number) {
       return api.get<PartnerStatistics>(`/api/partners/${partnerId}/statistics/${year}`);
     },
     enabled: !!accessToken && !!partnerId && !!year,
+    staleTime: 120000,
   });
 }
 
@@ -1370,6 +1383,7 @@ export function usePartnerMonthlyStatistics(partnerId: string, year: number, mon
       return api.get<PartnerMonthlyStatistics>(`/api/partners/${partnerId}/statistics/${year}/${month}`);
     },
     enabled: !!accessToken && !!partnerId && !!year && !!month,
+    staleTime: 120000,
   });
 }
 
@@ -1401,6 +1415,7 @@ export function useSiteStatistics(siteId: string, year: number) {
       return api.get<SiteStatistics>(`/api/sites/${siteId}/statistics/${year}`);
     },
     enabled: !!accessToken && !!siteId && !!year,
+    staleTime: 120000,
   });
 }
 
@@ -1433,6 +1448,7 @@ export function useSiteMonthlyStatistics(siteId: string, year: number, month: nu
       return api.get<SiteMonthlyStatistics>(`/api/sites/${siteId}/statistics/${year}/${month}`);
     },
     enabled: !!accessToken && !!siteId && !!year && !!month,
+    staleTime: 120000,
   });
 }
 
@@ -1465,6 +1481,7 @@ export function useFinancierStatistics(financierId: string, year: number) {
       return api.get<FinancierStatistics>(`/api/financiers/${financierId}/statistics/${year}`);
     },
     enabled: !!accessToken && !!financierId && !!year,
+    staleTime: 120000,
   });
 }
 
@@ -1498,6 +1515,7 @@ export function useFinancierMonthlyStatistics(financierId: string, year: number,
       return api.get<FinancierMonthlyStatistics>(`/api/financiers/${financierId}/statistics/${year}/${month}`);
     },
     enabled: !!accessToken && !!financierId && !!year && !!month,
+    staleTime: 120000,
   });
 }
 
@@ -1511,6 +1529,7 @@ export function useFinancierCommissionRates(financierId: string) {
       return api.get<CommissionRate[]>(`/api/financiers/${financierId}/commission-rates`);
     },
     enabled: !!accessToken && !!financierId,
+    staleTime: 300000,
   });
 }
 
@@ -1589,6 +1608,7 @@ export function useDeliveryTypes(options?: { enabled?: boolean }) {
       return api.get<DeliveryType[]>("/api/delivery-types");
     },
     enabled: isEnabled,
+    staleTime: 300000,
   });
 }
 
@@ -1698,6 +1718,7 @@ export function useCategories(type?: "SITE_EXPENSE" | "ORG_EXPENSE" | "ORG_INCOM
       return api.get<Category[]>("/api/categories", { params });
     },
     enabled: !!accessToken,
+    staleTime: 300000,
   });
 }
 
@@ -1743,6 +1764,7 @@ export function useOrganizationStats(year: number, month?: number | null) {
       return api.get<OrganizationStats>("/api/organization/stats", { params });
     },
     enabled: !!accessToken,
+    staleTime: 120000,
   });
 }
 
@@ -1775,6 +1797,7 @@ export function useOrganizationAccount() {
       return api.get<{ id: string; balance: string } | null>("/api/organization/account");
     },
     enabled: !!accessToken,
+    staleTime: 15000,
   });
 }
 
@@ -1813,6 +1836,7 @@ export function useOrgAnalytics(year: number, month?: number | null) {
       return api.get<OrganizationAnalytics>("/api/organization/analytics", { params });
     },
     enabled: !!accessToken,
+    staleTime: 120000,
   });
 }
 

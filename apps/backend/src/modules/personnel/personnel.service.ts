@@ -17,26 +17,35 @@ export class PersonnelService {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    const personnelList = await prisma.personnel.findMany({
-      where: { deleted_at: null },
-      include: {
-        payments: true,
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    // Fetch personnel and aggregated payment totals in parallel
+    const [personnelList, totalPaidByPersonnel, paidThisMonthByPersonnel] = await Promise.all([
+      prisma.personnel.findMany({
+        where: { deleted_at: null },
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.personnelPayment.groupBy({
+        by: ['personnel_id'],
+        _sum: { amount: true },
+      }),
+      prisma.personnelPayment.groupBy({
+        by: ['personnel_id'],
+        _sum: { amount: true },
+        where: {
+          period_month: currentMonth,
+          period_year: currentYear,
+        },
+      }),
+    ]);
+
+    // Build lookup maps for O(1) access
+    const totalPaidMap = new Map(
+      totalPaidByPersonnel.map((p) => [p.personnel_id, p._sum.amount || new Decimal(0)])
+    );
+    const paidThisMonthMap = new Map(
+      paidThisMonthByPersonnel.map((p) => [p.personnel_id, p._sum.amount || new Decimal(0)])
+    );
 
     return personnelList.map((p) => {
-      let totalPaid = new Decimal(0);
-      let paidThisMonth = new Decimal(0);
-
-      for (const payment of p.payments) {
-        totalPaid = totalPaid.plus(payment.amount);
-        if (payment.period_month === currentMonth && payment.period_year === currentYear) {
-          paidThisMonth = paidThisMonth.plus(payment.amount);
-        }
-      }
-
-      // Calculate months employed
       const startDate = new Date(p.start_date);
       const monthsEmployed =
         (now.getFullYear() - startDate.getFullYear()) * 12 +
@@ -54,8 +63,8 @@ export class PersonnelService {
         notes: p.notes,
         created_at: p.created_at,
         updated_at: p.updated_at,
-        total_paid: totalPaid.toFixed(2),
-        paid_this_month: paidThisMonth.toFixed(2),
+        total_paid: new Decimal(totalPaidMap.get(p.id) || 0).toFixed(2),
+        paid_this_month: new Decimal(paidThisMonthMap.get(p.id) || 0).toFixed(2),
         months_employed: Math.max(monthsEmployed, 0),
       };
     });
@@ -238,38 +247,40 @@ export class PersonnelService {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    const activePersonnel = await prisma.personnel.findMany({
-      where: { deleted_at: null, status: 'ACTIVE' },
-      include: {
-        payments: {
-          where: {
-            period_month: currentMonth,
-            period_year: currentYear,
-          },
+    // Use parallel aggregation queries instead of fetching all records
+    const [personnelAgg, paidThisMonth, advancesThisMonth] = await Promise.all([
+      // Count + sum salaries of active personnel
+      prisma.personnel.aggregate({
+        _count: true,
+        _sum: { monthly_salary: true },
+        where: { deleted_at: null, status: 'ACTIVE' },
+      }),
+      // Sum all payments this month for active personnel
+      prisma.personnelPayment.aggregate({
+        _sum: { amount: true },
+        where: {
+          period_month: currentMonth,
+          period_year: currentYear,
+          personnel: { deleted_at: null, status: 'ACTIVE' },
         },
-      },
-    });
-
-    let totalSalaryObligation = new Decimal(0);
-    let totalPaidThisMonth = new Decimal(0);
-    let totalAdvances = new Decimal(0);
-
-    for (const p of activePersonnel) {
-      totalSalaryObligation = totalSalaryObligation.plus(p.monthly_salary);
-
-      for (const payment of p.payments) {
-        totalPaidThisMonth = totalPaidThisMonth.plus(payment.amount);
-        if (payment.payment_type === 'ADVANCE') {
-          totalAdvances = totalAdvances.plus(payment.amount);
-        }
-      }
-    }
+      }),
+      // Sum advances this month for active personnel
+      prisma.personnelPayment.aggregate({
+        _sum: { amount: true },
+        where: {
+          period_month: currentMonth,
+          period_year: currentYear,
+          payment_type: 'ADVANCE',
+          personnel: { deleted_at: null, status: 'ACTIVE' },
+        },
+      }),
+    ]);
 
     return {
-      totalPersonnel: activePersonnel.length,
-      totalSalaryObligation: totalSalaryObligation.toFixed(2),
-      totalPaidThisMonth: totalPaidThisMonth.toFixed(2),
-      totalAdvances: totalAdvances.toFixed(2),
+      totalPersonnel: personnelAgg._count,
+      totalSalaryObligation: new Decimal(personnelAgg._sum.monthly_salary || 0).toFixed(2),
+      totalPaidThisMonth: new Decimal(paidThisMonth._sum.amount || 0).toFixed(2),
+      totalAdvances: new Decimal(advancesThisMonth._sum.amount || 0).toFixed(2),
     };
   }
 }

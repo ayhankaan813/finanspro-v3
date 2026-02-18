@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney, cn } from "@/lib/utils";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
-import { tr } from "date-fns/locale";
+import { tr } from "date-fns/locale/tr";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import {

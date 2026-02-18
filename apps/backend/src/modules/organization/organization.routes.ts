@@ -1,10 +1,13 @@
 
 import { FastifyInstance } from 'fastify';
 import { OrganizationController } from './organization.controller';
+import { authenticate } from '../auth/auth.routes.js';
 
 const organizationController = new OrganizationController();
 
 export async function organizationRoutes(app: FastifyInstance) {
+    // All organization routes require authentication
+    app.addHook('preHandler', authenticate);
     // Stats
     app.get('/stats', {
         schema: {

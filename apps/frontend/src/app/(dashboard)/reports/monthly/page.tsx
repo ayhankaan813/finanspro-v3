@@ -27,7 +27,7 @@ import {
 import { useTransactions, useFinanciers } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDaysInMonth } from "date-fns";
-import { tr } from "date-fns/locale";
+import { tr } from "date-fns/locale/tr";
 import {
   Area,
   AreaChart,

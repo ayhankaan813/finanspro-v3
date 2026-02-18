@@ -109,11 +109,9 @@ export async function financierRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string }; Querystring: { page?: string; limit?: string } }>(
     '/:id/transactions',
     async (request, reply) => {
-      const query = {
-        page: parseInt(request.query.page || '1', 10),
-        limit: parseInt(request.query.limit || '20', 10),
-      };
-      const result = await financierService.getTransactions(request.params.id, query);
+      const page = Math.max(1, parseInt(request.query.page || '1', 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '20', 10) || 20));
+      const result = await financierService.getTransactions(request.params.id, { page, limit });
 
       return {
         success: true,

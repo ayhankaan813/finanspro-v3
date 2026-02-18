@@ -75,13 +75,12 @@ export function errorHandler(
     return;
   }
 
-  // Handle unknown errors
+  // Handle unknown errors - never expose stack traces to clients
   const response: ErrorResponse = {
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message: isProd ? 'Internal server error' : error.message,
-      details: isProd ? undefined : { stack: error.stack },
+      message: 'Internal server error',
     },
   };
   reply.status(500).send(response);

@@ -376,7 +376,7 @@ export class PartnerService {
    * Returns monthly breakdown of commissions, payments, topups, and balances
    */
   async getYearlyStatistics(partnerId: string, year: number) {
-    await this.findById(partnerId); // Verify partner exists
+    const partner = await this.findById(partnerId); // Verify partner exists + get name
 
     // Get all transactions for this partner in the given year
     const startDate = new Date(year, 0, 1);
@@ -459,7 +459,7 @@ export class PartnerService {
     return {
       year,
       partnerId,
-      partnerName: (await this.findById(partnerId)).name,
+      partnerName: partner.name,
       currentBalance: partnerAccount?.balance || new Decimal(0),
       monthlyData: monthlyData.map((m) => ({
         month: m.month,

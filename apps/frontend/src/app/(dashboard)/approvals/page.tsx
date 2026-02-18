@@ -51,7 +51,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { format } from "date-fns";
-import { tr } from "date-fns/locale";
+import { tr } from "date-fns/locale/tr";
 
 // Transaction type labels
 const TX_TYPE_LABELS: Record<string, { label: string; icon: React.ElementType; color: string }> = {

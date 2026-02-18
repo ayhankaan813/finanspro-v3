@@ -329,6 +329,11 @@ model Transaction {
   @@index([site_id, transaction_date])
   @@index([transaction_date])
   @@index([created_at])
+  @@index([status])
+  @@index([financier_id, transaction_date])
+  @@index([external_party_id, transaction_date])
+  @@index([source_type, source_id])
+  @@index([type, source_type, transaction_date])
   @@map("transactions")
 }
 
@@ -429,6 +434,8 @@ model CommissionSnapshot {
 
   created_at DateTime @default(now())
 
+  @@index([transaction_id])
+  @@index([created_at])
   @@map("commission_snapshots")
 }
 
@@ -764,5 +771,6 @@ model PersonnelPayment {
 
   @@index([personnel_id])
   @@index([period_year, period_month])
+  @@index([personnel_id, period_year, period_month])
   @@map("personnel_payment")
 }
