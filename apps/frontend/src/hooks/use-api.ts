@@ -123,6 +123,25 @@ export interface FinancierBlock {
   started_at: string;
   resolved_at: string | null;
   estimated_days: number | null;
+  resolution_note: string | null;
+}
+
+export interface BlockPrediction {
+  predicted_days: number;
+  confidence: number;
+  min_days: number;
+  max_days: number;
+  sample_size: number;
+}
+
+export interface BlockStats {
+  total_created: number;
+  total_resolved: number;
+  active_count: number;
+  active_amount: string;
+  avg_duration: number;
+  min_duration: number;
+  max_duration: number;
 }
 
 export interface CommissionRate {
@@ -436,6 +455,89 @@ export function useFinancierBlocks(financierId: string) {
       return api.get<{ items: FinancierBlock[] }>(`/api/financiers/${financierId}/blocks`);
     },
     enabled: !!accessToken && !!financierId,
+  });
+}
+
+export function useCreateBlock() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (data: {
+      financierId: string;
+      amount: string;
+      reason?: string;
+      estimated_days?: number;
+    }) => {
+      api.setToken(accessToken);
+      return api.post<FinancierBlock>(`/api/financiers/${data.financierId}/blocks`, {
+        amount: data.amount,
+        reason: data.reason,
+        estimated_days: data.estimated_days,
+      });
+    },
+    onSuccess: (_, { financierId }) => {
+      queryClient.invalidateQueries({ queryKey: ["financier-blocks", financierId] });
+      queryClient.invalidateQueries({ queryKey: ["financiers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["active-blocks"] });
+    },
+  });
+}
+
+export function useResolveBlock() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (data: {
+      financierId: string;
+      blockId: string;
+      resolution_note?: string;
+    }) => {
+      api.setToken(accessToken);
+      return api.patch(`/api/financiers/${data.financierId}/blocks/${data.blockId}`, {
+        resolution_note: data.resolution_note,
+      });
+    },
+    onSuccess: (_, { financierId }) => {
+      queryClient.invalidateQueries({ queryKey: ["financier-blocks", financierId] });
+      queryClient.invalidateQueries({ queryKey: ["financiers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["active-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["block-stats", financierId] });
+      queryClient.invalidateQueries({ queryKey: ["block-prediction", financierId] });
+    },
+  });
+}
+
+export function useBlockPrediction(financierId: string, amount?: string) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["block-prediction", financierId, amount],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      const params: Record<string, string> = {};
+      if (amount && parseFloat(amount) > 0) params.amount = amount;
+      return api.get<BlockPrediction>(`/api/financiers/${financierId}/blocks/prediction`, { params });
+    },
+    enabled: !!accessToken && !!financierId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useBlockStats(financierId: string) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["block-stats", financierId],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<BlockStats>(`/api/financiers/${financierId}/blocks/stats`);
+    },
+    enabled: !!accessToken && !!financierId,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -1054,6 +1156,24 @@ export function useActiveBlocks() {
 
       const allBlocks = await Promise.all(blocksPromises);
       return allBlocks.flat();
+    },
+    enabled: !!accessToken,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ==================== DAILY CASH FLOW ====================
+export function useDailyCashFlow(days: number = 7) {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["daily-cash-flow", days],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<Array<{ date: string; name: string; total: number }>>(
+        "/api/organization/daily-cash-flow",
+        { params: { days: String(days) } }
+      );
     },
     enabled: !!accessToken,
     staleTime: 5 * 60 * 1000,

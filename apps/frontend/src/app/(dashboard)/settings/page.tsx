@@ -55,12 +55,12 @@ export default function SettingsPage() {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-twilight-500/20 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-twilight-400/10 blur-3xl"></div>
 
-        <div className="relative z-10 p-10">
-          <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-3">
-            <Settings className="h-8 w-8 text-twilight-200" />
+        <div className="relative z-10 p-4 sm:p-10">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 flex items-center gap-2 sm:gap-3">
+            <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-twilight-200" />
             Ayarlar
           </h1>
-          <p className="text-twilight-200/80 text-lg max-w-xl">
+          <p className="text-twilight-200/80 text-sm sm:text-lg max-w-xl">
             Sisteminizi özelleştirin ve hesap tercihlerinizi yönetin.
           </p>
         </div>
@@ -77,8 +77,8 @@ export default function SettingsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`group relative flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-300 w-full text-left overflow-hidden ${activeTab === tab.id
-                      ? "bg-gradient-to-r from-twilight-600 to-twilight-500 text-white shadow-lg shadow-twilight-500/20"
-                      : "text-twilight-600 hover:bg-white hover:text-twilight-900 hover:shadow-md bg-white/50"
+                    ? "bg-gradient-to-r from-twilight-600 to-twilight-500 text-white shadow-lg shadow-twilight-500/20"
+                    : "text-twilight-600 hover:bg-white hover:text-twilight-900 hover:shadow-md bg-white/50"
                     }`}
                 >
                   <div className={`p-2 rounded-lg transition-colors ${activeTab === tab.id ? "bg-white/20 text-white" : "bg-twilight-50 text-twilight-500 group-hover:bg-twilight-100 group-hover:text-twilight-700"
@@ -115,11 +115,11 @@ export default function SettingsPage() {
               {activeTab === "general" && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-3xl shadow-xl shadow-twilight-100/50 border border-twilight-100 overflow-hidden">
-                    <div className="p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
-                      <h2 className="text-xl font-bold text-twilight-900">Genel Ayarlar</h2>
-                      <p className="text-twilight-500 mt-1">Sistem dili, saat dilimi ve para birimi tercihleri</p>
+                    <div className="p-4 sm:p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
+                      <h2 className="text-lg sm:text-xl font-bold text-twilight-900">Genel Ayarlar</h2>
+                      <p className="text-xs sm:text-base text-twilight-500 mt-1">Sistem dili, saat dilimi ve para birimi tercihleri</p>
                     </div>
-                    <div className="p-8 space-y-8">
+                    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-3">
                           <Label htmlFor="language" className="text-twilight-700 font-medium">Sistem Dili</Label>
@@ -219,12 +219,12 @@ export default function SettingsPage() {
               {activeTab === "profile" && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-3xl shadow-xl shadow-twilight-100/50 border border-twilight-100 overflow-hidden">
-                    <div className="p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
-                      <h2 className="text-xl font-bold text-twilight-900">Profil Bilgileri</h2>
-                      <p className="text-twilight-500 mt-1">Kişisel bilgilerinizi ve iletişim detaylarınızı yönetin</p>
+                    <div className="p-4 sm:p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
+                      <h2 className="text-lg sm:text-xl font-bold text-twilight-900">Profil Bilgileri</h2>
+                      <p className="text-xs sm:text-base text-twilight-500 mt-1">Kişisel bilgilerinizi ve iletişim detaylarınızı yönetin</p>
                     </div>
 
-                    <div className="p-8">
+                    <div className="p-4 sm:p-8">
                       <div className="flex flex-col md:flex-row gap-8 items-start mb-10">
                         <div className="h-32 w-32 rounded-3xl bg-gradient-to-br from-twilight-900 to-twilight-700 flex items-center justify-center text-white text-4xl font-bold shadow-2xl shadow-twilight-900/20 shrink-0 ring-4 ring-white">
                           BY
@@ -280,12 +280,12 @@ export default function SettingsPage() {
               {activeTab === "security" && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-3xl shadow-xl shadow-twilight-100/50 border border-twilight-100 overflow-hidden">
-                    <div className="p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
-                      <h2 className="text-xl font-bold text-twilight-900">Güvenlik</h2>
-                      <p className="text-twilight-500 mt-1">Hesap güvenliğinizi ve erişim kontrollerini yönetin</p>
+                    <div className="p-4 sm:p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
+                      <h2 className="text-lg sm:text-xl font-bold text-twilight-900">Güvenlik</h2>
+                      <p className="text-xs sm:text-base text-twilight-500 mt-1">Hesap güvenliğinizi ve erişim kontrollerini yönetin</p>
                     </div>
 
-                    <div className="p-8 space-y-8">
+                    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
                       <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex gap-4">
                         <Shield className="h-6 w-6 text-amber-600 shrink-0" />
                         <div>
@@ -335,12 +335,12 @@ export default function SettingsPage() {
               {activeTab === "notifications" && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-3xl shadow-xl shadow-twilight-100/50 border border-twilight-100 overflow-hidden">
-                    <div className="p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
-                      <h2 className="text-xl font-bold text-twilight-900">Bildirimler</h2>
-                      <p className="text-twilight-500 mt-1">Hangi konularda bildirim almak istediğinizi seçin</p>
+                    <div className="p-4 sm:p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
+                      <h2 className="text-lg sm:text-xl font-bold text-twilight-900">Bildirimler</h2>
+                      <p className="text-xs sm:text-base text-twilight-500 mt-1">Hangi konularda bildirim almak istediğinizi seçin</p>
                     </div>
 
-                    <div className="p-8">
+                    <div className="p-4 sm:p-8">
                       <div className="space-y-6">
                         {[
                           { id: "newTx", label: "Finansal İşlemler", desc: "Her yeni yatırım ve çekim işleminde anlık bildirim al" },
@@ -367,12 +367,12 @@ export default function SettingsPage() {
               {activeTab === "organization" && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-3xl shadow-xl shadow-twilight-100/50 border border-twilight-100 overflow-hidden">
-                    <div className="p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
-                      <h2 className="text-xl font-bold text-twilight-900">Organizasyon</h2>
-                      <p className="text-twilight-500 mt-1">Şirket bilgileri ve fatura detayları</p>
+                    <div className="p-4 sm:p-8 border-b border-twilight-50 bg-gradient-to-r from-twilight-50/50 to-transparent">
+                      <h2 className="text-lg sm:text-xl font-bold text-twilight-900">Organizasyon</h2>
+                      <p className="text-xs sm:text-base text-twilight-500 mt-1">Şirket bilgileri ve fatura detayları</p>
                     </div>
 
-                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                       <div className="space-y-3">
                         <Label htmlFor="orgName" className="text-twilight-700 font-medium">Şirket Ünvanı</Label>
                         <Input id="orgName" defaultValue="FinansPro Teknoloji A.Ş." className="h-12 border-twilight-200 focus:ring-twilight-500 rounded-xl" />
@@ -395,34 +395,34 @@ export default function SettingsPage() {
               )}
 
               {/* Floating Save Action Bar */}
-              <div className="sticky bottom-4 mt-6">
-                <div className="bg-twilight-900/90 backdrop-blur-md text-white p-4 rounded-2xl flex items-center justify-between shadow-2xl shadow-twilight-900/30 border border-white/10 max-w-4xl mx-auto">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <Check className="h-5 w-5 text-emerald-400" />
+              <div className="sticky bottom-4 mt-6 z-20">
+                <div className="bg-twilight-900/95 backdrop-blur-md text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-center justify-between shadow-2xl shadow-twilight-900/30 border border-white/10 max-w-4xl mx-auto gap-3 sm:gap-0">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Check className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Değişiklikler kaydedilmedi</p>
-                      <p className="text-xs text-white/50">Yaptığınız değişikliklerin geçerli olması için kaydedin.</p>
+                      <p className="font-medium text-xs sm:text-sm">Değişiklikler kaydedilmedi</p>
+                      <p className="text-[10px] sm:text-xs text-white/50">Yaptığınız değişikliklerin geçerli olması için kaydedin.</p>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white rounded-xl">
+                  <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                    <Button variant="ghost" className="flex-1 sm:flex-none text-white hover:bg-white/10 hover:text-white rounded-lg sm:rounded-xl text-xs sm:text-sm h-9 sm:h-10">
                       İptal
                     </Button>
                     <Button
                       onClick={handleSave}
                       disabled={loading}
-                      className="bg-white text-twilight-900 hover:bg-white/90 font-bold px-6 rounded-xl shadow-lg shadow-black/20"
+                      className="flex-1 sm:flex-none bg-white text-twilight-900 hover:bg-white/90 font-bold px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg shadow-black/20 text-xs sm:text-sm h-9 sm:h-10"
                     >
                       {loading ? (
-                        <div className="h-4 w-4 border-2 border-twilight-900 border-t-transparent animate-spin rounded-full mr-2" />
+                        <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-twilight-900 border-t-transparent animate-spin rounded-full mr-2" />
                       ) : saved ? (
-                        <Check className="h-4 w-4 mr-2" />
+                        <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       )}
-                      {saved ? "Kaydedildi" : "Değişiklikleri Kaydet"}
+                      {saved ? "Kaydedildi" : "Kaydet"}
                     </Button>
                   </div>
                 </div>

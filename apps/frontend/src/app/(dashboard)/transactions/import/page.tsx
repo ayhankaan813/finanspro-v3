@@ -171,33 +171,47 @@ export default function BulkImportPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Toplu Veri Girişi (Gün Sonu)</h1>
-          <p className="text-muted-foreground">
-            Excel'den kopyaladığınız günlük raporları (Site Özeti) yapıştırarak hızlıca girin.
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Toplu Veri Girişi</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Günlük raporları (Site Özeti) Excel'den kopyalayıp yapıştırın.
           </p>
         </div>
-        <div className="flex items-center gap-4 bg-white p-2 rounded-lg border shadow-sm">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="date" className="text-sm font-medium text-muted-foreground">İşlem Tarihi:</Label>
-            <div className="relative">
-              <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+
+        <Card className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-white border shadow-sm w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <Label htmlFor="date" className="text-sm font-medium text-muted-foreground whitespace-nowrap sr-only sm:not-sr-only">İşlem Tarihi:</Label>
+            <div className="relative w-full sm:w-auto">
+              <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 id="date"
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="pl-9 h-9 w-[160px]"
+                className="pl-9 h-10 sm:h-9 w-full sm:w-[160px]"
               />
             </div>
           </div>
-          <div className="h-6 w-px bg-border mx-2"></div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setData([])} disabled={data.length === 0 || isUploading}>
+
+          <div className="hidden sm:block h-6 w-px bg-border mx-1"></div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setData([])}
+              disabled={data.length === 0 || isUploading}
+              className="flex-1 sm:flex-none h-10 sm:h-9"
+            >
               Temizle
             </Button>
-            <Button size="sm" onClick={handleImport} disabled={data.length === 0 || isUploading}>
+            <Button
+              size="sm"
+              onClick={handleImport}
+              disabled={data.length === 0 || isUploading}
+              className="flex-1 sm:flex-none h-10 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -211,7 +225,7 @@ export default function BulkImportPage() {
               )}
             </Button>
           </div>
-        </div>
+        </Card>
       </div>
 
       <div className="grid gap-6">

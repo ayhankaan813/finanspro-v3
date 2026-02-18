@@ -130,9 +130,9 @@ export default function MonthlyReportPage() {
           dayEntry.netChange -= amount;
         }
         else if (tx.type === "PAYMENT" || tx.type === "PARTNER_PAYMENT" ||
-                 tx.type === "ORG_EXPENSE" || tx.type === "ORG_WITHDRAW" ||
-                 tx.type === "ORG_INCOME" || tx.type === "EXTERNAL_PAYMENT" ||
-                 tx.type === "EXTERNAL_DEBT_OUT") {
+          tx.type === "ORG_EXPENSE" || tx.type === "ORG_WITHDRAW" ||
+          tx.type === "ORG_INCOME" || tx.type === "EXTERNAL_PAYMENT" ||
+          tx.type === "EXTERNAL_DEBT_OUT") {
           // Ödeme: Tüm kasadan çıkışlar (partner, org gider/çekim, dış borç verme)
           dayEntry.payment += amount;
           totals.payment += amount;
@@ -215,27 +215,27 @@ export default function MonthlyReportPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header & Month Selector */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">Aylık Rapor</h1>
-          <p className="text-twilight-500">
+          <h1 className="text-xl sm:text-2xl font-bold text-twilight-900 tracking-tight">Aylık Rapor</h1>
+          <p className="text-xs sm:text-sm text-twilight-500">
             Detaylı finansal işlem dökümü ve günlük dağılım.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-white p-1 rounded-2xl border border-twilight-200 shadow-sm">
-          <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="hover:bg-twilight-50 text-twilight-600">
-            <ChevronLeft className="h-4 w-4" />
+        <div className="flex items-center gap-1 sm:gap-2 bg-white p-1 rounded-xl sm:rounded-2xl border border-twilight-200 shadow-sm self-start md:self-auto">
+          <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-twilight-50 text-twilight-600">
+            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
-          <div className="min-w-[140px] text-center font-bold text-twilight-900">
+          <div className="min-w-[120px] sm:min-w-[140px] text-center font-bold text-twilight-900 text-sm sm:text-base">
             {format(currentDate, "MMMM yyyy", { locale: tr })}
           </div>
-          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="hover:bg-twilight-50 text-twilight-600">
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-twilight-50 text-twilight-600">
+            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
-          <div className="h-6 w-px bg-twilight-200 mx-1" />
-          <Button variant="ghost" size="sm" className="text-twilight-600 hover:text-twilight-900 px-3">
-            <Download className="h-4 w-4 mr-2" /> Excel
+          <div className="h-5 sm:h-6 w-px bg-twilight-200 mx-0.5 sm:mx-1" />
+          <Button variant="ghost" size="sm" className="h-8 sm:h-9 text-twilight-600 hover:text-twilight-900 px-2 sm:px-3 text-xs sm:text-sm">
+            <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Excel
           </Button>
         </div>
       </div>
@@ -309,67 +309,129 @@ export default function MonthlyReportPage() {
       <Card className="rounded-3xl border-0 shadow-xl shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 overflow-hidden">
         <div className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-twilight-900 text-white">
-                  <th className="py-4 px-4 text-sm font-semibold text-left">Tarih</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300">Yatırım</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300">Çekim</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300">Komisyon</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim Kom.</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-yellow-200">Ödeme</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right text-cyan-300">Takviye</th>
-                  <th className="py-4 px-4 text-sm font-semibold text-right font-bold">Kasa</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-twilight-50">
-                {dailyData.map((day) => (
-                  <tr key={day.dayStr} className="hover:bg-twilight-50/50 transition-colors group">
-                    <td className="py-3 px-4 text-sm text-twilight-700 font-medium">
-                      {format(day.date, "dd.MM.yyyy", { locale: tr })}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors">
-                      {day.deposit > 0 ? formatMoney(day.deposit) : <span className="text-emerald-300/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-bold text-rose-600 bg-rose-50/30 group-hover:bg-rose-50/50 transition-colors">
-                      {day.withdrawal > 0 ? formatMoney(day.withdrawal) : <span className="text-rose-300/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-medium text-violet-600">
-                      {day.commission > 0 ? formatMoney(day.commission) : <span className="text-twilight-200/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
-                      {day.delivery > 0 ? formatMoney(day.delivery) : <span className="text-twilight-200/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
-                      {day.deliveryCommission > 0 ? formatMoney(day.deliveryCommission) : <span className="text-twilight-200/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-medium text-yellow-600">
-                      {day.payment > 0 ? formatMoney(day.payment) : <span className="text-twilight-200/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-medium text-cyan-600">
-                      {day.topup > 0 ? formatMoney(day.topup) : <span className="text-twilight-200/50">-</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right text-sm font-bold font-mono text-twilight-900 bg-twilight-50/50">
-                      {formatMoney(day.balance)}
-                    </td>
+            <div className="overflow-x-auto">
+              {/* Desktop Table - Hidden on Mobile */}
+              <table className="w-full hidden sm:table">
+                <thead>
+                  <tr className="bg-twilight-900 text-white">
+                    <th className="py-4 px-4 text-sm font-semibold text-left">Tarih</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300">Yatırım</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300">Çekim</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300">Komisyon</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim Kom.</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-yellow-200">Ödeme</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-cyan-300">Takviye</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right font-bold">Kasa</th>
                   </tr>
+                </thead>
+                <tbody className="divide-y divide-twilight-50">
+                  {dailyData.map((day) => (
+                    <tr key={day.dayStr} className="hover:bg-twilight-50/50 transition-colors group">
+                      <td className="py-3 px-4 text-sm text-twilight-700 font-medium">
+                        {format(day.date, "dd.MM.yyyy", { locale: tr })}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors">
+                        {day.deposit > 0 ? formatMoney(day.deposit) : <span className="text-emerald-300/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-bold text-rose-600 bg-rose-50/30 group-hover:bg-rose-50/50 transition-colors">
+                        {day.withdrawal > 0 ? formatMoney(day.withdrawal) : <span className="text-rose-300/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-medium text-violet-600">
+                        {day.commission > 0 ? formatMoney(day.commission) : <span className="text-twilight-200/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
+                        {day.delivery > 0 ? formatMoney(day.delivery) : <span className="text-twilight-200/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
+                        {day.deliveryCommission > 0 ? formatMoney(day.deliveryCommission) : <span className="text-twilight-200/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-medium text-yellow-600">
+                        {day.payment > 0 ? formatMoney(day.payment) : <span className="text-twilight-200/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-medium text-cyan-600">
+                        {day.topup > 0 ? formatMoney(day.topup) : <span className="text-twilight-200/50">-</span>}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-bold font-mono text-twilight-900 bg-twilight-50/50">
+                        {formatMoney(day.balance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-twilight-900 border-t border-twilight-200 text-white font-bold">
+                  <tr>
+                    <td className="py-4 px-4 text-sm text-left">TOPLAM</td>
+                    <td className="py-4 px-4 text-sm text-right text-emerald-300">{formatMoney(totals.deposit)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-rose-300">{formatMoney(totals.withdrawal)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-violet-300">{formatMoney(totals.commission)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.delivery)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.deliveryCommission)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-yellow-200">{formatMoney(totals.payment)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-cyan-300">{formatMoney(totals.topup)}</td>
+                    <td className="py-4 px-4 text-sm text-right">{formatMoney(totals.endBalance)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              {/* Mobile Card View - Visible only on Mobile */}
+              <div className="sm:hidden space-y-4 p-4">
+                {dailyData.map((day) => (
+                  <div key={day.dayStr} className="rounded-2xl bg-twilight-50/50 border border-twilight-100 p-4 space-y-3">
+                    <div className="flex justify-between items-center pb-2 border-b border-twilight-100 mb-2">
+                      <span className="font-bold text-twilight-900 text-sm">{format(day.date, "dd MMMM yyyy, EEEE", { locale: tr })}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {day.deposit > 0 && (
+                        <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Yatırım</span>
+                          <span className="font-bold font-mono">{formatMoney(day.deposit)}</span>
+                        </div>
+                      )}
+                      {day.withdrawal > 0 && (
+                        <div className="flex justify-between items-center text-rose-700 bg-rose-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Çekim</span>
+                          <span className="font-bold font-mono">{formatMoney(day.withdrawal)}</span>
+                        </div>
+                      )}
+                      {day.commission > 0 && (
+                        <div className="flex justify-between items-center text-violet-700 bg-violet-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Komisyon</span>
+                          <span className="font-bold font-mono">{formatMoney(day.commission)}</span>
+                        </div>
+                      )}
+                      {day.delivery > 0 && (
+                        <div className="flex justify-between items-center text-orange-700 bg-orange-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Teslim</span>
+                          <span className="font-bold font-mono">{formatMoney(day.delivery)}</span>
+                        </div>
+                      )}
+                      {day.deliveryCommission > 0 && (
+                        <div className="flex justify-between items-center text-orange-700 bg-orange-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Teslim Kom.</span>
+                          <span className="font-bold font-mono">{formatMoney(day.deliveryCommission)}</span>
+                        </div>
+                      )}
+                      {day.payment > 0 && (
+                        <div className="flex justify-between items-center text-yellow-700 bg-yellow-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Ödeme</span>
+                          <span className="font-bold font-mono">{formatMoney(day.payment)}</span>
+                        </div>
+                      )}
+                      {day.topup > 0 && (
+                        <div className="flex justify-between items-center text-cyan-700 bg-cyan-50 rounded px-2 py-1">
+                          <span className="text-xs font-semibold">Takviye</span>
+                          <span className="font-bold font-mono">{formatMoney(day.topup)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t border-twilight-100 flex justify-between items-center">
+                      <span className="text-xs font-bold text-twilight-500 uppercase tracking-widest">Kasa Bakiyesi</span>
+                      <span className="font-bold font-mono text-twilight-900 bg-white px-2 py-0.5 rounded shadow-sm border border-twilight-100">{formatMoney(day.balance)}</span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-              <tfoot className="bg-twilight-900 border-t border-twilight-200 text-white font-bold">
-                <tr>
-                  <td className="py-4 px-4 text-sm text-left">TOPLAM</td>
-                  <td className="py-4 px-4 text-sm text-right text-emerald-300">{formatMoney(totals.deposit)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-rose-300">{formatMoney(totals.withdrawal)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-violet-300">{formatMoney(totals.commission)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.delivery)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.deliveryCommission)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-yellow-200">{formatMoney(totals.payment)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-cyan-300">{formatMoney(totals.topup)}</td>
-                  <td className="py-4 px-4 text-sm text-right">{formatMoney(totals.endBalance)}</td>
-                </tr>
-              </tfoot>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
       </Card>

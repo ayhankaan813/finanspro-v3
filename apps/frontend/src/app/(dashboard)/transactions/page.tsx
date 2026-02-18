@@ -408,9 +408,9 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-twilight-950/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-3xl sm:max-w-4xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]">
         {/* Header */}
-        <div className="bg-twilight-950 px-8 py-6 relative overflow-hidden shrink-0">
+        <div className="bg-twilight-950 px-4 py-4 sm:px-8 sm:py-6 relative overflow-hidden shrink-0">
           <div className="absolute top-0 right-0 w-64 h-64 bg-twilight-800 rounded-full blur-3xl opacity-50 -mr-20 -mt-20 pointer-events-none" />
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -418,8 +418,8 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <Sparkles className="h-6 w-6 text-twilight-300" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Yeni İşlem</h2>
-                <p className="text-twilight-400 text-sm">Finansal hareket kaydı oluşturun</p>
+                <h2 className="text-lg sm:text-xl font-bold text-white">Yeni İşlem</h2>
+                <p className="text-twilight-400 text-xs sm:text-sm">Finansal hareket kaydı oluşturun</p>
               </div>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors">
@@ -440,7 +440,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           // TYPE SELECTION
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Tabs Header - Premium Style */}
-            <div className="px-8 pt-6 pb-4 bg-gradient-to-b from-twilight-50/50 to-white">
+            <div className="px-4 py-3 sm:px-8 sm:pt-6 sm:pb-4 bg-gradient-to-b from-twilight-50/50 to-white">
               <div className="flex gap-2 p-1.5 bg-twilight-100/60 rounded-2xl backdrop-blur-sm">
                 {TABS.map(tab => (
                   <button
@@ -459,7 +459,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             </div>
 
             {/* Grid Content - Larger Cards */}
-            <div className="p-8 overflow-y-auto bg-gradient-to-b from-white to-twilight-50/30 flex-1">
+            <div className="p-4 sm:p-8 overflow-y-auto bg-gradient-to-b from-white to-twilight-50/30 flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
                 {ACTIONS_BY_TAB[activeTab].map(action => (
                   <button
@@ -468,14 +468,14 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     className="group relative flex items-start gap-5 p-6 bg-white rounded-2xl border-2 border-twilight-100 shadow-sm hover:shadow-xl hover:border-twilight-300 hover:-translate-y-1 transition-all duration-200 text-left"
                   >
                     {/* Icon */}
-                    <div className={`h-14 w-14 shrink-0 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                      <action.icon className="h-7 w-7 text-white" />
+                    <div className={`h-10 w-10 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                      <action.icon className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0 pt-0.5">
-                      <h3 className="font-bold text-lg text-twilight-900 mb-1.5 group-hover:text-twilight-950">{action.name}</h3>
-                      <p className="text-sm text-twilight-600 leading-relaxed">{action.description}</p>
+                      <h3 className="font-bold text-sm sm:text-lg text-twilight-900 mb-0.5 sm:mb-1.5 group-hover:text-twilight-950">{action.name}</h3>
+                      <p className="text-xs sm:text-sm text-twilight-600 leading-relaxed line-clamp-2 sm:line-clamp-none">{action.description}</p>
                     </div>
 
                     {/* Arrow hint */}
@@ -490,7 +490,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         ) : (
           // FORM
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center gap-4 px-8 py-4 border-b border-twilight-100 bg-white">
+            <div className="flex items-center gap-2 sm:gap-4 px-4 py-3 sm:px-8 sm:py-4 border-b border-twilight-100 bg-white">
               <Button variant="ghost" size="sm" onClick={() => setSelectedType(null)} className="-ml-2 gap-2 text-twilight-600">
                 <ChevronLeft className="h-4 w-4" />
                 Geri Dön
@@ -506,17 +506,17 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 bg-twilight-50/30">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-8 bg-twilight-50/30">
               <div className="max-w-2xl mx-auto space-y-6">
 
                 {/* Amount Input */}
                 <div className="bg-white p-6 rounded-2xl border border-twilight-200 shadow-sm space-y-2">
                   <Label className="text-twilight-600 font-medium">İşlem Tutarı</Label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-twilight-300">₺</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl sm:text-2xl font-bold text-twilight-300">₺</span>
                     <Input
                       placeholder="0,00"
-                      className="pl-10 h-16 text-3xl font-bold border-twilight-200 rounded-xl focus:ring-twilight-500"
+                      className="pl-10 h-12 sm:h-16 text-xl sm:text-3xl font-bold border-twilight-200 rounded-xl focus:ring-twilight-500"
                       value={formData.amount}
                       onChange={e => setFormData({ ...formData, amount: e.target.value })}
                       autoFocus
@@ -818,7 +818,7 @@ function TransactionsPageContent() {
       {/* Header Area with Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">
+          <h1 className="text-lg sm:text-2xl font-bold text-twilight-900 tracking-tight">
             {scope === "organization" ? "Organizasyon İşlemleri" : "İşlem Yönetimi"}
           </h1>
           <p className="text-twilight-500">
@@ -828,15 +828,15 @@ function TransactionsPageContent() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="border-twilight-200 text-twilight-700 hover:bg-twilight-50">
-            <Download className="mr-2 h-4 w-4" />
+          <Button variant="outline" className="h-9 sm:h-10 border-twilight-200 text-twilight-700 hover:bg-twilight-50 text-xs sm:text-sm px-3">
+            <Download className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Dışa Aktar
           </Button>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="bg-twilight-950 hover:bg-twilight-800 text-white shadow-lg shadow-twilight-900/10"
+            className="h-9 sm:h-10 bg-twilight-950 hover:bg-twilight-800 text-white shadow-lg shadow-twilight-900/10 text-xs sm:text-sm px-3"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Yeni İşlem
           </Button>
         </div>
@@ -861,10 +861,10 @@ function TransactionsPageContent() {
       {/* Modern Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-twilight-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-twilight-400" />
           <Input
             placeholder="İşlem kodu, açıklama veya tutar ara..."
-            className="pl-10 h-11 rounded-xl border-twilight-200 bg-white focus:ring-2 focus:ring-twilight-400 shadow-sm"
+            className="pl-9 sm:pl-10 h-9 sm:h-11 rounded-lg sm:rounded-xl border-twilight-200 bg-white focus:ring-2 focus:ring-twilight-400 shadow-sm text-xs sm:text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -888,12 +888,12 @@ function TransactionsPageContent() {
 
         <Button
           onClick={() => setShowFilters(true)}
-          className={`h-11 px-5 rounded-xl border transition-all ${activeFilterCount > 0
+          className={`h-9 sm:h-11 px-3 sm:px-5 rounded-lg sm:rounded-xl border transition-all text-xs sm:text-sm ${activeFilterCount > 0
             ? "bg-twilight-900 text-white border-twilight-900 hover:bg-twilight-800 shadow-lg shadow-twilight-900/20"
             : "bg-white text-twilight-700 border-twilight-200 hover:bg-twilight-50 hover:border-twilight-300"
             }`}
         >
-          <Filter className="mr-2 h-4 w-4" />
+          <Filter className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Filtreler
           {activeFilterCount > 0 && (
             <span className="ml-2 h-5 w-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center">
@@ -909,22 +909,22 @@ function TransactionsPageContent() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-twilight-100 bg-twilight-50/50">
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Islem Turu</th>
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Durum</th>
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Site</th>
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Finansor</th>
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Partner / Kisi</th>
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Aciklama</th>
-                <th className="text-left py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tarih</th>
-                <th className="text-right py-4 px-4 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Islem Turu</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden sm:table-cell">Durum</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden md:table-cell">Site</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden lg:table-cell">Finansor</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden lg:table-cell">Partner / Kisi</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden xl:table-cell">Aciklama</th>
+                <th className="text-left py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider hidden sm:table-cell">Tarih</th>
+                <th className="text-right py-3 px-3 sm:py-4 sm:px-4 text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar</th>
                 <th className="w-14"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-twilight-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-20 text-center">
-                    <div className="animate-spin h-8 w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full mx-auto" />
+                  <td colSpan={9} className="py-10 sm:py-20 text-center">
+                    <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-4 border-twilight-200 border-t-twilight-600 rounded-full mx-auto" />
                   </td>
                 </tr>
               ) : isError ? (
@@ -993,111 +993,140 @@ function TransactionsPageContent() {
                       style={{ cursor: isReversed ? 'pointer' : 'default' }}
                     >
                       {/* Islem Turu */}
-                      <td className="py-3 px-4">
+                      {/* Islem Turu */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4">
                         <div className="flex items-center gap-2">
-                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isReversed ? 'bg-rose-100 text-rose-600' :
+                          <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isReversed ? 'bg-rose-100 text-rose-600' :
                             t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? 'bg-emerald-100 text-emerald-600' :
                               t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? 'bg-rose-100 text-rose-600' :
                                 t.type === 'REVERSAL' ? 'bg-amber-100 text-amber-600' :
                                   'bg-twilight-100 text-twilight-600'
                             }`}>
-                            {isReversed ? <RotateCcw className="h-4 w-4" /> :
-                              t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-4 w-4" /> :
-                                t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-4 w-4" /> :
-                                  <Send className="h-4 w-4" />}
+                            {isReversed ? <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> :
+                              t.type === 'DEPOSIT' || t.type === 'TOP_UP' ? <ArrowDownLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> :
+                                t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' ? <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> :
+                                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                           </div>
-                          <div>
-                            <p className={`font-semibold text-sm ${isReversed ? 'text-rose-700 line-through' : 'text-twilight-900'}`}>
+                          <div className="min-w-0">
+                            <p className={`font-semibold text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none ${isReversed ? 'text-rose-700 line-through' : 'text-twilight-900'}`}>
                               {getTransactionTypeLabel(t.type)}
                             </p>
-                            <p className="text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[9px] sm:text-[10px] text-twilight-400 font-mono">{t.id.slice(0, 8)}</p>
+                              {/* Mobile Status Indicator */}
+                              <div className="sm:hidden">
+                                {isReversed ? (
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                ) : t.status === 'COMPLETED' ? (
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                ) : t.status === 'PENDING' ? (
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                ) : (
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-500" />
+                                )}
+                              </div>
+                            </div>
                           </div>
                           {isReversed && (
                             <ChevronDown
-                              className={`h-4 w-4 text-rose-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              className={`h-3 w-3 sm:h-4 sm:w-4 text-rose-500 ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             />
                           )}
                         </div>
                       </td>
 
                       {/* Durum */}
-                      <td className="py-3 px-4">
+                      {/* Durum */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden sm:table-cell">
                         <div className="flex items-center gap-1">
                           {isReversed ? (
-                            <Badge variant="destructive" className="bg-rose-100 text-rose-700 border-rose-300">
+                            <Badge variant="destructive" className="bg-rose-100 text-rose-700 border-rose-300 text-[10px] sm:text-xs">
                               🚫 İptal Edildi
                             </Badge>
                           ) : getStatusBadge(t.status)}
                           {(t.edit_count ?? 0) > 0 && (
-                            <Badge className="bg-blue-100 text-blue-700 border border-blue-300 text-[11px] px-2 py-0.5 gap-1 font-semibold">
-                              <Pencil className="h-3 w-3" />
-                              {t.edit_count}x Düzenlendi
+                            <Badge className="bg-blue-100 text-blue-700 border border-blue-300 text-[9px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 gap-1 font-semibold">
+                              <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                              <span className="hidden sm:inline">{t.edit_count}x Düzenlendi</span>
+                              <span className="sm:hidden">{t.edit_count}x</span>
                             </Badge>
                           )}
                         </div>
                       </td>
 
                       {/* Site */}
-                      <td className="py-3 px-4">
-                        <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                      {/* Site */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden md:table-cell">
+                        <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
                           {t.site?.name || '\u2014'}
                         </span>
-                        {t.site?.code && <p className="text-[10px] text-twilight-400">{t.site.code}</p>}
+                        {t.site?.code && <p className="text-[9px] sm:text-[10px] text-twilight-400">{t.site.code}</p>}
                       </td>
 
                       {/* Finansor */}
-                      <td className="py-3 px-4">
-                        <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                      {/* Finansor */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden lg:table-cell">
+                        <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
                           {t.financier?.name || '\u2014'}
                         </span>
                       </td>
 
                       {/* Partner / Dis Kisi */}
-                      <td className="py-3 px-4">
+                      {/* Partner / Dis Kisi */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden lg:table-cell">
                         {t.partner ? (
-                          <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
+                          <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-700'}`}>
                             {t.partner.name}
                           </span>
                         ) : t.external_party ? (
-                          <span className={`text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-purple-700'}`}>
+                          <span className={`text-xs sm:text-sm font-medium ${isReversed ? 'text-twilight-500 line-through' : 'text-purple-700'}`}>
                             {t.external_party.name}
                           </span>
                         ) : (
-                          <span className="text-sm text-twilight-300">{'\u2014'}</span>
+                          <span className="text-xs sm:text-sm text-twilight-300">{'\u2014'}</span>
                         )}
                       </td>
 
                       {/* Aciklama */}
-                      <td className="py-3 px-4 max-w-[200px]">
-                        <p className={`text-sm truncate ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-600'}`}>
+                      {/* Aciklama */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 max-w-[200px] hidden xl:table-cell">
+                        <p className={`text-xs sm:text-sm truncate ${isReversed ? 'text-twilight-500 line-through' : 'text-twilight-600'}`}>
                           {t.description || '\u2014'}
                         </p>
                       </td>
 
                       {/* Tarih */}
-                      <td className="py-3 px-4">
-                        <p className={`text-sm whitespace-nowrap ${isReversed ? 'text-twilight-500' : 'text-twilight-600'}`}>
+                      {/* Tarih */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 hidden sm:table-cell">
+                        <p className={`text-xs sm:text-sm whitespace-nowrap ${isReversed ? 'text-twilight-500' : 'text-twilight-600'}`}>
                           {format(new Date(t.transaction_date), "d MMM yyyy", { locale: tr })}
                         </p>
-                        <p className="text-[10px] text-twilight-400">
+                        <p className="text-[9px] sm:text-[10px] text-twilight-400">
                           {format(new Date(t.transaction_date), "HH:mm", { locale: tr })}
                         </p>
                       </td>
 
                       {/* Tutar */}
-                      <td className="py-3 px-4 text-right">
-                        <span className={`text-sm font-bold ${isReversed ? 'text-rose-600 line-through' :
-                          t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
-                            ? 'text-emerald-700' :
-                            t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
-                              ? 'text-rose-700' :
-                              'text-twilight-700'
-                          }`}>
-                          {formatMoney(parseFloat(t.gross_amount || "0"))}
-                        </span>
-                        {t.net_amount && t.net_amount !== t.gross_amount && (
-                          <p className="text-[10px] text-twilight-400">Net: {formatMoney(parseFloat(t.net_amount))}</p>
-                        )}
+                      {/* Tutar */}
+                      <td className="py-2.5 px-3 sm:py-3 sm:px-4 text-right">
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs sm:text-sm font-bold ${isReversed ? 'text-rose-600 line-through' :
+                            t.type === 'DEPOSIT' || t.type === 'TOP_UP' || t.type === 'ORG_INCOME' || t.type === 'EXTERNAL_DEBT_IN'
+                              ? 'text-emerald-700' :
+                              t.type === 'WITHDRAWAL' || t.type === 'PAYMENT' || t.type === 'ORG_EXPENSE' || t.type === 'EXTERNAL_DEBT_OUT'
+                                ? 'text-rose-700' :
+                                'text-twilight-700'
+                            }`}>
+                            {formatMoney(parseFloat(t.gross_amount || "0"))}
+                          </span>
+                          {t.net_amount && t.net_amount !== t.gross_amount && (
+                            <p className="text-[9px] sm:text-[10px] text-twilight-400">Net: {formatMoney(parseFloat(t.net_amount))}</p>
+                          )}
+                          {/* Mobile Date Display under amount */}
+                          <div className="sm:hidden text-[9px] text-twilight-300 mt-0.5">
+                            {format(new Date(t.transaction_date), "d MMM", { locale: tr })}
+                          </div>
+                        </div>
                       </td>
 
                       {/* 3 Nokta Menu */}

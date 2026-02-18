@@ -402,7 +402,8 @@ export function EditableTransactionGrid({
 
     return (
         <div className="border rounded-md shadow-sm overflow-hidden bg-white" onPaste={handlePaste}>
-            <div className="max-h-[70vh] overflow-auto relative">
+            {/* Desktop Table View */}
+            <div className="hidden md:block max-h-[70vh] overflow-auto relative">
                 <Table className="border-collapse w-full table-fixed">
                     <TableHeader className="bg-gray-100 sticky top-0 z-20 shadow-sm">
                         <TableRow>
@@ -529,12 +530,130 @@ export function EditableTransactionGrid({
                         })}
                     </TableBody>
                 </Table>
+            </div>
 
-                <div className="p-2 border-t bg-muted/10">
-                    <Button variant="ghost" size="sm" onClick={addRow} className="w-full text-xs text-muted-foreground hover:text-primary border border-dashed border-muted-foreground/30 h-8">
-                        <Plus className="h-3 w-3 mr-2" /> Satır Ekle
-                    </Button>
-                </div>
+            {/* Mobile Card List View */}
+            <div className="md:hidden space-y-3 p-3 bg-gray-50/50">
+                {data.map((row, index) => {
+                    const rowErrorStr = errors.find((e) => e.startsWith(`Satır ${index + 1}:`));
+                    const unmatchedSite = row.site && !row.siteId;
+                    const unmatchedFinancier = row.financier && !row.financierId;
+
+                    return (
+                        <div key={row.id} className="bg-white rounded-lg border shadow-sm p-3 relative">
+                            {/* Card Header: # and Delete */}
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="bg-gray-100 text-gray-500 font-mono text-xs px-2 py-0.5 rounded">
+                                        #{index + 1}
+                                    </span>
+                                    {rowErrorStr && (
+                                        <span className="text-[10px] text-red-500 flex items-center gap-1">
+                                            <AlertTriangle className="h-3 w-3" /> Hata
+                                        </span>
+                                    )}
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeRow(index)}
+                                    className="h-7 w-7 text-gray-400 hover:text-red-500 -mr-1"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            {/* Site Selection */}
+                            <div className="mb-3">
+                                <label className="text-[10px] font-medium text-gray-500 mb-1 block">Site</label>
+                                <div className="border rounded-md">
+                                    <SearchableDropdown
+                                        value={row.site}
+                                        valueId={row.siteId}
+                                        options={sites}
+                                        onChange={(val) => {
+                                            updateRowMultiple(index, { site: val.name, siteId: val.id });
+                                        }}
+                                        error={!!rowErrorStr && rowErrorStr.includes("Site")}
+                                        warning={unmatchedSite ? "Eşleşmeyen site!" : undefined}
+                                        placeholder="Site Seçiniz..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Amounts Grid */}
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                {/* Deposit */}
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-medium text-emerald-600 block">Yatırım Tutarı</label>
+                                    <div className="relative">
+                                        <Input
+                                            type="text"
+                                            value={formatMoneyInput(row.depositAmount)}
+                                            onChange={(e) => updateRow(index, "depositAmount", parseMoney(e.target.value))}
+                                            className="h-9 font-mono text-sm text-right pr-2 text-emerald-700 border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200"
+                                            placeholder="0"
+                                        />
+                                        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-emerald-400 font-bold">₺</div>
+                                    </div>
+                                    <Input
+                                        type="text"
+                                        value={formatMoneyInput(row.depositCount)}
+                                        onChange={(e) => updateRow(index, "depositCount", parseMoney(e.target.value))}
+                                        className="h-7 text-xs text-center text-emerald-600 bg-emerald-50/50 border-emerald-100"
+                                        placeholder="Adet"
+                                    />
+                                </div>
+
+                                {/* Withdrawal */}
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-medium text-rose-600 block">Çekim Tutarı</label>
+                                    <div className="relative">
+                                        <Input
+                                            type="text"
+                                            value={formatMoneyInput(row.withdrawalAmount)}
+                                            onChange={(e) => updateRow(index, "withdrawalAmount", parseMoney(e.target.value))}
+                                            className="h-9 font-mono text-sm text-right pr-2 text-rose-700 border-rose-100 focus:border-rose-300 focus:ring-rose-200"
+                                            placeholder="0"
+                                        />
+                                        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-rose-400 font-bold">₺</div>
+                                    </div>
+                                    <Input
+                                        type="text"
+                                        value={formatMoneyInput(row.withdrawalCount)}
+                                        onChange={(e) => updateRow(index, "withdrawalCount", parseMoney(e.target.value))}
+                                        className="h-7 text-xs text-center text-rose-600 bg-rose-50/50 border-rose-100"
+                                        placeholder="Adet"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Financier Selection */}
+                            <div>
+                                <label className="text-[10px] font-medium text-gray-500 mb-1 block">Finansör</label>
+                                <div className="border rounded-md">
+                                    <SearchableDropdown
+                                        value={row.financier}
+                                        valueId={row.financierId}
+                                        options={financiers}
+                                        onChange={(val) => {
+                                            updateRowMultiple(index, { financier: val.name, financierId: val.id });
+                                        }}
+                                        error={!!rowErrorStr && rowErrorStr.includes("Finansör")}
+                                        warning={unmatchedFinancier ? "Eşleşmeyen finansör!" : undefined}
+                                        placeholder="Finansör Seçiniz..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div className="p-2 border-t bg-muted/10 sticky bottom-0 z-30 bg-white">
+                <Button variant="ghost" size="sm" onClick={addRow} className="w-full text-xs text-muted-foreground hover:text-primary border border-dashed border-muted-foreground/30 h-9 sm:h-8">
+                    <Plus className="h-3 w-3 mr-2" /> Satır Ekle
+                </Button>
             </div>
         </div>
     );

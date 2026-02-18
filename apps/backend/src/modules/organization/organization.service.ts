@@ -379,6 +379,106 @@ export class OrganizationService {
             monthlyTrend,
         };
     }
+
+    /**
+     * Get daily cash flow for the last N days
+     * Returns daily total financier balance (= total cash in the system)
+     */
+    async getDailyCashFlow(days: number = 7) {
+        // Get all financier accounts
+        const financierAccounts = await prisma.account.findMany({
+            where: { entity_type: EntityType.FINANCIER },
+            select: { id: true, balance: true, entity_id: true },
+        });
+
+        // Current total = sum of all financier balances
+        const currentTotal = financierAccounts.reduce(
+            (sum, acc) => sum.plus(acc.balance),
+            new Decimal(0)
+        );
+
+        // For each day going back, we need the end-of-day balance
+        // We'll calculate by looking at daily transaction volumes on financier accounts
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - days);
+        startDate.setHours(0, 0, 0, 0);
+
+        const accountIds = financierAccounts.map(a => a.id);
+
+        // Get all ledger entries for financier accounts in the period, grouped by day
+        const entries = await prisma.ledgerEntry.findMany({
+            where: {
+                account_id: { in: accountIds },
+                created_at: { gte: startDate },
+                transaction: {
+                    status: 'COMPLETED',
+                    deleted_at: null,
+                },
+            },
+            select: {
+                amount: true,
+                entry_type: true,
+                created_at: true,
+            },
+            orderBy: { created_at: 'asc' },
+        });
+
+        // Build daily net changes
+        const dailyChanges = new Map<string, Decimal>();
+        const dayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+
+        for (const entry of entries) {
+            const dateKey = entry.created_at.toISOString().split('T')[0];
+            const current = dailyChanges.get(dateKey) || new Decimal(0);
+            // DEBIT increases financier balance, CREDIT decreases it
+            const change = entry.entry_type === LedgerEntryType.DEBIT
+                ? new Decimal(entry.amount)
+                : new Decimal(entry.amount).negated();
+            dailyChanges.set(dateKey, current.plus(change));
+        }
+
+        // Reconstruct daily end-of-day balances going backwards from current
+        const result: Array<{ date: string; name: string; total: number }> = [];
+        let runningBalance = currentTotal;
+
+        // Build list of days from today going back
+        const daysList: string[] = [];
+        for (let i = 0; i <= days; i++) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            daysList.push(d.toISOString().split('T')[0]);
+        }
+
+        // Walk backwards: today's balance is currentTotal,
+        // yesterday's balance = today's balance - today's net change
+        for (let i = 0; i < daysList.length; i++) {
+            const dateKey = daysList[i];
+            const dateObj = new Date(dateKey);
+            const dayName = dayNames[dateObj.getDay()];
+
+            if (i === 0) {
+                // Today
+                result.unshift({
+                    date: dateKey,
+                    name: 'Bugün',
+                    total: runningBalance.toNumber(),
+                });
+            } else {
+                // Subtract today's changes to get yesterday's end-of-day
+                const todayChange = dailyChanges.get(daysList[i - 1]) || new Decimal(0);
+                runningBalance = runningBalance.minus(todayChange);
+                result.unshift({
+                    date: dateKey,
+                    name: dayName,
+                    total: runningBalance.toNumber(),
+                });
+            }
+        }
+
+        // Remove the extra day and return only `days` entries
+        return result.slice(result.length - days);
+    }
 }
 
 export const organizationService = new OrganizationService();

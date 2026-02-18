@@ -157,6 +157,7 @@ model FinancierBlock {
   started_at     DateTime  @default(now())
   resolved_at    DateTime?
   estimated_days Int? // ML prediction
+  resolution_note String?
 
   // Relations
   financier Financier @relation(fields: [financier_id], references: [id])

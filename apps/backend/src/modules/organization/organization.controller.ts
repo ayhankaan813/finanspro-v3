@@ -27,6 +27,12 @@ export class OrganizationController {
         const analytics = await organizationService.getAnalytics({ year, month });
         return reply.send({ success: true, data: analytics });
     }
+
+    async getDailyCashFlow(req: FastifyRequest, reply: FastifyReply) {
+        const { days } = req.query as { days?: number };
+        const data = await organizationService.getDailyCashFlow(days || 7);
+        return reply.send({ success: true, data });
+    }
 }
 
 export const organizationController = new OrganizationController();

@@ -27,6 +27,16 @@ export async function organizationRoutes(app: FastifyInstance) {
         handler: organizationController.getAnalytics.bind(organizationController),
     });
 
+    // Daily Cash Flow
+    app.get('/daily-cash-flow', {
+        schema: {
+            querystring: {
+                days: { type: 'integer', default: 7 },
+            },
+        },
+        handler: organizationController.getDailyCashFlow.bind(organizationController),
+    });
+
     // Transactions
     app.get('/transactions', {
         schema: {

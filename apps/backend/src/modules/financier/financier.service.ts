@@ -337,7 +337,7 @@ export class FinancierService {
           financier_id: financierId,
           amount: blockAmount,
           reason: input.reason,
-          estimated_days: input.estimated_days || this.estimateBlockDuration(financierId),
+          estimated_days: input.estimated_days || null,
         },
       });
 
@@ -401,10 +401,13 @@ export class FinancierService {
     }
 
     await prisma.$transaction(async (tx) => {
-      // Update block as resolved
+      // Update block as resolved with note
       await tx.financierBlock.update({
         where: { id: blockId },
-        data: { resolved_at: new Date() },
+        data: {
+          resolved_at: new Date(),
+          resolution_note: input.resolution_note || null,
+        },
       });
 
       // Update account blocked amount
@@ -426,7 +429,7 @@ export class FinancierService {
           old_data: { resolved_at: null } as unknown as Prisma.JsonObject,
           new_data: {
             resolved_at: new Date().toISOString(),
-            resolution_note: input.resolution_note,
+            resolution_note: input.resolution_note || null,
           } as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
@@ -438,33 +441,168 @@ export class FinancierService {
   }
 
   /**
-   * Estimate block duration based on historical data (ML-like prediction)
+   * ML-based block duration prediction using weighted ensemble
+   * Considers: recency, amount similarity, financier history, global fallback
    */
-  private async estimateBlockDuration(financierId: string): Promise<number> {
-    const pastBlocks = await prisma.financierBlock.findMany({
+  async getBlockPrediction(financierId: string, amount?: number): Promise<{
+    predicted_days: number;
+    confidence: number;
+    min_days: number;
+    max_days: number;
+    sample_size: number;
+  }> {
+    // 1. Fetch financier's resolved blocks (last 20)
+    const financierBlocks = await prisma.financierBlock.findMany({
       where: {
         financier_id: financierId,
         resolved_at: { not: null },
       },
       orderBy: { resolved_at: 'desc' },
-      take: 10, // Last 10 resolved blocks
+      take: 20,
     });
 
-    if (pastBlocks.length === 0) {
-      // No history, use default
-      return 3;
-    }
+    // 2. Fetch global resolved blocks as fallback (last 50)
+    const globalBlocks = await prisma.financierBlock.findMany({
+      where: {
+        resolved_at: { not: null },
+      },
+      orderBy: { resolved_at: 'desc' },
+      take: 50,
+    });
 
-    const durations = pastBlocks.map((block) => {
+    // Helper: compute duration in days
+    const getDuration = (block: typeof financierBlocks[0]) => {
       const start = new Date(block.started_at).getTime();
       const end = new Date(block.resolved_at!).getTime();
-      return Math.ceil((end - start) / (1000 * 60 * 60 * 24)); // Days
+      return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+    };
+
+    // Helper: compute weighted average
+    const computeWeightedAvg = (blocks: typeof financierBlocks, targetAmount?: number) => {
+      if (blocks.length === 0) return { avg: 3, min: 1, max: 5, durations: [3] };
+
+      const durations: number[] = [];
+      let totalWeight = 0;
+      let weightedSum = 0;
+
+      blocks.forEach((block, index) => {
+        const duration = getDuration(block);
+        durations.push(duration);
+
+        // Recency weight: exponential decay — newer blocks matter more
+        const recencyWeight = Math.exp(-0.08 * index);
+
+        // Amount similarity weight (if target amount provided)
+        let amountWeight = 1;
+        if (targetAmount && targetAmount > 0) {
+          const blockAmount = parseFloat(block.amount.toString());
+          if (blockAmount > 0) {
+            const logRatio = Math.abs(Math.log(blockAmount / targetAmount));
+            amountWeight = 1 / (1 + logRatio);
+          }
+        }
+
+        const weight = recencyWeight * amountWeight;
+        totalWeight += weight;
+        weightedSum += duration * weight;
+      });
+
+      const avg = totalWeight > 0 ? weightedSum / totalWeight : 3;
+      const sortedDurations = [...durations].sort((a, b) => a - b);
+
+      return {
+        avg,
+        min: sortedDurations[0],
+        max: sortedDurations[sortedDurations.length - 1],
+        durations,
+      };
+    };
+
+    // 3. Compute financier-specific prediction
+    const financierPrediction = computeWeightedAvg(financierBlocks, amount);
+
+    // 4. Compute global prediction
+    const globalPrediction = computeWeightedAvg(globalBlocks, amount);
+
+    // 5. Confidence score: based on financier's sample size
+    const confidence = Math.min(financierBlocks.length / 10, 1.0);
+
+    // 6. Blend: if low confidence, lean on global stats
+    let predicted_days: number;
+    if (confidence < 0.3) {
+      // Very few financier blocks — use 70% global + 30% financier
+      predicted_days = globalPrediction.avg * 0.7 + financierPrediction.avg * 0.3;
+    } else if (confidence < 0.7) {
+      // Some financier blocks — use 50/50
+      predicted_days = financierPrediction.avg * 0.5 + globalPrediction.avg * 0.5;
+    } else {
+      // Good financier history — use 90% financier + 10% global
+      predicted_days = financierPrediction.avg * 0.9 + globalPrediction.avg * 0.1;
+    }
+
+    // 7. Compute min/max range
+    const allDurations = [...financierPrediction.durations];
+    if (confidence < 0.7) {
+      allDurations.push(...globalPrediction.durations);
+    }
+    const sortedAll = allDurations.sort((a, b) => a - b);
+    // Use 10th and 90th percentile as range
+    const p10Index = Math.floor(sortedAll.length * 0.1);
+    const p90Index = Math.min(Math.floor(sortedAll.length * 0.9), sortedAll.length - 1);
+
+    return {
+      predicted_days: Math.max(1, Math.round(predicted_days)),
+      confidence: Math.round(confidence * 100) / 100,
+      min_days: sortedAll[p10Index] || 1,
+      max_days: sortedAll[p90Index] || Math.max(1, Math.round(predicted_days * 1.5)),
+      sample_size: financierBlocks.length,
+    };
+  }
+
+  /**
+   * Get block statistics for a financier
+   */
+  async getBlockStats(financierId: string) {
+    await this.findById(financierId);
+
+    const [activeBlocks, resolvedBlocks, allBlocks] = await Promise.all([
+      prisma.financierBlock.findMany({
+        where: { financier_id: financierId, resolved_at: null },
+      }),
+      prisma.financierBlock.findMany({
+        where: { financier_id: financierId, resolved_at: { not: null } },
+        orderBy: { resolved_at: 'desc' },
+      }),
+      prisma.financierBlock.count({
+        where: { financier_id: financierId },
+      }),
+    ]);
+
+    // Compute durations for resolved blocks
+    const durations = resolvedBlocks.map((block) => {
+      const start = new Date(block.started_at).getTime();
+      const end = new Date(block.resolved_at!).getTime();
+      return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
     });
 
-    // Calculate average
-    const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+    const avgDuration = durations.length > 0
+      ? durations.reduce((a, b) => a + b, 0) / durations.length
+      : 0;
 
-    return Math.max(1, Math.round(avgDuration));
+    const activeAmount = activeBlocks.reduce(
+      (sum, b) => sum.plus(new Decimal(b.amount)),
+      new Decimal(0)
+    );
+
+    return {
+      total_created: allBlocks,
+      total_resolved: resolvedBlocks.length,
+      active_count: activeBlocks.length,
+      active_amount: activeAmount.toString(),
+      avg_duration: Math.round(avgDuration * 10) / 10,
+      min_duration: durations.length > 0 ? Math.min(...durations) : 0,
+      max_duration: durations.length > 0 ? Math.max(...durations) : 0,
+    };
   }
 
   /**

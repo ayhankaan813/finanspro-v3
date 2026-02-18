@@ -133,7 +133,7 @@ export default function FinancierDetailPage() {
   const balance = parseFloat(financier.account?.balance || "0");
   const blockedAmount = parseFloat(financier.account?.blocked_amount || "0");
   const availableBalance = parseFloat(financier.available_balance || "0");
-  const hasBlocks = financier.active_blocks_count > 0;
+  const hasBlocks = financier.active_blocks_count > 0 || blockedAmount > 0;
 
   // Stats for daily view
   const totalDeposit = dailyData.reduce((sum, d) => sum + d.deposit, 0);
@@ -213,7 +213,11 @@ export default function FinancierDetailPage() {
                 {hasBlocks && (
                   <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-orange-500/20 border border-orange-300/30">
                     <AlertTriangle className="h-3 w-3 text-orange-200" />
-                    <span className="text-xs font-bold text-orange-100">{financier.active_blocks_count} Bloke</span>
+                    <span className="text-xs font-bold text-orange-100">
+                      {financier.active_blocks_count > 0
+                        ? `${financier.active_blocks_count} Bloke`
+                        : "Sistem Blokajı"}
+                    </span>
                   </div>
                 )}
               </div>

@@ -119,24 +119,24 @@ function CommissionModal({
           onClick={e => e.stopPropagation()}
         >
           {/* Header - Premium Gradient */}
-          <div className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-900 px-6 py-5 flex justify-between items-center text-white">
+          <div className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-900 px-4 py-4 sm:px-6 sm:py-5 flex justify-between items-center text-white">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/5 blur-2xl" />
             <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-emerald-400/10 blur-3xl" />
 
-            <div className="relative flex items-center gap-4 z-10">
-              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
-                <Percent className="h-6 w-6 text-emerald-50" />
+            <div className="relative flex items-center gap-3 sm:gap-4 z-10">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
+                <Percent className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-50" />
               </div>
               <div>
-                <h2 className="font-bold text-xl text-white tracking-tight">{partner.name}</h2>
-                <p className="text-sm text-emerald-200/80 font-medium">Komisyon Oranları</p>
+                <h2 className="font-bold text-lg sm:text-xl text-white tracking-tight">{partner.name}</h2>
+                <p className="text-xs sm:text-sm text-emerald-200/80 font-medium">Komisyon Oranları</p>
               </div>
             </div>
             <button
               onClick={onClose}
               className="relative z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-110 transition-all shadow-lg shadow-black/10"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
 
@@ -432,27 +432,27 @@ export default function PartnersPage() {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl" />
 
-        <div className="relative z-10 p-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 font-bold text-emerald-300">
-                <Users className="h-6 w-6" />
+        <div className="relative z-10 p-4 sm:p-10 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 font-bold text-emerald-300">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Partnerler</h1>
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-white">Partnerler</h1>
             </div>
-            <p className="text-twilight-200/80 text-lg max-w-xl font-light">
+            <p className="text-twilight-200/80 text-sm sm:text-lg max-w-xl font-light">
               Komisyon ortaklarınızı yönetin, hak edişlerini ve performanslarını takip edin.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative group">
+            <div className="relative group w-full sm:w-auto">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-twilight-400 group-focus-within:text-emerald-400 transition-colors" />
+                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-twilight-400 group-focus-within:text-emerald-400 transition-colors" />
               </div>
               <input
                 type="text"
-                className="block w-full sm:w-64 pl-10 pr-3 py-3 border border-white/10 rounded-xl leading-5 bg-white/5 text-emerald-100 placeholder-twilight-400 focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 sm:text-sm transition-all"
+                className="block w-full sm:w-64 pl-9 pr-3 py-2.5 sm:py-3 border border-white/10 rounded-xl leading-5 bg-white/5 text-emerald-100 placeholder-twilight-400 focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 text-sm transition-all"
                 placeholder="Partner ara..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -460,9 +460,9 @@ export default function PartnersPage() {
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-6 py-6 shadow-lg shadow-emerald-900/20 text-base font-medium transition-all hover:scale-105 active:scale-95"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-4 sm:px-6 sm:py-6 shadow-lg shadow-emerald-900/20 text-sm sm:text-base font-medium transition-all hover:scale-105 active:scale-95"
             >
-              <Plus className="mr-2 h-5 w-5" />
+              <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Yeni Partner
             </Button>
           </div>
@@ -533,14 +533,14 @@ export default function PartnersPage() {
                         </div>
                       </div>
 
-                      <div className="px-6 flex gap-4 -mt-10">
-                        <div className="h-20 w-20 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-                          <div className="h-full w-full rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl font-bold shadow-inner">
+                      <div className="px-4 sm:px-6 flex gap-3 sm:gap-4 -mt-8 sm:-mt-10">
+                        <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+                          <div className="h-full w-full rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-inner">
                             {partner.name.substring(0, 2).toUpperCase()}
                           </div>
                         </div>
-                        <div className="pt-11 flex-1 min-w-0">
-                          <h3 className="font-bold text-lg text-twilight-900 truncate group-hover:text-emerald-700 transition-colors">
+                        <div className="pt-9 sm:pt-11 flex-1 min-w-0">
+                          <h3 className="font-bold text-base sm:text-lg text-twilight-900 truncate group-hover:text-emerald-700 transition-colors">
                             {partner.name}
                           </h3>
                           <div className="flex items-center gap-2 text-xs font-mono text-twilight-400">
@@ -548,20 +548,20 @@ export default function PartnersPage() {
                             {partner.code}
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="mt-11 text-twilight-400 hover:text-twilight-600">
-                          <MoreVertical className="h-5 w-5" />
+                        <Button variant="ghost" size="icon" className="mt-9 sm:mt-11 text-twilight-400 hover:text-twilight-600">
+                          <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
                         </Button>
                       </div>
                     </CardHeader>
 
-                    <CardContent className="p-6">
-                      <div className="py-5 text-center bg-twilight-50/50 rounded-2xl mb-5 border border-twilight-100/50 group-hover:bg-emerald-50/30 group-hover:border-emerald-100/50 transition-colors">
-                        <p className="text-xs font-bold text-twilight-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1.5">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="py-4 sm:py-5 text-center bg-twilight-50/50 rounded-xl sm:rounded-2xl mb-4 sm:mb-5 border border-twilight-100/50 group-hover:bg-emerald-50/30 group-hover:border-emerald-100/50 transition-colors">
+                        <p className="text-[10px] sm:text-xs font-bold text-twilight-400 uppercase tracking-widest mb-1 sm:mb-1.5 flex items-center justify-center gap-1.5">
                           Hak Ediş Bakiyesi
                         </p>
-                        <p className={`text-3xl font-bold tracking-tight ${parseFloat(partner.account?.balance || "0") >= 0
-                            ? "text-emerald-600"
-                            : "text-rose-600"
+                        <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${parseFloat(partner.account?.balance || "0") >= 0
+                          ? "text-emerald-600"
+                          : "text-rose-600"
                           }`}>
                           {formatMoney(parseFloat(partner.account?.balance || "0"))}
                         </p>

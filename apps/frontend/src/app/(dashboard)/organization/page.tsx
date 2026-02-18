@@ -105,29 +105,29 @@ export default function OrganizationPage() {
     // --- Modern Components ---
 
     const StatsCard = ({ title, value, subtext, icon: Icon, trend, colorClass }: any) => (
-        <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full">
+        <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl sm:rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200 transition-all hover:shadow-lg hover:-translate-y-1 h-full">
             {/* Background Blob/Splash */}
-            <div className={cn("absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-10 blur-2xl transition-all group-hover:scale-150", colorClass)} />
+            <div className={cn("absolute -right-6 -top-6 h-16 w-16 sm:h-24 sm:w-24 rounded-full opacity-10 blur-2xl transition-all group-hover:scale-150", colorClass)} />
 
             <div className="relative flex justify-between items-start">
                 <div>
-                    <h3 className="text-sm font-medium text-slate-500">{title}</h3>
+                    <h3 className="text-xs sm:text-sm font-medium text-slate-500">{title}</h3>
                     {isLoading ? (
                         <Skeleton className="my-2 h-8 w-32" />
                     ) : (
-                        <div className="mt-2 text-2xl font-bold tracking-tight text-[#0F172A] font-mono">
+                        <div className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A] font-mono">
                             {value}
                         </div>
                     )}
                 </div>
-                <div className={cn("rounded-xl p-2.5 bg-slate-50 ring-1 ring-slate-100", colorClass.replace('bg-', 'text-'))}>
-                    <Icon className="h-5 w-5" />
+                <div className={cn("rounded-lg sm:rounded-xl p-2 sm:p-2.5 bg-slate-50 ring-1 ring-slate-100", colorClass.replace('bg-', 'text-'))}>
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
             </div>
 
-            <div className="mt-4 flex items-center text-xs">
-                {trend === "up" && <ArrowUpRight className="mr-1 h-3.5 w-3.5 text-emerald-500" />}
-                {trend === "down" && <ArrowDownLeft className="mr-1 h-3.5 w-3.5 text-rose-500" />}
+            <div className="mt-3 sm:mt-4 flex items-center text-[10px] sm:text-xs">
+                {trend === "up" && <ArrowUpRight className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500" />}
+                {trend === "down" && <ArrowDownLeft className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-rose-500" />}
                 <span className={cn(
                     "font-medium",
                     trend === "up" ? "text-emerald-600" : trend === "down" ? "text-rose-600" : "text-slate-500"
@@ -169,13 +169,13 @@ export default function OrganizationPage() {
             {/* Header */}
             <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-xl text-white shadow-lg shadow-blue-900/10">
-                            <Building2 className="h-6 w-6" />
+                    <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-2 sm:gap-3">
+                        <div className="p-1.5 sm:p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-lg sm:rounded-xl text-white shadow-lg shadow-blue-900/10">
+                            <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
                         </div>
                         Organizasyon Paneli
                     </h1>
-                    <p className="text-slate-500 text-sm ml-14">
+                    <p className="text-slate-500 text-xs sm:text-sm ml-10 sm:ml-14">
                         Tüm finansal operasyonların merkezi yönetim paneli.
                     </p>
                 </div>
@@ -246,7 +246,7 @@ export default function OrganizationPage() {
                 <div className="lg:col-span-2 space-y-8">
 
                     {/* Profit Chart */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[450px] flex flex-col">
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[350px] sm:h-[450px] flex flex-col">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
                                 <BarChart3 className="h-5 w-5 text-[#2c7da0]" />
@@ -299,7 +299,7 @@ export default function OrganizationPage() {
                     </Card>
 
                     {/* Operational Density Chart */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[400px] flex flex-col">
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[300px] sm:h-[400px] flex flex-col">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
                                 <Calendar className="h-5 w-5 text-[#2c7da0]" />
@@ -346,7 +346,7 @@ export default function OrganizationPage() {
                 <div className="space-y-8">
 
                     {/* Expense Chart */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[450px] flex flex-col">
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[350px] sm:h-[450px] flex flex-col">
                         <CardHeader>
                             <CardTitle className="text-base font-semibold text-[#013a63] flex items-center gap-2">
                                 <PieChart className="h-4 w-4 text-[#2c7da0]" />
@@ -392,7 +392,7 @@ export default function OrganizationPage() {
                     </Card>
 
                     {/* Recent Transactions */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 overflow-hidden h-[400px] flex flex-col">
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 overflow-hidden h-[350px] sm:h-[400px] flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 bg-slate-50/50 pb-4 shrink-0">
                             <CardTitle className="text-base font-semibold text-[#013a63]">Son İşlemler</CardTitle>
                             <Link href="/transactions?scope=organization">
@@ -413,36 +413,36 @@ export default function OrganizationPage() {
                                     {transactions?.items.map((tx, i) => (
                                         <div
                                             key={i}
-                                            className="group flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-default"
+                                            className="group flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 transition-colors cursor-default"
                                         >
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-3 sm:gap-4">
                                                 <div className={cn(
-                                                    "h-10 w-10 rounded-2xl flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110",
+                                                    "h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110",
                                                     tx.entry_type === "CREDIT"
                                                         ? "bg-emerald-100 text-emerald-600 border border-emerald-200"
                                                         : "bg-rose-100 text-rose-600 border border-rose-200"
                                                 )}>
                                                     {tx.entry_type === "CREDIT"
-                                                        ? <ArrowDownLeft className="h-5 w-5" />
-                                                        : <ArrowUpRight className="h-5 w-5" />
+                                                        ? <ArrowDownLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                                                        : <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
                                                     }
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-semibold text-slate-900 truncate max-w-[140px]">
+                                                    <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate max-w-[120px] sm:max-w-[140px]">
                                                         {tx.description || "İşlem"}
                                                     </p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <Badge variant="outline" className="text-[10px] h-5 font-normal text-slate-500 border-slate-200 px-1.5">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+                                                        <Badge variant="outline" className="text-[9px] sm:text-[10px] h-4 sm:h-5 font-normal text-slate-500 border-slate-200 px-1 sm:px-1.5">
                                                             {typeof tx.category === 'object' && tx.category !== null ? tx.category.name : (tx.category || "Genel")}
                                                         </Badge>
-                                                        <p className="text-xs text-slate-400 font-medium">
+                                                        <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
                                                             {new Date(tx.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long' })}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className={cn(
-                                                "text-sm font-bold font-mono tracking-tight",
+                                                "text-xs sm:text-sm font-bold font-mono tracking-tight",
                                                 tx.entry_type === "CREDIT" ? "text-emerald-600" : "text-rose-600"
                                             )}>
                                                 {tx.entry_type === "CREDIT" ? "+" : "-"}{formatMoney(tx.amount)}

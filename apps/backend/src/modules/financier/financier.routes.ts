@@ -123,6 +123,31 @@ export async function financierRoutes(app: FastifyInstance) {
   );
 
   /**
+   * GET /financiers/:id/blocks/prediction
+   * ML-based block duration prediction
+   */
+  app.get<{ Params: { id: string }; Querystring: { amount?: string } }>(
+    '/:id/blocks/prediction',
+    async (request, reply) => {
+      const amount = request.query.amount ? parseFloat(request.query.amount) : undefined;
+      const prediction = await financierService.getBlockPrediction(request.params.id, amount);
+      return { success: true, data: prediction };
+    }
+  );
+
+  /**
+   * GET /financiers/:id/blocks/stats
+   * Block statistics for a financier
+   */
+  app.get<{ Params: { id: string } }>(
+    '/:id/blocks/stats',
+    async (request, reply) => {
+      const stats = await financierService.getBlockStats(request.params.id);
+      return { success: true, data: stats };
+    }
+  );
+
+  /**
    * GET /financiers/:id/blocks
    */
   app.get<{ Params: { id: string }; Querystring: { includeResolved?: string } }>(

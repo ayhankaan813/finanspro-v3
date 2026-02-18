@@ -202,23 +202,23 @@ export default function DailyReportPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-twilight-900 tracking-tight">Günlük Özet</h1>
-          <p className="text-twilight-500">
+          <h1 className="text-xl sm:text-2xl font-bold text-twilight-900 tracking-tight">Günlük Özet</h1>
+          <p className="text-xs sm:text-sm text-twilight-500">
             {format(new Date(selectedDate), "d MMMM yyyy, EEEE", { locale: tr })} tarihli finansal rapor.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl border border-twilight-200 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3 bg-white p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-twilight-200 shadow-sm self-start md:self-auto">
           <Input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-auto border-none shadow-none focus-visible:ring-0 bg-transparent font-medium text-twilight-700"
+            className="w-auto h-8 sm:h-10 border-none shadow-none focus-visible:ring-0 bg-transparent font-medium text-twilight-700 text-sm"
           />
-          <div className="h-6 w-px bg-twilight-200" />
-          <Button variant="ghost" size="sm" className="text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50 px-3">
-            <Download className="h-4 w-4" />
+          <div className="h-5 sm:h-6 w-px bg-twilight-200" />
+          <Button variant="ghost" size="sm" className="h-8 sm:h-9 text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50 px-2 sm:px-3">
+            <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>
@@ -236,26 +236,26 @@ export default function DailyReportPage() {
               <div className="absolute top-0 right-0 -mt-8 -mr-8 h-48 w-48 rounded-full bg-twilight-600/30 blur-3xl"></div>
               <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-twilight-400/20 blur-2xl"></div>
 
-              <div className="relative z-10 flex flex-col justify-between h-full min-h-[160px]">
+              <div className="relative z-10 flex flex-col justify-between h-full min-h-[140px] sm:min-h-[160px]">
                 <div className="flex justify-between items-start">
-                  <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl">
-                    <Activity className="h-6 w-6 text-twilight-200" />
+                  <div className="p-2 sm:p-3 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl">
+                    <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-twilight-200" />
                   </div>
                   <Badge className={cn(
-                    "border-0 backdrop-blur-md",
+                    "border-0 backdrop-blur-md text-xs sm:text-sm",
                     dailyStats.netFlow >= 0 ? "bg-emerald-500/20 text-emerald-100" : "bg-rose-500/20 text-rose-100"
                   )}>
                     {dailyStats.netFlow >= 0 ? "Pozitif Akış" : "Negatif Akış"}
                   </Badge>
                 </div>
                 <div>
-                  <div className="flex items-end gap-3 mb-1">
-                    <h2 className="text-4xl font-bold tracking-tight font-mono">
+                  <div className="flex items-end gap-2 sm:gap-3 mb-1">
+                    <h2 className="text-2xl sm:text-4xl font-bold tracking-tight font-mono">
                       {formatMoney(dailyStats.netFlow)}
                     </h2>
-                    <p className="text-twilight-300 mb-2 text-sm font-medium">Net Günlük Akış</p>
+                    <p className="text-twilight-300 mb-1 sm:mb-2 text-xs sm:text-sm font-medium">Net Günlük Akış</p>
                   </div>
-                  <div className="flex gap-4 text-xs text-twilight-300/80">
+                  <div className="flex gap-3 sm:gap-4 text-[10px] sm:text-xs text-twilight-300/80">
                     <span>Ort. İşlem: <strong className="text-white">{formatMoney(dailyStats.avgTransaction)}</strong></span>
                     <span>•</span>
                     <span>Komisyon: <strong className="text-white">{formatMoney(dailyStats.totalCommission)}</strong></span>
@@ -373,54 +373,101 @@ export default function DailyReportPage() {
             <div className="p-0">
               {transactions?.items && transactions.items.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-twilight-50/30 text-left border-b border-twilight-100">
-                        <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Saat</th>
-                        <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tür</th>
-                        <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Site/Partner</th>
-                        <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider text-right">Tutar</th>
-                        <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Durum</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-twilight-50">
+                  <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <table className="w-full hidden sm:table">
+                      <thead>
+                        <tr className="bg-twilight-50/30 text-left border-b border-twilight-100">
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Saat</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tür</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Site/Partner</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider text-right">Tutar</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Durum</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-twilight-50">
+                        {transactions.items.slice(0, 8).map((tx) => (
+                          <tr key={tx.id} className="hover:bg-twilight-50/50 transition-colors">
+                            <td className="py-4 px-6 text-sm text-twilight-600 font-medium">
+                              {new Date(tx.transaction_date).toLocaleTimeString("tr-TR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={cn(
+                                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                                tx.type === "DEPOSIT"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : tx.type === "WITHDRAWAL"
+                                    ? "bg-rose-100 text-rose-700"
+                                    : "bg-slate-100 text-slate-700"
+                              )}>
+                                {tx.type === "DEPOSIT" ? "Yatırım" : tx.type === "WITHDRAWAL" ? "Çekim" : tx.type}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-sm text-twilight-900">
+                              {tx.site ? (
+                                <span className="font-medium">{tx.site.name}</span>
+                              ) : tx.partner ? (
+                                <span className="text-indigo-600 font-medium">{tx.partner.name}</span>
+                              ) : "-"}
+                            </td>
+                            <td className="py-4 px-6 text-right font-amount font-bold text-twilight-900">
+                              {formatMoney(parseFloat(tx.gross_amount))}
+                            </td>
+                            <td className="py-4 px-6">
+                              {getStatusBadge(tx.status)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Mobile List View */}
+                    <div className="sm:hidden divide-y divide-twilight-50">
                       {transactions.items.slice(0, 8).map((tx) => (
-                        <tr key={tx.id} className="hover:bg-twilight-50/50 transition-colors">
-                          <td className="py-4 px-6 text-sm text-twilight-600 font-medium">
-                            {new Date(tx.transaction_date).toLocaleTimeString("tr-TR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        <div key={tx.id} className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "h-10 w-10 rounded-xl flex items-center justify-center text-xs font-bold",
                               tx.type === "DEPOSIT"
                                 ? "bg-emerald-100 text-emerald-700"
                                 : tx.type === "WITHDRAWAL"
                                   ? "bg-rose-100 text-rose-700"
                                   : "bg-slate-100 text-slate-700"
                             )}>
-                              {tx.type === "DEPOSIT" ? "Yatırım" : tx.type === "WITHDRAWAL" ? "Çekim" : tx.type}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-sm text-twilight-900">
-                            {tx.site ? (
-                              <span className="font-medium">{tx.site.name}</span>
-                            ) : tx.partner ? (
-                              <span className="text-indigo-600 font-medium">{tx.partner.name}</span>
-                            ) : "-"}
-                          </td>
-                          <td className="py-4 px-6 text-right font-amount font-bold text-twilight-900">
-                            {formatMoney(parseFloat(tx.gross_amount))}
-                          </td>
-                          <td className="py-4 px-6">
-                            {getStatusBadge(tx.status)}
-                          </td>
-                        </tr>
+                              {tx.type === "DEPOSIT" ? <ArrowDownLeft className="h-5 w-5" /> : tx.type === "WITHDRAWAL" ? <ArrowUpRight className="h-5 w-5" /> : <Activity className="h-5 w-5" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-twilight-900">
+                                  {tx.site ? tx.site.name : tx.partner ? tx.partner.name : "İşlem"}
+                                </span>
+                                <span className="text-xs text-twilight-400 font-mono">
+                                  {new Date(tx.transaction_date).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-twilight-500 font-medium mt-0.5">
+                                {tx.type === "DEPOSIT" ? "Yatırım" : tx.type === "WITHDRAWAL" ? "Çekim" : tx.type}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={cn(
+                              "text-sm font-bold font-mono",
+                              tx.type === "DEPOSIT" ? "text-emerald-600" : tx.type === "WITHDRAWAL" ? "text-rose-600" : "text-twilight-900"
+                            )}>
+                              {formatMoney(parseFloat(tx.gross_amount))}
+                            </p>
+                            <div className="scale-75 origin-right mt-1">
+                              {getStatusBadge(tx.status)}
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="py-12 flex flex-col items-center justify-center text-center">

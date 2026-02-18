@@ -16,9 +16,16 @@ import {
   useCreateFinancier,
   useUpdateFinancier,
   useDeleteFinancier,
+  useFinancierBlocks,
+  useCreateBlock,
+  useResolveBlock,
+  useBlockPrediction,
+  useBlockStats,
   Financier,
   CommissionRate,
+  FinancierBlock,
 } from "@/hooks/use-api";
+import { toast } from "@/hooks/use-toast";
 import {
   Wallet,
   Plus,
@@ -37,7 +44,17 @@ import {
   Save,
   Trash2,
   MoreVertical,
-  Coins
+  Coins,
+  ShieldAlert,
+  Clock,
+  CheckCircle2,
+  Brain,
+  TrendingUp,
+  BarChart3,
+  History,
+  MessageSquare,
+  Target,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -104,24 +121,24 @@ function CreateFinancierModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header - Premium Gradient */}
-          <div className="relative bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700 px-6 py-5 flex justify-between items-center text-white">
+          <div className="relative bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700 px-4 py-4 sm:px-6 sm:py-5 flex justify-between items-center text-white">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-amber-300/20 blur-3xl" />
 
-            <div className="relative flex items-center gap-4 z-10">
-              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
-                <Wallet className="h-6 w-6 text-amber-50" />
+            <div className="relative flex items-center gap-3 sm:gap-4 z-10">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
+                <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-amber-50" />
               </div>
               <div>
-                <h2 className="font-bold text-xl text-white tracking-tight">Yeni Finansör Ekle</h2>
-                <p className="text-sm text-amber-100/80 font-medium">Kasa veya banka hesabı tanımlayın</p>
+                <h2 className="font-bold text-lg sm:text-xl text-white tracking-tight">Yeni Finansör Ekle</h2>
+                <p className="text-xs sm:text-sm text-amber-100/80 font-medium">Kasa veya banka hesabı tanımlayın</p>
               </div>
             </div>
             <button
               onClick={onClose}
               className="relative z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-110 transition-all shadow-lg shadow-black/10"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
 
@@ -480,11 +497,439 @@ function CommissionModal({
   );
 }
 
+function BlockModal({
+  financier,
+  onClose,
+}: {
+  financier: Financier;
+  onClose: () => void;
+}) {
+  const { data: blocksData, isLoading } = useFinancierBlocks(financier.id);
+  const createBlock = useCreateBlock();
+  const resolveBlock = useResolveBlock();
+
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [days, setDays] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [resolveTarget, setResolveTarget] = useState<FinancierBlock | null>(null);
+  const [resolutionNote, setResolutionNote] = useState("");
+
+  // ML Prediction — debounced by amount
+  const [debouncedAmount, setDebouncedAmount] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedAmount(amount), 400);
+    return () => clearTimeout(timer);
+  }, [amount]);
+
+  const { data: prediction } = useBlockPrediction(financier.id, debouncedAmount);
+  const { data: stats } = useBlockStats(financier.id);
+
+  const allBlocks = blocksData?.items || blocksData || [];
+  const displayedBlocks = Array.isArray(allBlocks)
+    ? (showHistory ? allBlocks : allBlocks.filter((b: FinancierBlock) => !b.resolved_at))
+    : [];
+  const activeBlocks = Array.isArray(allBlocks)
+    ? allBlocks.filter((b: FinancierBlock) => !b.resolved_at)
+    : [];
+
+  const handleCreate = async () => {
+    if (!amount) return;
+    try {
+      await createBlock.mutateAsync({
+        financierId: financier.id,
+        amount,
+        reason: reason || undefined,
+        estimated_days: days ? parseInt(days) : (prediction?.predicted_days || undefined),
+      });
+      toast({ title: "Başarılı", description: "Bloke başarıyla oluşturuldu", variant: "success" });
+      setAmount("");
+      setReason("");
+      setDays("");
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message || "Bloke oluşturulamadı", variant: "destructive" });
+    }
+  };
+
+  const handleResolveConfirm = async () => {
+    if (!resolveTarget) return;
+    try {
+      await resolveBlock.mutateAsync({
+        financierId: financier.id,
+        blockId: resolveTarget.id,
+        resolution_note: resolutionNote || undefined,
+      });
+      toast({ title: "Başarılı", description: "Bloke çözüldü", variant: "success" });
+      setResolveTarget(null);
+      setResolutionNote("");
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message || "Bloke çözülemedi", variant: "destructive" });
+    }
+  };
+
+  const balance = parseFloat(financier.account?.balance || "0");
+  const blocked = parseFloat(financier.account?.blocked_amount || "0");
+  const available = parseFloat(financier.available_balance || "0");
+
+  // Confidence color helper
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.7) return { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", ring: "ring-emerald-100", badge: "bg-emerald-100 text-emerald-700" };
+    if (confidence >= 0.4) return { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", ring: "ring-amber-100", badge: "bg-amber-100 text-amber-700" };
+    return { bg: "bg-red-50", border: "border-red-200", text: "text-red-600", ring: "ring-red-100", badge: "bg-red-100 text-red-600" };
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-twilight-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="flex min-h-full items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden transform transition-all border border-twilight-100"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="relative bg-gradient-to-br from-red-600 via-orange-600 to-red-700 px-6 py-5 text-white">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-red-300/20 blur-3xl" />
+
+            <div className="relative flex justify-between items-center z-10">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner ring-1 ring-white/20">
+                  <ShieldAlert className="h-6 w-6 text-red-50" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-xl text-white tracking-tight">{financier.name}</h2>
+                  <p className="text-sm text-red-100/80 font-medium">Bloke Yönetimi</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-110 transition-all shadow-lg shadow-black/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Stats bar */}
+            {stats && (
+              <div className="relative z-10 mt-4 flex items-center gap-3 text-xs text-red-100/90">
+                <div className="flex items-center gap-1">
+                  <BarChart3 className="h-3 w-3" />
+                  <span>Ort: <strong className="text-white">{stats.avg_duration || '—'} gün</strong></span>
+                </div>
+                <span className="text-white/30">·</span>
+                <div className="flex items-center gap-1">
+                  <Target className="h-3 w-3" />
+                  <span>Toplam: <strong className="text-white">{stats.total_created}</strong></span>
+                </div>
+                <span className="text-white/30">·</span>
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  <span>Çözülen: <strong className="text-white">{stats.total_resolved}</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+            {/* Balance summary */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-twilight-50/50 border border-twilight-100/50 text-center">
+                <p className="text-[10px] font-bold text-twilight-400 uppercase tracking-widest mb-1">Toplam</p>
+                <p className="text-sm font-bold text-twilight-900 font-mono">{formatMoney(balance)}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-red-50/50 border border-red-100/50 text-center">
+                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Blokeli</p>
+                <p className="text-sm font-bold text-red-600 font-mono">{formatMoney(blocked)}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50/30 border border-emerald-100/30 text-center">
+                <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Müsait</p>
+                <p className="text-sm font-bold text-emerald-600 font-mono">{formatMoney(available)}</p>
+              </div>
+            </div>
+
+            {/* Tab: Active / History */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowHistory(false)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${!showHistory
+                  ? 'bg-red-100 text-red-700 shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+              >
+                <ShieldAlert className="h-3.5 w-3.5" />
+                Aktif ({activeBlocks.length})
+              </button>
+              <button
+                onClick={() => setShowHistory(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${showHistory
+                  ? 'bg-twilight-100 text-twilight-700 shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+              >
+                <History className="h-3.5 w-3.5" />
+                Geçmiş
+              </button>
+            </div>
+
+            {/* Blocks list */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+              </div>
+            ) : displayedBlocks.length > 0 ? (
+              <div className="space-y-2">
+                {displayedBlocks.map((block: FinancierBlock) => {
+                  const daysSince = Math.floor((Date.now() - new Date(block.started_at).getTime()) / (1000 * 60 * 60 * 24));
+                  const isResolved = !!block.resolved_at;
+                  const durationDays = isResolved
+                    ? Math.max(1, Math.ceil((new Date(block.resolved_at!).getTime() - new Date(block.started_at).getTime()) / (1000 * 60 * 60 * 24)))
+                    : null;
+
+                  return (
+                    <div
+                      key={block.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border shadow-sm transition-all ${isResolved
+                        ? 'bg-gray-50/50 border-gray-200/70 opacity-75'
+                        : 'bg-red-50/50 border-red-100'
+                        }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`font-mono text-sm font-bold ${isResolved ? 'text-gray-600' : 'text-red-700'}`}>
+                            {formatMoney(parseFloat(block.amount))}
+                          </span>
+                          <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                            <Clock className="h-3 w-3" />
+                            {isResolved ? `${durationDays} gün sürdü` : `${daysSince} gün`}
+                          </span>
+                          {!isResolved && block.estimated_days && (
+                            <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">
+                              ~{block.estimated_days} gün
+                            </span>
+                          )}
+                          {isResolved && (
+                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                              <CheckCircle2 className="h-2.5 w-2.5" /> Çözüldü
+                            </span>
+                          )}
+                        </div>
+                        {block.reason && (
+                          <p className="text-xs text-gray-500 truncate">{block.reason}</p>
+                        )}
+                        {isResolved && block.resolution_note && (
+                          <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            {block.resolution_note}
+                          </p>
+                        )}
+                      </div>
+                      {!isResolved && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 rounded-lg ml-3"
+                          onClick={() => setResolveTarget(block)}
+                          disabled={resolveBlock.isPending}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          Çöz
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-4 text-center bg-green-50/50 rounded-xl border border-dashed border-green-200">
+                <CheckCircle2 className="mx-auto h-5 w-5 text-green-400 mb-1" />
+                <p className="text-sm text-green-500 font-medium">
+                  {showHistory ? 'Geçmiş bloke yok' : 'Aktif bloke yok'}
+                </p>
+              </div>
+            )}
+
+            {/* Create block form */}
+            <div className="rounded-xl border border-twilight-100 p-4 space-y-3 bg-twilight-50/30">
+              <p className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Yeni Bloke Oluştur</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs text-twilight-500 mb-1 block">Tutar (₺) *</Label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="font-mono h-10 rounded-xl"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs text-twilight-500 mb-1 block">Sebep</Label>
+                  <Input
+                    placeholder="Opsiyonel açıklama..."
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-twilight-500 mb-1 block">Tahmini Süre (gün)</Label>
+                  <Input
+                    type="number"
+                    placeholder={prediction ? `AI: ~${prediction.predicted_days}` : 'Ör: 7'}
+                    min="1"
+                    max="30"
+                    value={days}
+                    onChange={(e) => setDays(e.target.value)}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleCreate}
+                    disabled={!amount || createBlock.isPending}
+                    className="w-full h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm"
+                  >
+                    {createBlock.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <ShieldAlert className="h-4 w-4 mr-2" />
+                    )}
+                    Bloke Ekle
+                  </Button>
+                </div>
+              </div>
+
+              {/* ML Prediction Card */}
+              {prediction && parseFloat(amount) > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mt-3 p-3 rounded-xl border ${getConfidenceColor(prediction.confidence).bg} ${getConfidenceColor(prediction.confidence).border} ring-1 ${getConfidenceColor(prediction.confidence).ring}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getConfidenceColor(prediction.confidence).badge}`}>
+                      <Brain className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className={`text-sm font-bold ${getConfidenceColor(prediction.confidence).text}`}>
+                          ~{prediction.predicted_days} gün
+                        </p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${getConfidenceColor(prediction.confidence).badge}`}>
+                          %{Math.round(prediction.confidence * 100)} güven
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        Geçmiş verilere göre: {prediction.min_days}–{prediction.max_days} gün arası
+                        <span className="text-gray-400 ml-1">({prediction.sample_size} örnek)</span>
+                      </p>
+                    </div>
+                    <Sparkles className={`h-4 w-4 flex-shrink-0 mt-0.5 ${getConfidenceColor(prediction.confidence).text} opacity-60`} />
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Resolution Confirmation Dialog */}
+      <AnimatePresence>
+        {resolveTarget && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setResolveTarget(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden border border-emerald-100"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-4 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold">Blokeyi Çöz</p>
+                    <p className="text-xs text-emerald-100/80">Bu işlem geri alınamaz</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 space-y-4">
+                {/* Block summary */}
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-gray-500">Tutar</span>
+                    <span className="font-mono text-sm font-bold text-twilight-900">
+                      {formatMoney(parseFloat(resolveTarget.amount))}
+                    </span>
+                  </div>
+                  {resolveTarget.reason && (
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-gray-500">Sebep</span>
+                      <span className="text-xs text-gray-700 max-w-[60%] truncate">{resolveTarget.reason}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">Süre</span>
+                    <span className="text-xs text-gray-700">
+                      {Math.floor((Date.now() - new Date(resolveTarget.started_at).getTime()) / (1000 * 60 * 60 * 24))} gün
+                    </span>
+                  </div>
+                </div>
+
+                {/* Resolution note */}
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1.5 block">Çözüm Notu (opsiyonel)</Label>
+                  <Textarea
+                    placeholder="Çözüm hakkında açıklama..."
+                    value={resolutionNote}
+                    onChange={(e) => setResolutionNote(e.target.value)}
+                    className="h-20 rounded-xl resize-none text-sm"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-10 rounded-xl"
+                    onClick={() => { setResolveTarget(null); setResolutionNote(""); }}
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    className="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                    onClick={handleResolveConfirm}
+                    disabled={resolveBlock.isPending}
+                  >
+                    {resolveBlock.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                    )}
+                    Blokeyi Çöz
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function FinanciersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commissionFinancier, setCommissionFinancier] = useState<Financier | null>(null);
+  const [blockFinancier, setBlockFinancier] = useState<Financier | null>(null);
   const [editingFinancier, setEditingFinancier] = useState<Financier | null>(null);
   const [deletingFinancier, setDeletingFinancier] = useState<Financier | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -552,27 +997,27 @@ export default function FinanciersPage() {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-amber-500/20 blur-3xl" />
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-orange-500/10 blur-3xl" />
 
-        <div className="relative z-10 p-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30 font-bold text-amber-300">
-                <Wallet className="h-6 w-6" />
+        <div className="relative z-10 p-4 sm:p-10 flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30 font-bold text-amber-300">
+                <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Finansörler</h1>
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-white">Finansörler</h1>
             </div>
-            <p className="text-twilight-200/80 text-lg max-w-xl font-light">
+            <p className="text-twilight-200/80 text-sm sm:text-lg max-w-xl font-light">
               Kasa ve banka hesaplarını yönetin, blokeleri ve komisyon oranlarını takip edin.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative group">
+            <div className="relative group w-full sm:w-auto">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-twilight-400 group-focus-within:text-amber-400 transition-colors" />
+                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-twilight-400 group-focus-within:text-amber-400 transition-colors" />
               </div>
               <input
                 type="text"
-                className="block w-full sm:w-64 pl-10 pr-3 py-3 border border-white/10 rounded-xl leading-5 bg-white/5 text-amber-100 placeholder-twilight-400 focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-amber-500/50 focus:border-amber-500/50 sm:text-sm transition-all"
+                className="block w-full sm:w-64 pl-9 pr-3 py-2.5 sm:py-3 border border-white/10 rounded-xl leading-5 bg-white/5 text-amber-100 placeholder-twilight-400 focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-amber-500/50 focus:border-amber-500/50 text-sm transition-all"
                 placeholder="Finansör ara..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -580,9 +1025,9 @@ export default function FinanciersPage() {
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-amber-600 hover:bg-amber-500 text-white rounded-xl px-6 py-6 shadow-lg shadow-amber-900/20 text-base font-medium transition-all hover:scale-105 active:scale-95"
+              className="bg-amber-600 hover:bg-amber-500 text-white rounded-xl px-4 py-4 sm:px-6 sm:py-6 shadow-lg shadow-amber-900/20 text-sm sm:text-base font-medium transition-all hover:scale-105 active:scale-95"
             >
-              <Plus className="mr-2 h-5 w-5" />
+              <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Yeni Finansör
             </Button>
           </div>
@@ -629,7 +1074,7 @@ export default function FinanciersPage() {
                 const balance = parseFloat(financier.account?.balance || "0");
                 const blocked = parseFloat(financier.account?.blocked_amount || "0");
                 const available = parseFloat(financier.available_balance || "0");
-                const hasBlocks = financier.active_blocks_count > 0;
+                const hasBlocks = financier.active_blocks_count > 0 || blocked > 0;
 
                 return (
                   <motion.div
@@ -642,8 +1087,8 @@ export default function FinanciersPage() {
                       <CardHeader className="p-0">
                         {/* Card Banner */}
                         <div className={`h-24 relative overflow-hidden ${hasBlocks
-                            ? "bg-gradient-to-r from-amber-50 to-orange-50"
-                            : "bg-gradient-to-r from-amber-50 to-yellow-50"
+                          ? "bg-gradient-to-r from-amber-50 to-orange-50"
+                          : "bg-gradient-to-r from-amber-50 to-yellow-50"
                           }`}>
                           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
 
@@ -662,17 +1107,17 @@ export default function FinanciersPage() {
                           </div>
                         </div>
 
-                        <div className="px-6 flex gap-4 -mt-10">
-                          <div className="h-20 w-20 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-                            <div className={`h-full w-full rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-inner ${hasBlocks
-                                ? "bg-gradient-to-br from-amber-500 to-orange-600"
-                                : "bg-gradient-to-br from-amber-400 to-yellow-500"
+                        <div className="px-4 sm:px-6 flex gap-3 sm:gap-4 -mt-8 sm:-mt-10">
+                          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+                            <div className={`h-full w-full rounded-xl flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-inner ${hasBlocks
+                              ? "bg-gradient-to-br from-amber-500 to-orange-600"
+                              : "bg-gradient-to-br from-amber-400 to-yellow-500"
                               }`}>
-                              {hasBlocks ? <Lock className="h-8 w-8" /> : <Wallet className="h-8 w-8" />}
+                              {hasBlocks ? <Lock className="h-6 w-6 sm:h-8 sm:w-8" /> : <Wallet className="h-6 w-6 sm:h-8 sm:w-8" />}
                             </div>
                           </div>
-                          <div className="pt-11 flex-1 min-w-0">
-                            <h3 className="font-bold text-lg text-twilight-900 truncate group-hover:text-amber-700 transition-colors">
+                          <div className="pt-9 sm:pt-11 flex-1 min-w-0">
+                            <h3 className="font-bold text-base sm:text-lg text-twilight-900 truncate group-hover:text-amber-700 transition-colors">
                               {financier.name}
                             </h3>
                             <div className="flex items-center gap-2 text-xs font-mono text-twilight-400">
@@ -722,16 +1167,16 @@ export default function FinanciersPage() {
                         </div>
                       </CardHeader>
 
-                      <CardContent className="p-6 space-y-5">
+                      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                         {/* Balance Grid */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-4 rounded-2xl bg-twilight-50/50 border border-twilight-100/50">
-                            <p className="text-xs font-bold text-twilight-400 uppercase tracking-widest mb-1.5">Toplam</p>
-                            <p className="text-lg font-bold text-twilight-900 font-amount">{formatMoney(balance)}</p>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-twilight-50/50 border border-twilight-100/50">
+                            <p className="text-[10px] sm:text-xs font-bold text-twilight-400 uppercase tracking-widest mb-1 sm:mb-1.5">Toplam</p>
+                            <p className="text-base sm:text-lg font-bold text-twilight-900 font-amount">{formatMoney(balance)}</p>
                           </div>
-                          <div className="p-4 rounded-2xl bg-emerald-50/30 border border-emerald-100/30">
-                            <p className="text-xs font-bold text-emerald-600/70 uppercase tracking-widest mb-1.5">Müsait</p>
-                            <p className={`text-lg font-bold font-amount ${available > 0 ? "text-emerald-600" : "text-twilight-400"}`}>
+                          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50/30 border border-emerald-100/30">
+                            <p className="text-[10px] sm:text-xs font-bold text-emerald-600/70 uppercase tracking-widest mb-1 sm:mb-1.5">Müsait</p>
+                            <p className={`text-base sm:text-lg font-bold font-amount ${available > 0 ? "text-emerald-600" : "text-twilight-400"}`}>
                               {formatMoney(available)}
                             </p>
                           </div>
@@ -749,7 +1194,11 @@ export default function FinanciersPage() {
                                 <AlertTriangle className="h-4 w-4 text-orange-600" />
                               </div>
                               <div>
-                                <p className="font-bold text-orange-800 text-sm">{financier.active_blocks_count} Aktif Bloke</p>
+                                <p className="font-bold text-orange-800 text-sm">
+                                  {financier.active_blocks_count > 0
+                                    ? `${financier.active_blocks_count} Aktif Bloke`
+                                    : "Sistem Blokajı"}
+                                </p>
                                 <p className="text-orange-600 text-xs mt-0.5">{formatMoney(blocked)} blokeli tutar</p>
                               </div>
                             </motion.div>
@@ -770,6 +1219,14 @@ export default function FinanciersPage() {
                           >
                             <Percent className="mr-2 h-3.5 w-3.5" />
                             Komisyon
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1 h-10 rounded-xl border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 hover:bg-red-50/50 font-semibold text-xs"
+                            onClick={() => setBlockFinancier(financier)}
+                          >
+                            <ShieldAlert className="mr-2 h-3.5 w-3.5" />
+                            Bloke
                           </Button>
                           <Button className="flex-1 h-10 rounded-xl bg-twilight-900 text-white hover:bg-twilight-800 shadow-lg shadow-twilight-900/10 font-semibold text-xs" asChild>
                             <Link href={`/financiers/${financier.id}`}>
@@ -823,6 +1280,16 @@ export default function FinanciersPage() {
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateFinancier}
             isPending={createFinancier.isPending}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Block Modal Wrapper */}
+      <AnimatePresence>
+        {blockFinancier && (
+          <BlockModal
+            financier={blockFinancier}
+            onClose={() => setBlockFinancier(null)}
           />
         )}
       </AnimatePresence>

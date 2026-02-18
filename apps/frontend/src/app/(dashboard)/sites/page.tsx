@@ -164,32 +164,32 @@ function SortableSiteCard({
       <Card className={`group border-0 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden rounded-3xl ring-1 ${isInactive ? "ring-gray-200 bg-gray-50 opacity-60" : "ring-twilight-100 bg-white"
         }`}>
         <CardHeader className="p-0 relative">
-          <div className={`h-2 bg-gradient-to-r ${isInactive ? "from-gray-300 to-gray-400" : "from-twilight-400 to-twilight-600"
+          <div className={`h-1.5 sm:h-2 bg-gradient-to-r ${isInactive ? "from-gray-300 to-gray-400" : "from-twilight-400 to-twilight-600"
             }`}></div>
-          <div className="px-6 pt-5 pb-2 flex justify-between items-start">
-            <div className="flex items-center gap-4">
+          <div className="px-4 pt-4 pb-2 sm:px-6 sm:pt-5 flex justify-between items-start">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div
                 {...attributes}
                 {...listeners}
-                className="cursor-move p-2 -ml-2 text-twilight-300 hover:text-twilight-600 hover:bg-twilight-50 rounded-lg transition-colors"
+                className="cursor-move p-1.5 sm:p-2 -ml-2 text-twilight-300 hover:text-twilight-600 hover:bg-twilight-50 rounded-lg transition-colors"
                 title="Sıralamak için sürükleyin"
               >
-                <GripVertical className="h-5 w-5" />
+                <GripVertical className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
 
-              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner ${isInactive ? "bg-gray-100 text-gray-400" : "bg-twilight-50 text-twilight-700"
+              <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-lg sm:text-xl shadow-inner ${isInactive ? "bg-gray-100 text-gray-400" : "bg-twilight-50 text-twilight-700"
                 }`}>
                 {site.name.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <h3 className={`font-bold text-lg transition-colors ${isInactive ? "text-gray-400 line-through" : "text-twilight-900 group-hover:text-twilight-600"
+                <h3 className={`font-bold text-base sm:text-lg transition-colors ${isInactive ? "text-gray-400 line-through" : "text-twilight-900 group-hover:text-twilight-600"
                   }`}>
                   {site.name}
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <BadgeCode code={site.code} />
-                  {site.is_active && <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>}
-                  {isInactive && <span className="text-[10px] text-red-400 font-semibold uppercase">Pasif</span>}
+                  {site.is_active && <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse"></div>}
+                  {isInactive && <span className="text-[9px] sm:text-[10px] text-red-400 font-semibold uppercase">Pasif</span>}
                 </div>
               </div>
             </div>
@@ -220,22 +220,22 @@ function SortableSiteCard({
             </DropdownMenu>
           </div>
         </CardHeader>
-        <CardContent className="px-6 pb-6 pt-2">
+        <CardContent className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
           {/* Main Balance */}
-          <div className={`py-4 text-center rounded-2xl mb-4 border ${isInactive ? "bg-gray-100/50 border-gray-200/50" : "bg-twilight-50/50 border-twilight-100/50"
+          <div className={`py-3 sm:py-4 text-center rounded-xl sm:rounded-2xl mb-3 sm:mb-4 border ${isInactive ? "bg-gray-100/50 border-gray-200/50" : "bg-twilight-50/50 border-twilight-100/50"
             }`}>
-            <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isInactive ? "text-gray-400" : "text-twilight-400"
+            <p className={`text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-0.5 sm:mb-1 ${isInactive ? "text-gray-400" : "text-twilight-400"
               }`}>Mevcut Bakiye</p>
-            <p className={`text-3xl font-bold font-mono tracking-tight ${isInactive ? "text-gray-400" : displayBalance >= 0 ? "text-emerald-600" : "text-rose-600"
+            <p className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${isInactive ? "text-gray-400" : displayBalance >= 0 ? "text-emerald-600" : "text-rose-600"
               }`}>
               {formatMoney(displayBalance)}
             </p>
           </div>
 
           {/* Mini Stats Grid - real transaction totals */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <MiniStat
-              label="Toplam Giriş"
+              label="Aylık Yatırım"
               val={formatMoney(totalDeposit)}
               trend="up"
               icon={ArrowDownToLine}
@@ -243,7 +243,7 @@ function SortableSiteCard({
               bg={isInactive ? "bg-gray-50" : "bg-emerald-50"}
             />
             <MiniStat
-              label="Toplam Çıkış"
+              label="Aylık Çekim"
               val={formatMoney(totalWithdrawal)}
               trend="down"
               icon={ArrowUpFromLine}
@@ -680,6 +680,13 @@ export default function SitesPage() {
   const deleteSiteMut = useDeleteSite();
   const { data: siteStatsData } = useSiteStats({ from: dateRange.from, to: dateRange.to });
 
+  // Calculate Monthly Range for Card Stats (Fixed to Current Month)
+  const now = new Date();
+  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  const { data: monthlyStatsData } = useSiteStats({ from: startOfMonth, to: todayStr });
+
   // Sync data to local sorted state when fetched
   useEffect(() => {
     if (data?.items) {
@@ -756,7 +763,7 @@ export default function SitesPage() {
     }
   };
 
-  // Calculate header stats from siteStatsData
+  // Calculate header stats from siteStatsData (Filtered by global date range)
   const globalTotalIn = siteStatsData
     ? Object.values(siteStatsData).reduce((acc, s) => acc + parseFloat(s.totalDeposit || "0"), 0)
     : 0;
@@ -791,11 +798,11 @@ export default function SitesPage() {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-twilight-500/20 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-twilight-400/10 blur-3xl"></div>
 
-        <div className="relative z-10 p-8 lg:p-10">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
+        <div className="relative z-10 p-4 sm:p-8 lg:p-10">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-6 mb-6 sm:mb-10">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-3">
-                <GripVertical className="h-8 w-8 text-twilight-200" />
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight mb-2 flex items-center gap-2 sm:gap-3">
+                <GripVertical className="h-6 w-6 sm:h-8 sm:w-8 text-twilight-200" />
                 Site Yönetimi
               </h1>
               <p className="text-twilight-200/80 text-lg max-w-xl">
@@ -805,9 +812,9 @@ export default function SitesPage() {
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-white text-twilight-900 hover:bg-twilight-50 font-bold px-6 py-6 rounded-2xl shadow-xl transition-transform hover:scale-105"
+              className="bg-white text-twilight-900 hover:bg-twilight-50 font-bold px-4 py-4 sm:px-6 sm:py-6 rounded-xl sm:rounded-2xl shadow-xl transition-transform hover:scale-105 text-sm sm:text-base"
             >
-              <Plus className="mr-2 h-5 w-5" />
+              <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Yeni Site Ekle
             </Button>
           </div>
@@ -847,8 +854,8 @@ export default function SitesPage() {
               size="sm"
               onClick={() => setDatePreset(preset.days)}
               className={`h-8 text-xs rounded-lg ${datePreset === preset.days
-                  ? "bg-twilight-900 text-white hover:bg-twilight-800"
-                  : "text-twilight-500 hover:bg-twilight-50"
+                ? "bg-twilight-900 text-white hover:bg-twilight-800"
+                : "text-twilight-500 hover:bg-twilight-50"
                 }`}
             >
               {preset.label}
@@ -890,7 +897,7 @@ export default function SitesPage() {
                   key={site.id}
                   site={site}
                   setCommissionSite={setCommissionSite}
-                  siteStats={siteStatsData?.[site.id]}
+                  siteStats={monthlyStatsData?.[site.id]}
                   onEditName={(s) => { setEditSite(s); setEditName(s.name); }}
                   onToggleActive={handleToggleActive}
                   onDelete={setDeleteSiteTarget}
@@ -979,12 +986,12 @@ function BadgeCode({ code }: { code: string }) {
 
 function MiniStat({ label, val, trend, icon: Icon, color, bg }: any) {
   return (
-    <div className={`flex flex-col p-3 rounded-xl border border-transparent hover:border-twilight-100 transition-colors ${bg}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold text-twilight-500 uppercase">{label}</span>
-        <Icon className={`h-3 w-3 ${color}`} />
+    <div className={`flex flex-col p-2 sm:p-3 rounded-lg sm:rounded-xl border border-transparent hover:border-twilight-100 transition-colors ${bg}`}>
+      <div className="flex items-center justify-between mb-1 sm:mb-2">
+        <span className="text-[9px] sm:text-[10px] font-bold text-twilight-500 uppercase">{label}</span>
+        <Icon className={`h-2.5 w-2.5 sm:h-3 sm:w-3 ${color}`} />
       </div>
-      <span className={`text-sm font-bold font-mono ${color}`}>{val}</span>
+      <span className={`text-xs sm:text-sm font-bold font-mono ${color}`}>{val}</span>
     </div>
   );
 }

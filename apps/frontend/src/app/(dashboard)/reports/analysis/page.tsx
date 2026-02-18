@@ -71,8 +71,8 @@ export default function AnalysisPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Analiz</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Analiz</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Finansal performans ve dağılım analizi
         </p>
       </div>
@@ -85,8 +85,8 @@ export default function AnalysisPage() {
               Toplam Varlık
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <p className="text-xl sm:text-2xl font-bold font-amount">
               {formatMoney(stats?.totalCash || 0)}
             </p>
             <div className="flex items-center text-xs text-success-600 mt-1">
@@ -102,8 +102,8 @@ export default function AnalysisPage() {
               Site Hacmi
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount text-site">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <p className="text-xl sm:text-2xl font-bold font-amount text-site">
               {formatMoney(stats?.siteDebt || 0)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -118,8 +118,8 @@ export default function AnalysisPage() {
               Partner Hacmi
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold font-amount text-partner">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <p className="text-xl sm:text-2xl font-bold font-amount text-partner">
               {formatMoney(stats?.partnerBalance || 0)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -134,8 +134,8 @@ export default function AnalysisPage() {
               Bloke Oranı
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-warning-600">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <p className="text-xl sm:text-2xl font-bold text-warning-600">
               {stats?.totalCash && stats.totalCash > 0
                 ? (((stats?.blockedAmount || 0) / stats.totalCash) * 100).toFixed(1)
                 : 0}%
@@ -242,13 +242,12 @@ export default function AnalysisPage() {
                   </div>
                   <div className="h-3 rounded-full bg-secondary overflow-hidden">
                     <div
-                      className={`h-full transition-all ${
-                        f.utilizationRate >= 70
+                      className={`h-full transition-all ${f.utilizationRate >= 70
                           ? "bg-success-500"
                           : f.utilizationRate >= 40
-                          ? "bg-warning-500"
-                          : "bg-danger-500"
-                      }`}
+                            ? "bg-warning-500"
+                            : "bg-danger-500"
+                        }`}
                       style={{ width: `${f.utilizationRate}%` }}
                     />
                   </div>

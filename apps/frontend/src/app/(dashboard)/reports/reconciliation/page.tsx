@@ -68,26 +68,26 @@ export default function ReconciliationPage() {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-amber-500/20 blur-3xl opacity-50" />
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-indigo-500/20 blur-3xl opacity-50" />
 
-        <div className="relative z-10 p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30 backdrop-blur-md">
-                <Scale className="h-6 w-6 text-amber-300" />
+        <div className="relative z-10 p-4 sm:p-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30 backdrop-blur-md">
+                <Scale className="h-5 w-5 sm:h-6 sm:w-6 text-amber-300" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white">Finansal Mutabakat</h1>
-                <p className="text-twilight-200/80 text-sm font-medium">Varlık ve Yükümlülük Dengesi</p>
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-white">Finansal Mutabakat</h1>
+                <p className="text-twilight-200/80 text-xs sm:text-sm font-medium">Varlık ve Yükümlülük Dengesi</p>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button onClick={() => refetch()} variant="outline" className="border-white/10 bg-white/5 text-amber-100 hover:bg-white/10 hover:text-white backdrop-blur-sm transition-all">
-              <RefreshCw className="mr-2 h-4 w-4" />
+          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button onClick={() => refetch()} variant="outline" className="flex-1 sm:flex-none border-white/10 bg-white/5 text-amber-100 hover:bg-white/10 hover:text-white backdrop-blur-sm transition-all text-xs sm:text-sm h-9 sm:h-10">
+              <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Verileri Yenile
             </Button>
-            <Button className="bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20 border border-amber-500/20">
-              <Download className="mr-2 h-4 w-4" />
+            <Button className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20 border border-amber-500/20 text-xs sm:text-sm h-9 sm:h-10">
+              <Download className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Rapor İndir
             </Button>
           </div>
@@ -99,18 +99,18 @@ export default function ReconciliationPage() {
         {/* Assets Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-xl transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 group">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-100/50 p-6">
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-100/50 p-4 sm:p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-bold text-amber-900/70 uppercase tracking-wider mb-1">Toplam Varlıklar</p>
-                  <h3 className="text-3xl font-bold text-twilight-900 font-amount">{formatMoney(totalFinancierBalance)}</h3>
+                  <p className="text-xs sm:text-sm font-bold text-amber-900/70 uppercase tracking-wider mb-1">Toplam Varlıklar</p>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-twilight-900 font-amount">{formatMoney(totalFinancierBalance)}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-amber-100">
-                  <Wallet className="h-6 w-6 text-amber-600" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-white shadow-sm flex items-center justify-center border border-amber-100">
+                  <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-sm p-3 rounded-xl bg-amber-50/50 border border-amber-100/50">
                   <span className="text-twilight-600 font-medium">Nakit Kasalar</span>
@@ -128,18 +128,18 @@ export default function ReconciliationPage() {
         {/* Liabilities Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-xl transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 group">
-            <CardHeader className="bg-gradient-to-r from-rose-50 to-red-50/50 border-b border-rose-100/50 p-6">
+            <CardHeader className="bg-gradient-to-r from-rose-50 to-red-50/50 border-b border-rose-100/50 p-4 sm:p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-bold text-rose-900/70 uppercase tracking-wider mb-1">Toplam Yükümlülük</p>
-                  <h3 className="text-3xl font-bold text-twilight-900 font-amount">{formatMoney(totalLiabilities)}</h3>
+                  <p className="text-xs sm:text-sm font-bold text-rose-900/70 uppercase tracking-wider mb-1">Toplam Yükümlülük</p>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-twilight-900 font-amount">{formatMoney(totalLiabilities)}</h3>
                 </div>
-                <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-rose-100">
-                  <AlertTriangle className="h-6 w-6 text-rose-600" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-white shadow-sm flex items-center justify-center border border-rose-100">
+                  <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-rose-600" />
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-twilight-500">Site Bakiyeleri</span>
@@ -164,18 +164,18 @@ export default function ReconciliationPage() {
         {/* Net Position Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-xl transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 group">
-            <CardHeader className={`bg-gradient-to-r border-b p-6 ${isPositive ? 'from-emerald-50 to-green-50/50 border-emerald-100/50' : 'from-orange-50 to-amber-50/50 border-orange-100/50'}`}>
+            <CardHeader className={`bg-gradient-to-r border-b p-4 sm:p-6 ${isPositive ? 'from-emerald-50 to-green-50/50 border-emerald-100/50' : 'from-orange-50 to-amber-50/50 border-orange-100/50'}`}>
               <div className="flex justify-between items-start">
                 <div>
-                  <p className={`text-sm font-bold uppercase tracking-wider mb-1 ${isPositive ? 'text-emerald-900/70' : 'text-orange-900/70'}`}>Net Durum (Özkaynak)</p>
-                  <h3 className={`text-3xl font-bold font-amount ${isPositive ? 'text-emerald-600' : 'text-orange-600'}`}>{formatMoney(estimatedEquity)}</h3>
+                  <p className={`text-xs sm:text-sm font-bold uppercase tracking-wider mb-1 ${isPositive ? 'text-emerald-900/70' : 'text-orange-900/70'}`}>Net Durum (Özkaynak)</p>
+                  <h3 className={`text-2xl sm:text-3xl font-bold font-amount ${isPositive ? 'text-emerald-600' : 'text-orange-600'}`}>{formatMoney(estimatedEquity)}</h3>
                 </div>
-                <div className={`h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center border ${isPositive ? 'border-emerald-100' : 'border-orange-100'}`}>
-                  {isPositive ? <ShieldCheck className="h-6 w-6 text-emerald-600" /> : <ShieldCheck className="h-6 w-6 text-orange-600" />}
+                <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-white shadow-sm flex items-center justify-center border ${isPositive ? 'border-emerald-100' : 'border-orange-100'}`}>
+                  {isPositive ? <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" /> : <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="space-y-4">
                 <p className="text-sm text-twilight-600 leading-relaxed">
                   {isPositive
@@ -210,45 +210,45 @@ export default function ReconciliationPage() {
           <CardContent className="p-0">
             <div className="divide-y divide-twilight-100">
               {/* Sites */}
-              <div className="p-5 hover:bg-twilight-50/50 transition-colors flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                    <Building className="h-5 w-5" />
+              <div className="p-4 sm:p-5 hover:bg-twilight-50/50 transition-colors flex items-center justify-between group">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <Building className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-twilight-900 group-hover:text-blue-700 transition-colors">Site Borçları</p>
-                    <p className="text-xs text-twilight-500">{sites?.items?.length || 0} adet site bakiyesi</p>
+                    <p className="font-bold text-sm sm:text-base text-twilight-900 group-hover:text-blue-700 transition-colors">Site Borçları</p>
+                    <p className="text-[10px] sm:text-xs text-twilight-500">{sites?.items?.length || 0} adet site bakiyesi</p>
                   </div>
                 </div>
-                <span className="font-bold font-amount text-twilight-900 text-lg">{formatMoney(Math.abs(totalSiteBalance))}</span>
+                <span className="font-bold font-amount text-twilight-900 text-base sm:text-lg">{formatMoney(Math.abs(totalSiteBalance))}</span>
               </div>
 
               {/* Partners */}
-              <div className="p-5 hover:bg-twilight-50/50 transition-colors flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                    <Users className="h-5 w-5" />
+              <div className="p-4 sm:p-5 hover:bg-twilight-50/50 transition-colors flex items-center justify-between group">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-twilight-900 group-hover:text-emerald-700 transition-colors">Partner Hak Edişleri</p>
-                    <p className="text-xs text-twilight-500">{partners?.items?.length || 0} adet partner bakiyesi</p>
+                    <p className="font-bold text-sm sm:text-base text-twilight-900 group-hover:text-emerald-700 transition-colors">Partner Hak Edişleri</p>
+                    <p className="text-[10px] sm:text-xs text-twilight-500">{partners?.items?.length || 0} adet partner bakiyesi</p>
                   </div>
                 </div>
-                <span className="font-bold font-amount text-twilight-900 text-lg">{formatMoney(totalPartnerBalance)}</span>
+                <span className="font-bold font-amount text-twilight-900 text-base sm:text-lg">{formatMoney(totalPartnerBalance)}</span>
               </div>
 
               {/* External */}
-              <div className="p-5 hover:bg-twilight-50/50 transition-colors flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                    <Globe className="h-5 w-5" />
+              <div className="p-4 sm:p-5 hover:bg-twilight-50/50 transition-colors flex items-center justify-between group">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                    <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-twilight-900 group-hover:text-indigo-700 transition-colors">Dış Hesap Borçları</p>
-                    <p className="text-xs text-twilight-500">{externalParties?.items?.length || 0} adet dış hesap</p>
+                    <p className="font-bold text-sm sm:text-base text-twilight-900 group-hover:text-indigo-700 transition-colors">Dış Hesap Borçları</p>
+                    <p className="text-[10px] sm:text-xs text-twilight-500">{externalParties?.items?.length || 0} adet dış hesap</p>
                   </div>
                 </div>
-                <span className="font-bold font-amount text-twilight-900 text-lg">{formatMoney(totalExternalBalance)}</span>
+                <span className="font-bold font-amount text-twilight-900 text-base sm:text-lg">{formatMoney(totalExternalBalance)}</span>
               </div>
             </div>
           </CardContent>
