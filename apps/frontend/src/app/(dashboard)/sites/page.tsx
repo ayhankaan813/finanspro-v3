@@ -380,78 +380,79 @@ function CreateSiteModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative bg-gradient-to-br from-twilight-900 via-twilight-800 to-twilight-900 px-6 py-6">
+          <div className="relative bg-gradient-to-br from-twilight-900 via-twilight-800 to-twilight-900 px-4 py-3.5 sm:px-6 sm:py-6">
             <button
-              onClick={onClose}
-              className="absolute right-4 top-4 rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="absolute right-2 top-2 sm:right-4 sm:top-4 z-50 rounded-full p-2 sm:p-2.5 text-white/70 hover:bg-white/20 hover:text-white active:bg-white/30 transition-colors cursor-pointer"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 sm:h-5 sm:w-5" />
             </button>
             <div className="relative">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
-                  <Building2 className="h-6 w-6 text-twilight-50" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-white/10 backdrop-blur-sm">
+                  <Building2 className="h-4 w-4 sm:h-6 sm:w-6 text-twilight-50" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Yeni Site Ekle</h2>
-                  <p className="text-sm text-twilight-200/70">Site bilgilerini ve komisyon oranlarını girin</p>
+                  <h2 className="text-base sm:text-xl font-bold text-white">Yeni Site Ekle</h2>
+                  <p className="text-xs sm:text-sm text-twilight-200/70">Site bilgilerini ve komisyon oranlarını girin</p>
                 </div>
               </div>
             </div>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <div className="space-y-5">
-                <div className="space-y-5">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-twilight-900 flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-twilight-400" />
+            <div className="p-4 sm:p-6 max-h-[65vh] overflow-y-auto">
+              <div className="space-y-3 sm:space-y-5">
+                <div className="space-y-3 sm:space-y-5">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm font-medium text-twilight-900 flex items-center gap-1.5 sm:gap-2">
+                      <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-twilight-400" />
                       Site Adı
                     </Label>
                     <Input
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Örn: Casino Royal"
-                      className={`h-12 rounded-xl border-twilight-100 focus:ring-2 focus:ring-twilight-400 focus:border-twilight-400 transition-all ${errors.name ? "border-red-300 focus:ring-red-200" : ""
+                      className={`h-9 sm:h-12 rounded-lg sm:rounded-xl border-twilight-100 text-sm focus:ring-2 focus:ring-twilight-400 focus:border-twilight-400 transition-all ${errors.name ? "border-red-300 focus:ring-red-200" : ""
                         }`}
                       autoFocus
                     />
-                    {errors.name && <p className="text-xs text-red-500 font-medium">{errors.name}</p>}
+                    {errors.name && <p className="text-[11px] sm:text-xs text-red-500 font-medium">{errors.name}</p>}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-twilight-900 flex items-center gap-2">
-                      <Hash className="h-4 w-4 text-twilight-400" />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm font-medium text-twilight-900 flex items-center gap-1.5 sm:gap-2">
+                      <Hash className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-twilight-400" />
                       Site Kodu
                     </Label>
                     <Input
                       value={formData.code}
                       onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                       placeholder="SITE-001"
-                      className="h-12 rounded-xl border-twilight-100 font-mono uppercase focus:ring-2 focus:ring-twilight-400 focus:border-twilight-400 transition-all"
+                      className="h-9 sm:h-12 rounded-lg sm:rounded-xl border-twilight-100 font-mono uppercase text-sm focus:ring-2 focus:ring-twilight-400 focus:border-twilight-400 transition-all"
                     />
-                    {errors.code && <p className="text-xs text-red-500 font-medium">{errors.code}</p>}
+                    {errors.code && <p className="text-[11px] sm:text-xs text-red-500 font-medium">{errors.code}</p>}
                   </div>
-                  <div className="flex items-start gap-3 rounded-xl bg-twilight-50 p-4 border border-twilight-100">
-                    <Sparkles className="h-5 w-5 text-twilight-600 shrink-0 mt-0.5" />
-                    <p className="text-sm text-twilight-700">
+                  <div className="flex items-start gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-twilight-50 p-2.5 sm:p-4 border border-twilight-100">
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-twilight-600 shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-twilight-700">
                       Site adını girdikten sonra kod otomatik oluşturulur. Benzersiz bir kod seçtiğinizden emin olun.
                     </p>
                   </div>
                 </div>
 
                 {/* Komisyon Oranları */}
-                <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/50 to-white p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Percent className="h-4 w-4 text-amber-600" />
-                    <h3 className="text-sm font-semibold text-twilight-900">Komisyon Oranları</h3>
+                <div className="rounded-lg sm:rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/50 to-white p-3 sm:p-5">
+                  <div className="flex items-center gap-2 mb-2.5 sm:mb-4">
+                    <Percent className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
+                    <h3 className="text-xs sm:text-sm font-semibold text-twilight-900">Komisyon Oranları</h3>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     {/* Deposit Rate */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium text-twilight-700 flex items-center gap-1.5">
-                        <ArrowDownToLine className="h-3.5 w-3.5 text-emerald-600" />
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] sm:text-xs font-medium text-twilight-700 flex items-center gap-1">
+                        <ArrowDownToLine className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-600" />
                         Yatırım (DEPOSIT)
                       </Label>
                       <div className="relative">
@@ -460,17 +461,17 @@ function CreateSiteModal({
                           step="0.01"
                           value={formData.deposit_commission_rate}
                           onChange={(e) => setFormData({ ...formData, deposit_commission_rate: e.target.value })}
-                          className="h-11 rounded-xl border-twilight-100 pr-8 text-center font-semibold"
+                          className="h-9 sm:h-11 rounded-lg sm:rounded-xl border-twilight-100 pr-7 text-center font-semibold text-sm"
                           placeholder="4.00"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-twilight-400 font-bold text-sm">%</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-twilight-400 font-bold text-xs sm:text-sm">%</span>
                       </div>
                     </div>
 
                     {/* Withdrawal Rate */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium text-twilight-700 flex items-center gap-1.5">
-                        <ArrowUpFromLine className="h-3.5 w-3.5 text-rose-600" />
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] sm:text-xs font-medium text-twilight-700 flex items-center gap-1">
+                        <ArrowUpFromLine className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-rose-600" />
                         Çekim (WITHDRAWAL)
                       </Label>
                       <div className="relative">
@@ -479,44 +480,44 @@ function CreateSiteModal({
                           step="0.01"
                           value={formData.withdrawal_commission_rate}
                           onChange={(e) => setFormData({ ...formData, withdrawal_commission_rate: e.target.value })}
-                          className="h-11 rounded-xl border-twilight-100 pr-8 text-center font-semibold"
+                          className="h-9 sm:h-11 rounded-lg sm:rounded-xl border-twilight-100 pr-7 text-center font-semibold text-sm"
                           placeholder="3.00"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-twilight-400 font-bold text-sm">%</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-twilight-400 font-bold text-xs sm:text-sm">%</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 border border-amber-100 mt-3">
-                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700">
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-2 sm:p-3 border border-amber-100 mt-2.5 sm:mt-3">
+                    <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] sm:text-xs text-amber-700">
                       Bu oranlar daha sonra değiştirilebilir. Komisyon ayarları site detay sayfasından güncellenebilir.
                     </p>
                   </div>
                 </div>
 
                 {/* Açıklama */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-twilight-900 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-twilight-400" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs sm:text-sm font-medium text-twilight-900 flex items-center gap-1.5 sm:gap-2">
+                    <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-twilight-400" />
                     Açıklama <span className="text-twilight-300 font-normal">(opsiyonel)</span>
                   </Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Site hakkında notlar..."
-                    className="min-h-[70px] rounded-xl border-twilight-100 focus:ring-2 focus:ring-twilight-400 transition-all"
+                    className="min-h-[60px] sm:min-h-[70px] rounded-lg sm:rounded-xl border-twilight-100 text-sm focus:ring-2 focus:ring-twilight-400 transition-all"
                   />
                 </div>
               </div>
             </div>
 
             {/* Footer Buttons */}
-            <div className="border-t border-twilight-100 bg-twilight-50/30 px-6 py-4 flex gap-3">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-11 rounded-xl border-twilight-200">
+            <div className="border-t border-twilight-100 bg-twilight-50/30 px-4 py-3 sm:px-6 sm:py-4 flex gap-2.5 sm:gap-3">
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-9 sm:h-11 rounded-lg sm:rounded-xl border-twilight-200 text-sm">
                 İptal
               </Button>
-              <Button type="submit" disabled={isPending} className="flex-1 h-11 rounded-xl bg-twilight-600 hover:bg-twilight-700 text-white shadow-lg">
+              <Button type="submit" disabled={isPending} className="flex-1 h-9 sm:h-11 rounded-lg sm:rounded-xl bg-twilight-600 hover:bg-twilight-700 text-white shadow-lg text-sm">
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Site Oluştur"}
               </Button>
             </div>
@@ -672,7 +673,7 @@ export default function SitesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [commissionSite, setCommissionSite] = useState<Site | null>(null);
   const [orderedSites, setOrderedSites] = useState<Site[]>([]);
-  const [date, setDate] = useState<DateRange | undefined>(DATE_PRESETS[0].getValue());
+  const [date, setDate] = useState<DateRange | undefined>(DATE_PRESETS[4].getValue());
   const [editSite, setEditSite] = useState<Site | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteSiteTarget, setDeleteSiteTarget] = useState<Site | null>(null);
@@ -858,17 +859,16 @@ export default function SitesPage() {
               id="date"
               variant={"outline"}
               className={cn(
-                "w-full md:w-[260px] justify-start text-left font-medium h-9 rounded-xl border-dashed border-twilight-200 text-twilight-600 bg-white hover:bg-twilight-50 transition-colors",
+                "w-full md:w-[240px] justify-start text-left font-medium h-8 sm:h-9 rounded-xl border-dashed border-twilight-200 text-twilight-600 bg-white hover:bg-twilight-50 transition-colors text-xs sm:text-sm",
                 !date && "text-muted-foreground"
               )}
             >
-              <Calendar className="mr-2 h-4 w-4 text-twilight-400" />
+              <Calendar className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-twilight-400 shrink-0" />
               {date?.from ? (
                 date.to ? (
-                  <>
-                    {format(date.from, "d MMM yyyy", { locale: tr })} -{" "}
-                    {format(date.to, "d MMM yyyy", { locale: tr })}
-                  </>
+                  <span className="truncate">
+                    {format(date.from, "d MMM", { locale: tr })} - {format(date.to, "d MMM yyyy", { locale: tr })}
+                  </span>
                 ) : (
                   format(date.from, "d MMM yyyy", { locale: tr })
                 )
@@ -877,10 +877,10 @@ export default function SitesPage() {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <div className="flex flex-col sm:flex-row">
-              <div className="flex flex-col gap-1 p-3 border-b sm:border-b-0 sm:border-r border-twilight-100 bg-twilight-50/50 min-w-[160px]">
-                <div className="text-[10px] font-bold text-twilight-400 mb-2 px-2 uppercase tracking-wider">Hızlı Seçim</div>
+          <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
+            <div className="flex">
+              {/* Presets */}
+              <div className="flex flex-col gap-0.5 p-2 border-r border-twilight-100 bg-twilight-50/50">
                 {DATE_PRESETS.map((preset) => (
                   <Button
                     key={preset.label}
@@ -890,24 +890,22 @@ export default function SitesPage() {
                       setDate(preset.getValue());
                       setIsCalendarOpen(false);
                     }}
-                    className="justify-start text-left font-medium text-xs h-8 px-2 hover:bg-white/80 hover:text-twilight-900 border border-transparent hover:border-twilight-100"
+                    className="justify-start text-left font-medium text-[11px] h-7 px-2 hover:bg-white/80 hover:text-twilight-900 rounded-md whitespace-nowrap"
                   >
                     {preset.label}
                   </Button>
                 ))}
               </div>
-              <div className="p-0">
-                <CalendarComponent
-                  initialFocus
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={setDate}
-                  numberOfMonths={1}
-                  locale={tr}
-                  className="p-3"
-                />
-              </div>
+              {/* Calendar */}
+              <CalendarComponent
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={setDate}
+                numberOfMonths={1}
+                locale={tr}
+              />
             </div>
           </PopoverContent>
         </Popover>

@@ -127,7 +127,7 @@ function SearchableSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between h-11 bg-white border-twilight-200 hover:bg-twilight-50 text-twilight-700 font-normal"
+                    className="w-full justify-between h-9 sm:h-11 bg-white border-twilight-200 hover:bg-twilight-50 text-twilight-700 font-normal text-xs sm:text-sm"
                 >
                     <div className="flex items-center gap-2 truncate">
                         {Icon && <Icon className="h-4 w-4 text-twilight-400 shrink-0" />}
@@ -219,181 +219,168 @@ export function TransactionFilters({ isOpen, onClose, filters, setFilters, data 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-full sm:w-[400px] md:w-[450px] overflow-y-auto p-0 flex flex-col bg-white">
-                <SheetHeader className="px-6 py-5 border-b border-twilight-100 bg-twilight-50/50">
+                <SheetHeader className="px-4 py-3 sm:px-6 sm:py-5 border-b border-twilight-100 bg-twilight-50/50">
                     <div className="flex items-center justify-between">
-                        <SheetTitle className="text-lg font-bold text-twilight-900 flex items-center gap-2">
-                            <Filter className="h-5 w-5 text-twilight-500" />
+                        <SheetTitle className="text-base sm:text-lg font-bold text-twilight-900 flex items-center gap-2">
+                            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-twilight-500" />
                             Gelişmiş Filtreleme
                         </SheetTitle>
                         {activeCount > 0 && (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-0">
+                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-0 text-[10px] sm:text-xs">
                                 {activeCount} Aktif
                             </Badge>
                         )}
                     </div>
-                    <SheetDescription className="text-twilight-500">
+                    <SheetDescription className="text-twilight-500 text-xs sm:text-sm">
                         İşlemleri detaylı filtreleyerek aradığınızı bulun.
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="flex-1 p-6 space-y-8">
-                    {/* Transaction Type Section */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold text-twilight-500 uppercase tracking-wider">İşlem Türü</Label>
-                        <SearchableSelect
-                            value={filters.type}
-                            onChange={(v) => setFilters({ ...filters, type: v })}
-                            options={[
-                                // Ana İşlemler
-                                { id: "DEPOSIT", name: "Yatırım", group: "Ana İşlemler" },
-                                { id: "WITHDRAWAL", name: "Çekim", group: "Ana İşlemler" },
-                                { id: "DELIVERY", name: "Teslimat", group: "Ana İşlemler" },
-                                { id: "TOP_UP", name: "Takviye", group: "Ana İşlemler" },
-                                // Ödeme & Borç
-                                { id: "PAYMENT", name: "Genel Ödeme", group: "Ödeme & Borç" },
-                                { id: "PARTNER_PAYMENT", name: "Partner Ödemesi", group: "Ödeme & Borç" },
-                                { id: "EXTERNAL_DEBT_IN", name: "Dış Borç Al (Borç)", group: "Ödeme & Borç" },
-                                { id: "EXTERNAL_DEBT_OUT", name: "Dış Borç Ver (Alacak)", group: "Ödeme & Borç" },
-                                { id: "EXTERNAL_PAYMENT", name: "Borç Kapama / Dış Ödeme", group: "Ödeme & Borç" },
-                                // Organizasyon
-                                { id: "ORG_EXPENSE", name: "Organizasyon Gideri", group: "Organizasyon" },
-                                { id: "ORG_INCOME", name: "Organizasyon Geliri", group: "Organizasyon" },
-                                { id: "ORG_WITHDRAW", name: "Hak Ediş Çekimi", group: "Organizasyon" },
-                                { id: "FINANCIER_TRANSFER", name: "Kasa Transferi", group: "Organizasyon" },
-                            ]}
-                            placeholder="İşlem Türü Seçiniz"
-                            icon={ArrowRightLeft}
-                        />
-                    </div>
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold text-twilight-500 uppercase tracking-wider">İşlem Durumu</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                { value: "COMPLETED", label: "Tamamlandı", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-                                { value: "PENDING", label: "Beklemede", color: "bg-amber-100 text-amber-700 border-amber-200" },
-                                { value: "FAILED", label: "Başarısız", color: "bg-gray-100 text-gray-700 border-gray-200" },
-                                { value: "REVERSED", label: "İptal Edildi", color: "bg-rose-100 text-rose-700 border-rose-200" },
-                            ].map((status) => (
-                                <button
-                                    key={status.value}
-                                    onClick={() => setFilters({ ...filters, status: filters.status === status.value ? "" : status.value })}
-                                    className={cn(
-                                        "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
-                                        filters.status === status.value
-                                            ? "bg-twilight-900 text-white border-twilight-900 shadow-md transform scale-105"
-                                            : "bg-white border-twilight-200 text-twilight-600 hover:border-twilight-300 hover:bg-twilight-50"
-                                    )}
-                                >
-                                    {status.label}
-                                </button>
-                            ))}
+                <div className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-8">
+                    {/* Transaction Type + Status - side by side on mobile */}
+                    <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-8">
+                        <div className="space-y-1.5 sm:space-y-3">
+                            <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">İşlem Türü</Label>
+                            <SearchableSelect
+                                value={filters.type}
+                                onChange={(v) => setFilters({ ...filters, type: v })}
+                                options={[
+                                    { id: "DEPOSIT", name: "Yatırım", group: "Ana İşlemler" },
+                                    { id: "WITHDRAWAL", name: "Çekim", group: "Ana İşlemler" },
+                                    { id: "DELIVERY", name: "Teslimat", group: "Ana İşlemler" },
+                                    { id: "TOP_UP", name: "Takviye", group: "Ana İşlemler" },
+                                    { id: "PAYMENT", name: "Genel Ödeme", group: "Ödeme & Borç" },
+                                    { id: "PARTNER_PAYMENT", name: "Partner Ödemesi", group: "Ödeme & Borç" },
+                                    { id: "EXTERNAL_DEBT_IN", name: "Dış Borç Al (Borç)", group: "Ödeme & Borç" },
+                                    { id: "EXTERNAL_DEBT_OUT", name: "Dış Borç Ver (Alacak)", group: "Ödeme & Borç" },
+                                    { id: "EXTERNAL_PAYMENT", name: "Borç Kapama / Dış Ödeme", group: "Ödeme & Borç" },
+                                    { id: "ORG_EXPENSE", name: "Organizasyon Gideri", group: "Organizasyon" },
+                                    { id: "ORG_INCOME", name: "Organizasyon Geliri", group: "Organizasyon" },
+                                    { id: "ORG_WITHDRAW", name: "Hak Ediş Çekimi", group: "Organizasyon" },
+                                    { id: "FINANCIER_TRANSFER", name: "Kasa Transferi", group: "Organizasyon" },
+                                ]}
+                                placeholder="İşlem Türü Seçiniz"
+                                icon={ArrowRightLeft}
+                            />
+                        </div>
+                        <div className="space-y-1.5 sm:space-y-3">
+                            <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Durum</Label>
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                {[
+                                    { value: "COMPLETED", label: "Tamamlandı" },
+                                    { value: "PENDING", label: "Beklemede" },
+                                    { value: "FAILED", label: "Başarısız" },
+                                    { value: "REVERSED", label: "İptal" },
+                                ].map((status) => (
+                                    <button
+                                        key={status.value}
+                                        onClick={() => setFilters({ ...filters, status: filters.status === status.value ? "" : status.value })}
+                                        className={cn(
+                                            "px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium border transition-all",
+                                            filters.status === status.value
+                                                ? "bg-twilight-900 text-white border-twilight-900 shadow-md"
+                                                : "bg-white border-twilight-200 text-twilight-600 hover:border-twilight-300 hover:bg-twilight-50"
+                                        )}
+                                    >
+                                        {status.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Date Range Section */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tarih Aralığı</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] text-twilight-400">Başlangıç</Label>
-                                <div className="relative">
-                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-twilight-400" />
-                                    <Input
-                                        type="date"
-                                        value={filters.start_date}
-                                        onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-                                        className="pl-9 h-10 text-xs bg-white border-twilight-200"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] text-twilight-400">Bitiş</Label>
-                                <div className="relative">
-                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-twilight-400" />
-                                    <Input
-                                        type="date"
-                                        value={filters.end_date}
-                                        onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-                                        className="pl-9 h-10 text-xs bg-white border-twilight-200"
-                                    />
-                                </div>
-                            </div>
+                    {/* Date Range + Amount Range - compact */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tarih Başlangıç</Label>
+                            <Input
+                                type="date"
+                                value={filters.start_date}
+                                onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+                                className="h-9 sm:h-10 text-xs bg-white border-twilight-200"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tarih Bitiş</Label>
+                            <Input
+                                type="date"
+                                value={filters.end_date}
+                                onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                                className="h-9 sm:h-10 text-xs bg-white border-twilight-200"
+                            />
                         </div>
                     </div>
 
                     {/* Amount Range */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tutar Aralığı</Label>
-                        <div className="flex items-center gap-3">
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-twilight-400 font-bold">₺</span>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Min Tutar</Label>
+                            <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-twilight-400 font-bold text-xs">₺</span>
                                 <Input
                                     type="number"
                                     placeholder="Min"
                                     value={filters.min_amount}
                                     onChange={(e) => setFilters({ ...filters, min_amount: e.target.value })}
-                                    className="pl-7 h-10 text-xs bg-white border-twilight-200"
+                                    className="pl-6 h-9 sm:h-10 text-xs bg-white border-twilight-200"
                                 />
                             </div>
-                            <span className="text-twilight-400">-</span>
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-twilight-400 font-bold">₺</span>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">Max Tutar</Label>
+                            <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-twilight-400 font-bold text-xs">₺</span>
                                 <Input
                                     type="number"
                                     placeholder="Max"
                                     value={filters.max_amount}
                                     onChange={(e) => setFilters({ ...filters, max_amount: e.target.value })}
-                                    className="pl-7 h-10 text-xs bg-white border-twilight-200"
+                                    className="pl-6 h-9 sm:h-10 text-xs bg-white border-twilight-200"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Site & Partner & Financier */}
-                    <div className="space-y-4 pt-4 border-t border-twilight-100">
-                        <div className="space-y-3">
-                            <Label className="text-xs font-semibold text-twilight-500 uppercase tracking-wider">İlişkili Kayıtlar</Label>
-
-                            <div className="space-y-4">
-                                <SearchableSelect
-                                    value={filters.site_id}
-                                    onChange={(v) => setFilters({ ...filters, site_id: v })}
-                                    options={data.sites}
-                                    placeholder="Site Seçiniz"
-                                    icon={Building2}
-                                />
-
-                                <SearchableSelect
-                                    value={filters.partner_id}
-                                    onChange={(v) => setFilters({ ...filters, partner_id: v })}
-                                    options={data.partners}
-                                    placeholder="Partner Seçiniz"
-                                    icon={Users}
-                                />
-
-                                <SearchableSelect
-                                    value={filters.financier_id}
-                                    onChange={(v) => setFilters({ ...filters, financier_id: v })}
-                                    options={data.financiers}
-                                    placeholder="Finansör (Kasa) Seçiniz"
-                                    icon={Wallet}
-                                />
-                            </div>
+                    <div className="space-y-2 sm:space-y-4 pt-3 sm:pt-4 border-t border-twilight-100">
+                        <Label className="text-[10px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider">İlişkili Kayıtlar</Label>
+                        <div className="space-y-2 sm:space-y-4">
+                            <SearchableSelect
+                                value={filters.site_id}
+                                onChange={(v) => setFilters({ ...filters, site_id: v })}
+                                options={data.sites}
+                                placeholder="Site Seçiniz"
+                                icon={Building2}
+                            />
+                            <SearchableSelect
+                                value={filters.partner_id}
+                                onChange={(v) => setFilters({ ...filters, partner_id: v })}
+                                options={data.partners}
+                                placeholder="Partner Seçiniz"
+                                icon={Users}
+                            />
+                            <SearchableSelect
+                                value={filters.financier_id}
+                                onChange={(v) => setFilters({ ...filters, financier_id: v })}
+                                options={data.financiers}
+                                placeholder="Finansör (Kasa) Seçiniz"
+                                icon={Wallet}
+                            />
                         </div>
                     </div>
                 </div>
 
-                <SheetFooter className="p-6 border-t border-twilight-100 bg-twilight-50/30 gap-3 sm:gap-3">
+                <SheetFooter className="p-3 sm:p-6 border-t border-twilight-100 bg-twilight-50/30 gap-2 sm:gap-3">
                     <Button
                         variant="outline"
                         onClick={handleClear}
-                        className="flex-1 h-12 rounded-xl border-twilight-200 hover:bg-white hover:text-rose-600 hover:border-rose-200 transition-colors"
+                        className="flex-1 h-10 sm:h-12 rounded-xl border-twilight-200 hover:bg-white hover:text-rose-600 hover:border-rose-200 transition-colors text-sm"
                     >
                         Temizle
                     </Button>
                     <SheetClose asChild>
-                        <Button className="flex-[2] h-12 rounded-xl bg-twilight-900 hover:bg-twilight-800 text-white shadow-lg shadow-twilight-900/10">
-                            Uygula ve Göster
+                        <Button className="flex-[2] h-10 sm:h-12 rounded-xl bg-twilight-900 hover:bg-twilight-800 text-white shadow-lg shadow-twilight-900/10 text-sm">
+                            Uygula
                         </Button>
                     </SheetClose>
                 </SheetFooter>

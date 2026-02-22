@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatMoney, cn, formatTurkeyDate } from "@/lib/utils";
+import { formatMoney, cn, formatTurkeyDate, formatTurkeyDateTime } from "@/lib/utils";
 import {
     useOrganizationStats,
     useOrganizationTransactions,
@@ -15,7 +15,6 @@ import {
     Wallet,
     TrendingUp,
     TrendingDown,
-    Activity,
     Building2,
     Calendar,
     BarChart3,
@@ -23,7 +22,6 @@ import {
     ArrowDownLeft,
     PieChart,
     ChevronRight,
-    Search,
     FileText,
     Users
 } from "lucide-react";
@@ -49,13 +47,10 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Rectangle,
     PieChart as RePieChart,
     Pie,
     Cell,
-    Legend,
-    AreaChart,
-    Area
+    Legend
 } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +76,7 @@ const COLORS = [
 export default function OrganizationPage() {
     // State
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState<string>("all");
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().getMonth().toString());
 
     // Queries
     const monthParam = selectedMonth === "all" ? null : parseInt(selectedMonth) + 1;
@@ -89,7 +84,7 @@ export default function OrganizationPage() {
     const { data: stats, isLoading: statsLoading } = useOrganizationStats(selectedYear, monthParam);
     const { data: account, isLoading: accountLoading } = useOrganizationAccount();
     const { data: analytics, isLoading: analyticsLoading } = useOrgAnalytics(selectedYear, monthParam);
-    const { data: transactions, isLoading: txLoading } = useOrganizationTransactions({ limit: 5 });
+    const { data: transactions, isLoading: txLoading } = useOrganizationTransactions({ limit: 5, year: selectedYear, month: monthParam });
 
     // Loading State
     const isLoading = statsLoading || accountLoading || analyticsLoading || txLoading;
@@ -142,9 +137,9 @@ export default function OrganizationPage() {
     const CustomTooltip = ({ active, payload, label, suffix = "" }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="rounded-xl border border-slate-100 bg-white/95 p-4 shadow-xl backdrop-blur-md">
-                    <p className="mb-1 text-sm font-medium text-slate-500">{label}</p>
-                    <p className="font-mono text-lg font-bold text-[#0F172A]">
+                <div className="rounded-lg sm:rounded-xl border border-slate-100 bg-white/95 p-2.5 sm:p-4 shadow-xl backdrop-blur-md">
+                    <p className="mb-0.5 sm:mb-1 text-xs sm:text-sm font-medium text-slate-500">{label}</p>
+                    <p className="font-mono text-sm sm:text-lg font-bold text-[#0F172A]">
                         {payload[0].value.toLocaleString('tr-TR')} {suffix}
                     </p>
                 </div>
@@ -154,66 +149,65 @@ export default function OrganizationPage() {
     };
 
     const EmptyState = ({ icon: Icon, title, height = "h-full" }: { icon: any, title: string, height?: string }) => (
-        <div className={cn("flex flex-col items-center justify-center gap-3 text-slate-400 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-100 m-4", height)}>
-            <div className="p-3 bg-white rounded-full shadow-sm">
-                <Icon className="h-6 w-6 opacity-50" />
+        <div className={cn("flex flex-col items-center justify-center gap-2 sm:gap-3 text-slate-400 bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-100 m-2 sm:m-4", height)}>
+            <div className="p-2 sm:p-3 bg-white rounded-full shadow-sm">
+                <Icon className="h-5 w-5 sm:h-6 sm:w-6 opacity-50" />
             </div>
-            <p className="text-sm font-medium">{title}</p>
+            <p className="text-xs sm:text-sm font-medium">{title}</p>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] pb-20 p-6 sm:p-8 space-y-8 font-sans">
+        <div className="min-h-screen bg-[#F8FAFC] pb-20 p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8 font-sans">
             {/* Background Mesh Gradient */}
             <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/50 via-transparent to-transparent" />
 
             {/* Header */}
-            <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10">
-                <div className="space-y-1">
-                    <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-2 sm:gap-3">
-                        <div className="p-1.5 sm:p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-lg sm:rounded-xl text-white shadow-lg shadow-blue-900/10">
-                            <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div className="relative z-10">
+                <div className="flex items-center justify-between gap-2">
+                    <h1 className="text-base sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-1.5 sm:gap-3">
+                        <div className="p-1 sm:p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-lg sm:rounded-xl text-white shadow-lg shadow-blue-900/10">
+                            <Building2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
                         </div>
-                        Organizasyon Paneli
+                        <span className="sm:hidden">Organizasyon</span>
+                        <span className="hidden sm:inline">Organizasyon Paneli</span>
                     </h1>
-                    <p className="text-slate-500 text-xs sm:text-sm ml-10 sm:ml-14">
+                    <Link href="/organization/personnel">
+                        <Button variant="outline" size="sm" className="gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-twilight-200 text-twilight-700 hover:bg-twilight-50 h-7 sm:h-9 text-[11px] sm:text-sm px-2 sm:px-3">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                            Personel
+                        </Button>
+                    </Link>
+                </div>
+                <div className="flex items-center justify-between mt-2 sm:mt-1">
+                    <p className="text-slate-500 text-[11px] sm:text-xs lg:text-sm hidden sm:block ml-12 lg:ml-14">
                         Tüm finansal operasyonların merkezi yönetim paneli.
                     </p>
-                </div>
-
-                {/* Actions & Filters */}
-                <div className="flex items-center gap-3">
-                <Link href="/organization/personnel">
-                    <Button variant="outline" className="gap-2 rounded-xl border-twilight-200 text-twilight-700 hover:bg-twilight-50">
-                        <Users className="h-4 w-4" />
-                        <span className="hidden sm:inline">Personeller</span>
-                    </Button>
-                </Link>
-                <div className="flex items-center gap-2 p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
-                    <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
-                        <SelectTrigger className="h-9 w-[100px] border-0 bg-transparent focus:ring-0 font-medium">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <div className="h-4 w-px bg-slate-200" />
-                    <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                        <SelectTrigger className="h-9 w-[130px] border-0 bg-transparent focus:ring-0 font-medium text-slate-600">
-                            <SelectValue placeholder="Ay" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Tüm Yıl</SelectItem>
-                            {MONTHS.map((m, i) => <SelectItem key={m} value={i.toString()}>{m}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="flex items-center gap-1 p-0.5 sm:p-1 bg-white rounded-lg sm:rounded-2xl border border-slate-200 shadow-sm">
+                        <Select value={selectedYear.toString()} onValueChange={handleYearChange}>
+                            <SelectTrigger className="h-7 sm:h-9 w-[70px] sm:w-[100px] border-0 bg-transparent focus:ring-0 font-medium text-xs sm:text-sm">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <div className="h-3 sm:h-4 w-px bg-slate-200" />
+                        <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                            <SelectTrigger className="h-7 sm:h-9 w-[80px] sm:w-[130px] border-0 bg-transparent focus:ring-0 font-medium text-slate-600 text-xs sm:text-sm">
+                                <SelectValue placeholder="Ay" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tüm Yıl</SelectItem>
+                                {MONTHS.map((m, i) => <SelectItem key={m} value={i.toString()}>{m}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="relative grid gap-6 md:grid-cols-2 lg:grid-cols-4 z-10">
+            <div className="relative grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-6 lg:grid-cols-4 z-10">
                 <StatsCard
                     title="Mevcut Kasa"
                     value={account ? formatMoney(account.balance) : "₺0,00"}
@@ -242,86 +236,108 @@ export default function OrganizationPage() {
                     title="Net Kar/Zarar"
                     value={stats ? formatMoney(stats.netProfit) : "₺0,00"}
                     subtext="Bu dönem"
-                    icon={Activity}
+                    icon={BarChart3}
                     trend={stats && parseFloat(stats.netProfit) >= 0 ? "up" : "down"}
                     colorClass="bg-violet-500 text-violet-500"
                 />
             </div>
 
             {/* Main Content */}
-            <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-8 z-10">
+            <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 z-10">
 
                 {/* Left Column (Charts) */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
 
                     {/* Profit Chart */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[350px] sm:h-[450px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-[#2c7da0]" />
-                                Site Karlılık Analizi
-                            </CardTitle>
-                            <CardDescription>Sitelerden elde edilen net kar sıralaması</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 min-h-0">
-                            {isLoading ? (
-                                <div className="h-full w-full flex items-center justify-center">
-                                    <Skeleton className="h-[300px] w-full rounded-xl" />
-                                </div>
-                            ) : (!analytics?.profitBySite?.length) ? (
-                                <EmptyState icon={BarChart3} title="Görüntülenecek kar verisi yok" />
-                            ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={analytics.profitBySite}
-                                        layout="vertical"
-                                        margin={{ top: 20, right: 30, left: 40, bottom: 5 }}
-                                    >
-                                        <defs>
-                                            <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stopColor="#0EA5E9" stopOpacity={0.8} />
-                                                <stop offset="100%" stopColor="#6366F1" stopOpacity={0.8} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
-                                        <XAxis type="number" hide />
-                                        <YAxis
-                                            dataKey="name"
-                                            type="category"
-                                            tick={{ fontSize: 13, fill: '#64748B', fontWeight: 500 }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                            width={100}
-                                        />
-                                        <Tooltip cursor={{ fill: '#F8FAFC' }} content={<CustomTooltip suffix="₺" />} />
-                                        <Bar
-                                            dataKey="amount"
-                                            fill="url(#barGradient)"
-                                            radius={[0, 8, 8, 0]}
-                                            barSize={32}
-                                            activeBar={{ fill: '#4F46E5' }}
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {(() => {
+                        const topSites = (analytics?.profitBySite || []).slice(0, 5);
+                        const barH = Math.max(160, topSites.length * 44);
+                        return (
+                            <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 flex flex-col">
+                                <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+                                    <Link href="/organization/site-profitability" className="group">
+                                        <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-[#013a63] flex items-center gap-2 group-hover:text-[#2c7da0] transition-colors cursor-pointer">
+                                            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-[#2c7da0]" />
+                                            Site Karlılık Analizi
+                                            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </CardTitle>
+                                    </Link>
+                                    <CardDescription className="text-[11px] sm:text-sm">İlk 5 sitenin net kar sıralaması</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-1 min-h-0">
+                                    {isLoading ? (
+                                        <div className="h-[200px] w-full flex items-center justify-center">
+                                            <Skeleton className="h-full w-full rounded-xl" />
+                                        </div>
+                                    ) : (!topSites.length) ? (
+                                        <div className="h-[200px]">
+                                            <EmptyState icon={BarChart3} title="Görüntülenecek kar verisi yok" />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ height: barH }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart
+                                                        data={topSites}
+                                                        layout="vertical"
+                                                        margin={{ top: 5, right: 15, left: 0, bottom: 5 }}
+                                                    >
+                                                        <defs>
+                                                            <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
+                                                                <stop offset="0%" stopColor="#0EA5E9" stopOpacity={0.8} />
+                                                                <stop offset="100%" stopColor="#6366F1" stopOpacity={0.8} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
+                                                        <XAxis type="number" hide />
+                                                        <YAxis
+                                                            dataKey="name"
+                                                            type="category"
+                                                            tick={{ fontSize: 10, fill: '#64748B', fontWeight: 500 }}
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                            width={50}
+                                                            interval={0}
+                                                        />
+                                                        <Tooltip cursor={{ fill: '#F8FAFC' }} content={<CustomTooltip suffix="₺" />} />
+                                                        <Bar
+                                                            dataKey="amount"
+                                                            fill="url(#barGradient)"
+                                                            radius={[0, 8, 8, 0]}
+                                                            barSize={28}
+                                                            activeBar={{ fill: '#4F46E5' }}
+                                                        />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <Link
+                                                href="/organization/site-profitability"
+                                                className="w-full flex items-center justify-center gap-1 pt-2 pb-1 text-xs font-medium text-[#2c7da0] hover:text-[#013a63] transition-colors"
+                                            >
+                                                Tüm Siteleri Gör <ChevronRight className="h-3.5 w-3.5" />
+                                            </Link>
+                                        </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        );
+                    })()}
 
                     {/* Operational Density Chart */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[300px] sm:h-[400px] flex flex-col">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
-                                <Calendar className="h-5 w-5 text-[#2c7da0]" />
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[240px] sm:h-[300px] lg:h-[400px] flex flex-col">
+                        <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+                            <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-[#013a63] flex items-center gap-2">
+                                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-[#2c7da0]" />
                                 Operasyonel Yoğunluk
                             </CardTitle>
-                            <CardDescription>Haftanın günlerine göre işlem hacmi</CardDescription>
+                            <CardDescription className="text-[11px] sm:text-sm">Haftanın günlerine göre işlem hacmi</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 min-h-0">
                             {!analytics?.busyDays?.length && !isLoading ? (
                                 <EmptyState icon={Calendar} title="İşlem verisi bulunamadı" />
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={analytics?.busyDays ?? []}>
+                                    <BarChart data={analytics?.busyDays ?? []} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="densityGradient" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="0%" stopColor="#818CF8" stopOpacity={0.8} />
@@ -331,17 +347,22 @@ export default function OrganizationPage() {
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                         <XAxis
                                             dataKey="day"
-                                            tick={{ fontSize: 12, fill: '#64748B' }}
+                                            tick={{ fontSize: 9, fill: '#64748B' }}
                                             axisLine={false}
                                             tickLine={false}
-                                            dy={10}
+                                            dy={5}
+                                            interval={0}
+                                            tickFormatter={(v: string) => {
+                                                const map: Record<string, string> = { Pazartesi: "Pzt", Salı: "Sal", Çarşamba: "Çar", Perşembe: "Per", Cuma: "Cum", Cumartesi: "Cmt", Pazar: "Paz" };
+                                                return map[v] || v;
+                                            }}
                                         />
                                         <Tooltip cursor={{ fill: '#F8FAFC' }} content={<CustomTooltip suffix="İşlem" />} />
                                         <Bar
                                             dataKey="count"
                                             fill="url(#densityGradient)"
                                             radius={[8, 8, 0, 0]}
-                                            barSize={40}
+                                            maxBarSize={40}
                                         />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -352,16 +373,16 @@ export default function OrganizationPage() {
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-8">
+                <div className="space-y-4 sm:space-y-6 lg:space-y-8">
 
                     {/* Expense Chart */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[350px] sm:h-[450px] flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="text-base font-semibold text-[#013a63] flex items-center gap-2">
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 h-[280px] sm:h-[350px] lg:h-[450px] flex flex-col">
+                        <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6">
+                            <CardTitle className="text-sm sm:text-base font-semibold text-[#013a63] flex items-center gap-2">
                                 <PieChart className="h-4 w-4 text-[#2c7da0]" />
                                 Gider Dağılımı
                             </CardTitle>
-                            <CardDescription>Kategori bazlı harcama dağılımı</CardDescription>
+                            <CardDescription className="text-[11px] sm:text-sm">Kategori bazlı harcama dağılımı</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 min-h-0">
                             {isLoading ? (
@@ -374,9 +395,9 @@ export default function OrganizationPage() {
                                         <Pie
                                             data={stats.breakdown.map((b: any) => ({ ...b, amount: parseFloat(b.amount) }))}
                                             cx="50%"
-                                            cy="50%"
-                                            innerRadius={70}
-                                            outerRadius={95}
+                                            cy="45%"
+                                            innerRadius="45%"
+                                            outerRadius="65%"
                                             paddingAngle={4}
                                             dataKey="amount"
                                             nameKey="categoryName"
@@ -387,12 +408,24 @@ export default function OrganizationPage() {
                                                 <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip content={({ active, payload }: any) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="rounded-lg sm:rounded-xl border border-slate-100 bg-white/95 p-2.5 sm:p-4 shadow-xl backdrop-blur-md">
+                                                        <p className="mb-0.5 sm:mb-1 text-xs sm:text-sm font-medium text-slate-500">{payload[0].name}</p>
+                                                        <p className="font-mono text-sm sm:text-lg font-bold text-[#0F172A]">
+                                                            {payload[0].value.toLocaleString('tr-TR')} ₺
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }} />
                                         <Legend
                                             verticalAlign="bottom"
                                             iconType="circle"
-                                            iconSize={8}
-                                            wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }}
+                                            iconSize={6}
+                                            wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
                                         />
                                     </RePieChart>
                                 </ResponsiveContainer>
@@ -401,9 +434,9 @@ export default function OrganizationPage() {
                     </Card>
 
                     {/* Recent Transactions */}
-                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 overflow-hidden h-[350px] sm:h-[400px] flex flex-col">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 bg-slate-50/50 pb-4 shrink-0">
-                            <CardTitle className="text-base font-semibold text-[#013a63]">Son İşlemler</CardTitle>
+                    <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100 overflow-hidden h-[300px] sm:h-[350px] lg:h-[400px] flex flex-col">
+                        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 bg-slate-50/50 pb-3 sm:pb-4 px-3 sm:px-6 pt-3 sm:pt-6 shrink-0">
+                            <CardTitle className="text-sm sm:text-base font-semibold text-[#013a63]">Son İşlemler</CardTitle>
                             <Link href="/transactions?scope=organization">
                                 <Button variant="ghost" size="sm" className="text-xs h-8 hover:bg-white hover:text-indigo-600">
                                     Tümü <ChevronRight className="ml-1 h-3 w-3" />
@@ -445,7 +478,8 @@ export default function OrganizationPage() {
                                                             {typeof tx.category === 'object' && tx.category !== null ? tx.category.name : (tx.category || "Genel")}
                                                         </Badge>
                                                         <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                                                            {formatTurkeyDate(tx.date, "d MMMM")}
+                                                            <span className="sm:hidden">{formatTurkeyDate(tx.date, "d MMM HH:mm")}</span>
+                                                            <span className="hidden sm:inline">{formatTurkeyDate(tx.date, "d MMMM HH:mm")}</span>
                                                         </p>
                                                     </div>
                                                 </div>
@@ -466,43 +500,59 @@ export default function OrganizationPage() {
                 </div>
             </div>
 
-            {/* Monthly Trend Chart (Restored) */}
-            <Card className="border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100">
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold text-[#013a63] flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-[#2c7da0]" />
-                        Aylık Finansal Trend
+            {/* Organization Profit Chart */}
+            <Card className="relative border-0 shadow-lg shadow-slate-200/40 ring-1 ring-slate-100">
+                <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6">
+                    <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-[#013a63] flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
+                        Organizasyon Kâr Grafiği
                     </CardTitle>
-                    <CardDescription>Yıllık gelir ve gider dengesi</CardDescription>
+                    <CardDescription className="text-[11px] sm:text-sm">Aylık net kâr/zarar dağılımı ({selectedYear})</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[300px]">
+                <CardContent className="h-[220px] sm:h-[280px] lg:h-[300px] px-1 sm:px-6">
                     {isLoading ? (
                         <div className="h-full w-full flex items-center justify-center">
                             <Skeleton className="h-[250px] w-full rounded-xl" />
                         </div>
                     ) : (!analytics?.monthlyTrend?.length) ? (
-                        <EmptyState icon={Activity} title="Trend verisi oluşmadı" />
+                        <EmptyState icon={TrendingUp} title="Kâr verisi oluşmadı" />
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={analytics.monthlyTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <BarChart
+                                data={analytics.monthlyTrend.map((m: any) => ({
+                                    month: m.month,
+                                    profit: parseFloat((m.income - m.expense).toFixed(2)),
+                                }))}
+                                margin={{ top: 10, right: 5, left: -15, bottom: 0 }}
+                            >
                                 <defs>
-                                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                    <linearGradient id="profitPositive" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#10B981" stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor="#34D399" stopOpacity={0.6} />
                                     </linearGradient>
-                                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                                    <linearGradient id="profitNegative" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor="#FB7185" stopOpacity={0.6} />
                                     </linearGradient>
                                 </defs>
-                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} width={45} />
                                 <Tooltip content={<CustomTooltip suffix="₺" />} />
-                                <Area type="monotone" dataKey="income" name="Gelir" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#incomeGradient)" />
-                                <Area type="monotone" dataKey="expense" name="Gider" stroke="#F43F5E" strokeWidth={2} fillOpacity={1} fill="url(#expenseGradient)" />
-                                <Legend iconType="circle" />
-                            </AreaChart>
+                                <Bar
+                                    dataKey="profit"
+                                    name="Net Kâr"
+                                    radius={[6, 6, 0, 0]}
+                                    maxBarSize={36}
+                                >
+                                    {analytics.monthlyTrend.map((m: any, i: number) => (
+                                        <Cell
+                                            key={`profit-${i}`}
+                                            fill={m.income - m.expense >= 0 ? "url(#profitPositive)" : "url(#profitNegative)"}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
                         </ResponsiveContainer>
                     )}
                 </CardContent>

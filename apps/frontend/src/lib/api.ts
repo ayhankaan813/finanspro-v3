@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -17,6 +17,7 @@ interface RequestOptions extends RequestInit {
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -26,9 +27,58 @@ class ApiClient {
     this.token = token;
   }
 
+  private getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem('finanspro-auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.state?.refreshToken || null;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
+  private async refreshAccessToken(): Promise<string | null> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      if (data.success && data.data?.accessToken) {
+        const newToken = data.data.accessToken;
+        this.token = newToken;
+
+        // Update zustand persisted store
+        const stored = localStorage.getItem('finanspro-auth');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.state.accessToken = newToken;
+          localStorage.setItem('finanspro-auth', JSON.stringify(parsed));
+        }
+
+        return newToken;
+      }
+    } catch {
+      // refresh failed
+    }
+    return null;
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
+    isRetry = false
   ): Promise<T> {
     const { params, ...fetchOptions } = options;
 
@@ -51,6 +101,34 @@ class ApiClient {
       ...fetchOptions,
       headers,
     });
+
+    // Handle 401 - try refresh token
+    if (response.status === 401 && !isRetry) {
+      // Deduplicate concurrent refresh calls
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.refreshAccessToken().finally(() => {
+          this.refreshPromise = null;
+        });
+      }
+
+      const newToken = await this.refreshPromise;
+      if (newToken) {
+        // Retry with new token
+        return this.request<T>(endpoint, options, true);
+      }
+
+      // Refresh failed - logout
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('finanspro-auth');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.state = { user: null, accessToken: null, refreshToken: null, isAuthenticated: false };
+          localStorage.setItem('finanspro-auth', JSON.stringify(parsed));
+        }
+        window.location.href = '/login';
+      }
+      throw new Error('Session expired');
+    }
 
     const data: ApiResponse<T> = await response.json();
 

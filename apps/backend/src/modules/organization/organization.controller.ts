@@ -12,8 +12,13 @@ export class OrganizationController {
     }
 
     async getTransactions(req: FastifyRequest, reply: FastifyReply) {
-        const { page, limit } = req.query as { page: number; limit: number };
-        const transactions = await organizationService.getTransactions({ page, limit });
+        const { page, limit, year, month } = req.query as { page: number; limit: number; year?: number; month?: number };
+        const transactions = await organizationService.getTransactions({
+            page,
+            limit,
+            year: year ? Number(year) : undefined,
+            month: month ? Number(month) : undefined,
+        });
         return reply.send({ success: true, data: transactions });
     }
 

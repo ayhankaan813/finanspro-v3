@@ -1768,17 +1768,19 @@ export function useOrganizationStats(year: number, month?: number | null) {
   });
 }
 
-export function useOrganizationTransactions(params?: { page?: number; limit?: number }) {
+export function useOrganizationTransactions(params?: { page?: number; limit?: number; year?: number; month?: number | null }) {
   const { accessToken } = useAuthStore();
 
   return useQuery({
     queryKey: ["organization-transactions", params],
     queryFn: async () => {
       api.setToken(accessToken);
-      const queryParams = {
+      const queryParams: Record<string, string> = {
         page: String(params?.page || 1),
         limit: String(params?.limit || 20),
       };
+      if (params?.year) queryParams.year = String(params.year);
+      if (params?.month) queryParams.month = String(params.month);
       return api.get<PaginatedResponse<OrganizationTransaction>>("/api/organization/transactions", {
         params: queryParams,
       });

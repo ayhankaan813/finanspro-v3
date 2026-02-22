@@ -713,6 +713,18 @@ export class FinancierService {
           // Transfer could be in or out - treat as payment (outflow) by default
           monthlyStats[month].payment = monthlyStats[month].payment.plus(grossAmount);
           break;
+
+        case 'EXTERNAL_DEBT_IN':
+        case 'ORG_INCOME':
+          // Money coming in to the financier pool → increases balance
+          monthlyStats[month].topup = monthlyStats[month].topup.plus(grossAmount);
+          break;
+
+        case 'EXTERNAL_DEBT_OUT':
+        case 'EXTERNAL_PAYMENT':
+          // Money going out of the financier pool → decreases balance
+          monthlyStats[month].payment = monthlyStats[month].payment.plus(grossAmount);
+          break;
       }
     });
 
@@ -731,7 +743,8 @@ export class FinancierService {
         .minus(monthlyStats[i].withdrawal)
         .minus(monthlyStats[i].delivery)
         .minus(monthlyStats[i].payment)
-        .minus(monthlyStats[i].commission);
+        .minus(monthlyStats[i].commission)
+        .minus(monthlyStats[i].delivery_commission);
 
       runningBalance = runningBalance.minus(monthChange);
     }
@@ -844,6 +857,18 @@ export class FinancierService {
         case 'FINANCIER_TRANSFER':
           dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.plus(grossAmount);
           break;
+
+        case 'EXTERNAL_DEBT_IN':
+        case 'ORG_INCOME':
+          // Money coming in to the financier pool → increases balance
+          dailyStats[dayIndex].topup = dailyStats[dayIndex].topup.plus(grossAmount);
+          break;
+
+        case 'EXTERNAL_DEBT_OUT':
+        case 'EXTERNAL_PAYMENT':
+          // Money going out of the financier pool → decreases balance
+          dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.plus(grossAmount);
+          break;
       }
     });
 
@@ -860,7 +885,8 @@ export class FinancierService {
         .minus(dailyStats[i].withdrawal)
         .minus(dailyStats[i].delivery)
         .minus(dailyStats[i].payment)
-        .minus(dailyStats[i].commission);
+        .minus(dailyStats[i].commission)
+        .minus(dailyStats[i].delivery_commission);
 
       runningBalance = runningBalance.minus(dayChange);
     }

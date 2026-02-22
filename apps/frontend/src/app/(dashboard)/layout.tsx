@@ -17,8 +17,8 @@ export default function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if we have auth in localStorage (zustand persist)
-    const checkAuth = () => {
+    // Wait a tick for zustand persist hydration to complete
+    const timer = setTimeout(() => {
       const stored = localStorage.getItem("finanspro-auth");
       if (stored) {
         try {
@@ -34,14 +34,24 @@ export default function DashboardLayout({
 
       // No valid auth, redirect to login
       router.replace("/login");
-    };
+    }, 100);
 
-    checkAuth();
+    return () => clearTimeout(timer);
   }, [router]);
 
-  // Also check when store updates
+  // Also check when store updates (skip while still loading/hydrating)
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      // Double-check localStorage before redirecting (zustand might not have hydrated yet)
+      const stored = localStorage.getItem("finanspro-auth");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.state?.isAuthenticated && parsed.state?.accessToken) {
+            return; // Still valid in storage, don't redirect
+          }
+        } catch (e) { /* ignore */ }
+      }
       router.replace("/login");
     }
   }, [isAuthenticated, isLoading, router]);
@@ -66,7 +76,7 @@ export default function DashboardLayout({
         <header className="sticky top-0 z-30 hidden lg:flex h-14 items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-8">
           <NotificationBell />
         </header>
-        <div className="container px-4 py-6 lg:px-8 lg:py-8">
+        <div className="container px-3 py-1 sm:py-6 lg:px-8 lg:py-8">
           {children}
         </div>
       </main>

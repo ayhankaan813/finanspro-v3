@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatMoney, cn } from "@/lib/utils";
+import { formatMoney, cn, formatTurkeyDate } from "@/lib/utils";
 import {
   usePersonnelList,
   usePersonnelSummary,
@@ -244,38 +244,42 @@ export default function PersonnelPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20 p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 font-sans">
+    <div className="bg-[#F8FAFC] pb-20 space-y-4 sm:space-y-6 font-sans">
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/50 via-transparent to-transparent" />
 
+      {/* Back Button */}
+      <div className="relative z-10">
+        <Link href="/organization">
+          <Button variant="ghost" size="sm" className="gap-1 text-slate-500 hover:text-slate-700 -ml-2 h-7 sm:h-8 text-xs sm:text-sm">
+            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            Geri
+          </Button>
+        </Link>
+      </div>
+
       {/* Header */}
-      <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/organization">
-              <Button variant="ghost" size="sm" className="gap-1 text-slate-500 hover:text-slate-700 -ml-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Organizasyon</span>
-              </Button>
-            </Link>
-          </div>
-          <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-lg sm:rounded-xl text-white shadow-lg shadow-blue-900/10">
-              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+      <div className="relative flex items-center justify-between gap-3 z-10">
+        <div>
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#013a63] flex items-center gap-2 sm:gap-3">
+            <div className="p-1 sm:p-2 bg-gradient-to-br from-[#013a63] to-[#2c7da0] rounded-lg sm:rounded-xl text-white shadow-lg shadow-blue-900/10">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
             </div>
             Personel Yonetimi
           </h1>
-          <p className="text-slate-500 text-xs sm:text-sm ml-10 sm:ml-14">
+          <p className="text-slate-500 text-[11px] sm:text-xs lg:text-sm ml-8 sm:ml-12 lg:ml-14 mt-0.5">
             Calisanlarin maas, avans ve odeme takibi.
           </p>
         </div>
 
         <Button
           onClick={() => setAddPersonnelOpen(true)}
-          className="gap-2 bg-gradient-to-r from-[#013a63] to-[#2c7da0] text-white hover:from-[#01497c] hover:to-[#2a6f97] shadow-lg shadow-blue-900/10 rounded-xl"
+          size="sm"
+          className="gap-1.5 sm:gap-2 bg-gradient-to-r from-[#013a63] to-[#2c7da0] text-white hover:from-[#01497c] hover:to-[#2a6f97] shadow-lg shadow-blue-900/10 rounded-lg sm:rounded-xl h-8 sm:h-9 text-xs sm:text-sm"
         >
-          <UserPlus className="h-4 w-4" />
-          Yeni Personel
+          <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Yeni Personel</span>
+          <span className="sm:hidden">Ekle</span>
         </Button>
       </div>
 
@@ -458,7 +462,7 @@ export default function PersonnelPage() {
                         <InfoCell label="Ad Soyad" value={`${person.first_name} ${person.last_name}`} />
                         <InfoCell label="Gorev" value={person.role} />
                         <InfoCell label="Telefon" value={person.phone || "-"} />
-                        <InfoCell label="Baslangic" value={new Date(person.start_date).toLocaleDateString("tr-TR")} />
+                        <InfoCell label="Baslangic" value={formatTurkeyDate(person.start_date)} />
                         <InfoCell label="Aylik Maas" value={formatMoney(person.monthly_salary)} mono />
                         <InfoCell label="Toplam Odenen" value={formatMoney(person.total_paid)} mono />
                         <InfoCell label="Bu Ay Odenen" value={formatMoney(person.paid_this_month)} mono />
@@ -530,7 +534,7 @@ export default function PersonnelPage() {
                                     {paymentsData.items.map((payment: PersonnelPayment) => (
                                       <tr key={payment.id} className="hover:bg-slate-50/50">
                                         <td className="p-3 text-slate-600">
-                                          {new Date(payment.payment_date).toLocaleDateString("tr-TR")}
+                                          {formatTurkeyDate(payment.payment_date)}
                                         </td>
                                         <td className="p-3">
                                           <Badge className={cn("text-[10px] border", PAYMENT_TYPE_COLORS[payment.payment_type])}>
@@ -565,7 +569,7 @@ export default function PersonnelPage() {
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                      <span>{new Date(payment.payment_date).toLocaleDateString("tr-TR")}</span>
+                                      <span>{formatTurkeyDate(payment.payment_date)}</span>
                                       <span>{MONTHS[payment.period_month - 1]} {payment.period_year}</span>
                                     </div>
                                     {payment.description && (

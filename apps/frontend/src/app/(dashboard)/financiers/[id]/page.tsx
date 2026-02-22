@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatMoney, formatTurkeyDate } from "@/lib/utils";
+import { formatMoney, cn, formatTurkeyDate } from "@/lib/utils";
 import { useFinancier, useFinancierBlocks, useFinancierStatistics, useFinancierMonthlyStatistics } from "@/hooks/use-api";
 import {
   ArrowLeft,
@@ -19,12 +19,16 @@ import {
   ChevronRight,
   AlertTriangle,
   ArrowUpFromLine,
-  Percent,
+  ArrowDownToLine,
   HandCoins,
   Banknote,
-  Truck,
+  FileDown,
+  Package,
+  Percent,
+  Landmark,
+  CreditCard,
+  RefreshCw,
 } from "lucide-react";
-import { motion } from "framer-motion";
 
 const MONTHS = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -36,46 +40,39 @@ export default function FinancierDetailPage() {
   const router = useRouter();
   const financierId = params.id as string;
 
-  const [viewMode, setViewMode] = useState<"monthly" | "daily">("monthly");
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [selectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(new Date().getMonth() + 1);
 
   const { data: financier, isLoading: isLoadingFinancier } = useFinancier(financierId);
   const { data: statistics, isLoading: isLoadingStats } = useFinancierStatistics(financierId, selectedYear);
   const { data: monthlyStats, isLoading: isLoadingMonthlyStats } = useFinancierMonthlyStatistics(
     financierId,
     selectedYear,
-    selectedMonth
+    selectedMonth || 1
   );
   const { data: blocksData } = useFinancierBlocks(financierId);
 
   if (isLoadingFinancier || isLoadingStats) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
-          <p className="text-twilight-400 font-medium">Finansör detayları yükleniyor...</p>
-        </div>
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
       </div>
     );
   }
 
   if (!financier) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-twilight-900 mb-2">Finansör Bulunamadı</h2>
-          <p className="text-twilight-500 mb-6">Bu finansör mevcut değil veya silinmiş olabilir.</p>
-          <Button onClick={() => router.push("/financiers")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Finansörlere Dön
-          </Button>
-        </div>
+      <div className="flex h-[50vh] items-center justify-center flex-col gap-4">
+        <h3 className="text-lg font-bold text-twilight-900">Finansör Bulunamadı</h3>
+        <Button onClick={() => router.push("/financiers")} variant="outline">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Finansörlere Dön
+        </Button>
       </div>
     );
   }
 
-  // Get monthly data from API - backend returns 12 months with Decimal.js precision
+  // Get monthly data from API
   const monthlyData = statistics?.monthlyData?.map((data) => ({
     month: data.month,
     monthName: MONTHS[data.month - 1],
@@ -91,22 +88,14 @@ export default function FinancierDetailPage() {
   })) || Array.from({ length: 12 }, (_, i) => ({
     month: i + 1,
     monthName: MONTHS[i],
-    deposit: 0,
-    withdrawal: 0,
-    delivery: 0,
-    delivery_commission: 0,
-    topup: 0,
-    payment: 0,
-    commission: 0,
-    blocked: 0,
-    balance: 0,
+    deposit: 0, withdrawal: 0, delivery: 0, delivery_commission: 0,
+    topup: 0, payment: 0, commission: 0, blocked: 0, balance: 0,
   }));
 
-  // Get daily data from API - backend returns all days in month
-  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+  // Get daily data from API
+  const daysInMonth = selectedMonth ? new Date(selectedYear, selectedMonth, 0).getDate() : 0;
   const dailyData = monthlyStats?.dailyData?.map((data) => ({
     day: data.day,
-    date: `${data.day} ${MONTHS[selectedMonth - 1]}`,
     deposit: parseFloat(data.deposit || "0"),
     withdrawal: parseFloat(data.withdrawal || "0"),
     delivery: parseFloat(data.delivery || "0"),
@@ -118,408 +107,309 @@ export default function FinancierDetailPage() {
     balance: parseFloat(data.balance || "0"),
   })) || Array.from({ length: daysInMonth }, (_, i) => ({
     day: i + 1,
-    date: `${i + 1} ${MONTHS[selectedMonth - 1]}`,
-    deposit: 0,
-    withdrawal: 0,
-    delivery: 0,
-    delivery_commission: 0,
-    topup: 0,
-    payment: 0,
-    commission: 0,
-    blocked: 0,
-    balance: 0,
-  }))
+    deposit: 0, withdrawal: 0, delivery: 0, delivery_commission: 0,
+    topup: 0, payment: 0, commission: 0, blocked: 0, balance: 0,
+  }));
 
   const balance = parseFloat(financier.account?.balance || "0");
   const blockedAmount = parseFloat(financier.account?.blocked_amount || "0");
   const availableBalance = parseFloat(financier.available_balance || "0");
   const hasBlocks = financier.active_blocks_count > 0 || blockedAmount > 0;
 
-  // Stats for daily view
-  const totalDeposit = dailyData.reduce((sum, d) => sum + d.deposit, 0);
-  const totalWithdrawal = dailyData.reduce((sum, d) => sum + d.withdrawal, 0);
-  const totalPayment = dailyData.reduce((sum, d) => sum + d.payment, 0);
-  const totalTopup = dailyData.reduce((sum, d) => sum + d.topup, 0);
-  const totalCommission = dailyData.reduce((sum, d) => sum + d.commission, 0);
-  const netBalance = totalCommission + totalTopup - totalPayment;
-
-  const handleMonthClick = (month: number) => {
-    setSelectedMonth(month);
-    setViewMode("daily");
+  // Stat card totals
+  const currentMonthData = selectedMonth ? monthlyData[selectedMonth - 1] : null;
+  const totals = currentMonthData ? {
+    deposit: currentMonthData.deposit,
+    withdrawal: currentMonthData.withdrawal,
+    payment: currentMonthData.payment,
+    topup: currentMonthData.topup,
+    delivery: currentMonthData.delivery,
+    delivery_commission: currentMonthData.delivery_commission,
+    commission: currentMonthData.commission,
+  } : {
+    deposit: monthlyData.reduce((acc, m) => acc + m.deposit, 0),
+    withdrawal: monthlyData.reduce((acc, m) => acc + m.withdrawal, 0),
+    payment: monthlyData.reduce((acc, m) => acc + m.payment, 0),
+    topup: monthlyData.reduce((acc, m) => acc + m.topup, 0),
+    delivery: monthlyData.reduce((acc, m) => acc + m.delivery, 0),
+    delivery_commission: monthlyData.reduce((acc, m) => acc + m.delivery_commission, 0),
+    commission: monthlyData.reduce((acc, m) => acc + m.commission, 0),
   };
 
+  // Table footer totals
+  const tableData = selectedMonth ? dailyData : monthlyData;
+  const tableTotals = {
+    deposit: tableData.reduce((acc, d) => acc + d.deposit, 0),
+    withdrawal: tableData.reduce((acc, d) => acc + d.withdrawal, 0),
+    payment: tableData.reduce((acc, d) => acc + d.payment, 0),
+    topup: tableData.reduce((acc, d) => acc + d.topup, 0),
+    delivery: tableData.reduce((acc, d) => acc + d.delivery, 0),
+    delivery_commission: tableData.reduce((acc, d) => acc + d.delivery_commission, 0),
+    commission: tableData.reduce((acc, d) => acc + d.commission, 0),
+  };
+
+  const handleMonthClick = (month: number) => setSelectedMonth(month);
+  const handleBackToYearly = () => setSelectedMonth(null);
+
   const handlePrevMonth = () => {
-    if (selectedMonth > 1) {
+    if (selectedMonth === null) return;
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(selectedYear - 1);
+    } else {
       setSelectedMonth(selectedMonth - 1);
     }
   };
 
   const handleNextMonth = () => {
-    if (selectedMonth < 12) {
+    if (selectedMonth === null) return;
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(selectedYear + 1);
+    } else {
       setSelectedMonth(selectedMonth + 1);
     }
   };
 
-  return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700 text-white shadow-2xl">
-        <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-80 w-80 rounded-full bg-amber-300/20 blur-3xl" />
+  const statCards = [
+    { label: "Yatırım", value: totals.deposit, color: "text-emerald-600", bg: "bg-emerald-50", icon: ArrowDownToLine },
+    { label: "Çekim", value: totals.withdrawal, color: "text-rose-600", bg: "bg-rose-50", icon: TrendingDown },
+    { label: "Ödeme", value: totals.payment, color: "text-orange-600", bg: "bg-orange-50", icon: CreditCard },
+    { label: "Takviye", value: totals.topup, color: "text-blue-600", bg: "bg-blue-50", icon: RefreshCw },
+    { label: "Teslimat", value: totals.delivery, color: "text-purple-600", bg: "bg-purple-50", icon: Package },
+    { label: "Tes.Kom.", value: totals.delivery_commission, color: "text-indigo-600", bg: "bg-indigo-50", icon: Percent },
+    { label: "Komisyon", value: totals.commission, color: "text-slate-600", bg: "bg-slate-100", icon: Landmark },
+  ];
 
-        <div className="relative z-10 p-8">
+  return (
+    <div className="space-y-3 sm:space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="ghost"
+            size="icon"
             onClick={() => router.push("/financiers")}
-            className="mb-4 text-white hover:bg-white/10 hover:text-white"
+            className="rounded-xl h-8 w-8 sm:h-10 sm:w-10 shrink-0"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Finansörlere Dön
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
+          <div>
+            <h1 className="text-lg sm:text-3xl font-bold text-twilight-900">{financier.name}</h1>
+            <p className="text-[10px] sm:text-sm text-twilight-500 font-mono">{financier.code}</p>
+          </div>
+        </div>
+        <Button variant="outline" className="gap-1 sm:gap-2 h-7 sm:h-10 text-[11px] sm:text-sm px-2 sm:px-4 rounded-lg sm:rounded-xl">
+          <FileDown className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Excel&apos;e Aktar</span>
+          <span className="sm:hidden">Excel</span>
+        </Button>
+      </div>
 
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="h-20 w-20 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
-                {hasBlocks ? (
-                  <Lock className="h-10 w-10 text-amber-50" />
-                ) : (
-                  <Wallet className="h-10 w-10 text-amber-50" />
-                )}
-              </div>
+      {/* Balance Card */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-amber-700 via-amber-600 to-orange-700 text-white overflow-hidden">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] sm:text-sm text-amber-200 uppercase tracking-wider mb-0.5 sm:mb-2">Toplam Bakiye</p>
+              <p className="text-2xl sm:text-4xl lg:text-5xl font-bold font-mono text-white">
+                {formatMoney(balance)}
+              </p>
+            </div>
+            <div className="text-right space-y-1">
               <div>
-                <h1 className="text-4xl font-bold mb-2">{financier.name}</h1>
-                <p className="text-amber-100/80 text-lg font-medium">{financier.code}</p>
-                {financier.description && (
-                  <p className="text-amber-100/60 text-sm mt-2 max-w-2xl">{financier.description}</p>
-                )}
+                <p className="text-[9px] sm:text-xs text-amber-200">Müsait</p>
+                <p className="text-sm sm:text-xl font-bold font-mono text-emerald-200">{formatMoney(availableBalance)}</p>
               </div>
+              {hasBlocks && (
+                <div>
+                  <p className="text-[9px] sm:text-xs text-orange-200 flex items-center gap-1 justify-end">
+                    <Lock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                    Bloke
+                  </p>
+                  <p className="text-sm sm:text-xl font-bold font-mono text-orange-200">{formatMoney(blockedAmount)}</p>
+                </div>
+              )}
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Balance Cards */}
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-5 border border-white/20">
-              <p className="text-amber-100/70 text-sm font-bold uppercase tracking-wider mb-2">Toplam Bakiye</p>
-              <p className="text-3xl font-bold text-white">{formatMoney(balance)}</p>
-            </div>
-            <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-5 border border-white/20">
-              <p className="text-emerald-100/70 text-sm font-bold uppercase tracking-wider mb-2">Müsait Bakiye</p>
-              <p className="text-3xl font-bold text-white">{formatMoney(availableBalance)}</p>
-            </div>
-            <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-5 border border-white/20">
-              <p className="text-orange-100/70 text-sm font-bold uppercase tracking-wider mb-2">Blokeli Tutar</p>
-              <div className="flex items-center gap-3">
-                <p className="text-3xl font-bold text-white">{formatMoney(blockedAmount)}</p>
-                {hasBlocks && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-orange-500/20 border border-orange-300/30">
-                    <AlertTriangle className="h-3 w-3 text-orange-200" />
-                    <span className="text-xs font-bold text-orange-100">
-                      {financier.active_blocks_count > 0
-                        ? `${financier.active_blocks_count} Bloke`
-                        : "Sistem Blokajı"}
-                    </span>
-                  </div>
-                )}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-2">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} className="rounded-lg sm:rounded-xl bg-white p-1.5 sm:p-3 border border-slate-100 shadow-sm">
+              <div className={cn("h-5 w-5 sm:h-6 sm:w-6 rounded-md flex items-center justify-center mb-0.5 sm:mb-1", stat.bg)}>
+                <Icon className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3", stat.color)} />
               </div>
+              <p className="text-[8px] sm:text-[10px] font-medium text-slate-500 uppercase truncate leading-tight">{stat.label}</p>
+              <p className={cn("text-[10px] sm:text-sm font-bold font-mono mt-0.5", stat.color)}>
+                {formatMoney(stat.value)}
+              </p>
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* View Toggle & Month Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 bg-white rounded-xl p-1.5 shadow-sm border border-twilight-100">
-          <Button
-            variant={viewMode === "monthly" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("monthly")}
-            className={`rounded-lg ${viewMode === "monthly" ? "bg-amber-600 text-white hover:bg-amber-700" : "text-twilight-600"}`}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Aylık Görünüm
-          </Button>
-          <Button
-            variant={viewMode === "daily" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("daily")}
-            className={`rounded-lg ${viewMode === "daily" ? "bg-amber-600 text-white hover:bg-amber-700" : "text-twilight-600"}`}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Günlük Görünüm
-          </Button>
+      {/* Month/Year Selector - Always visible */}
+      <div className="flex items-center justify-between bg-white rounded-xl sm:rounded-2xl border border-twilight-100 p-2 sm:p-4 shadow-sm">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <Calendar className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-twilight-400" />
+          <span className="text-[11px] sm:text-sm font-medium text-twilight-900">
+            {selectedMonth ? "Günlük Detay" : "Yıllık Detay"}
+          </span>
         </div>
-
-        {viewMode === "daily" && (
-          <div className="flex items-center gap-3 bg-white rounded-xl p-2 shadow-sm border border-twilight-100">
+        <div className="flex items-center gap-1 sm:gap-3">
+          {selectedMonth ? (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={handlePrevMonth}
-              disabled={selectedMonth === 1}
-              className="h-8 w-8 p-0 rounded-lg"
+              onClick={handleBackToYearly}
+              className="h-6 sm:h-9 text-[10px] sm:text-sm px-1.5 sm:px-3 rounded-md sm:rounded-lg"
             >
-              <ChevronLeft className="h-4 w-4" />
+              Yıllık
             </Button>
-            <span className="text-sm font-bold text-twilight-900 min-w-[100px] text-center">
-              {MONTHS[selectedMonth - 1]} {selectedYear}
-            </span>
+          ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={handleNextMonth}
-              disabled={selectedMonth === 12}
-              className="h-8 w-8 p-0 rounded-lg"
+              onClick={() => setSelectedMonth(new Date().getMonth() + 1)}
+              className="h-6 sm:h-9 text-[10px] sm:text-sm px-1.5 sm:px-3 rounded-md sm:rounded-lg"
             >
-              <ChevronRight className="h-4 w-4" />
+              Günlük
             </Button>
-          </div>
-        )}
+          )}
+          {selectedMonth && (
+            <>
+              <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-6 w-6 sm:h-9 sm:w-9 rounded-md sm:rounded-lg">
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Button>
+              <div className="min-w-[80px] sm:min-w-[180px] text-center">
+                <span className="text-xs sm:text-lg font-bold text-twilight-900">
+                  {MONTHS[selectedMonth - 1]} {selectedYear}
+                </span>
+              </div>
+              <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-6 w-6 sm:h-9 sm:w-9 rounded-md sm:rounded-lg">
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
-
-      {/* Stats Cards - Only in Daily View */}
-      {viewMode === "daily" && (
-        <div className="grid grid-cols-6 gap-4">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-50 to-emerald-100/50">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Yatırım</p>
-              </div>
-              <p className="text-2xl font-bold text-emerald-900">{formatMoney(totalDeposit)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-rose-50 to-rose-100/50">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-10 w-10 rounded-xl bg-rose-500 flex items-center justify-center">
-                  <TrendingDown className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Çekim</p>
-              </div>
-              <p className="text-2xl font-bold text-rose-900">{formatMoney(totalWithdrawal)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-10 w-10 rounded-xl bg-purple-500 flex items-center justify-center">
-                  <Banknote className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-xs font-bold text-purple-700 uppercase tracking-wider">Ödeme</p>
-              </div>
-              <p className="text-2xl font-bold text-purple-900">{formatMoney(totalPayment)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100/50">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-10 w-10 rounded-xl bg-blue-500 flex items-center justify-center">
-                  <ArrowUpFromLine className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Takviye</p>
-              </div>
-              <p className="text-2xl font-bold text-blue-900">{formatMoney(totalTopup)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100/50">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-10 w-10 rounded-xl bg-orange-500 flex items-center justify-center">
-                  <HandCoins className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-xs font-bold text-orange-700 uppercase tracking-wider">Komisyon</p>
-              </div>
-              <p className="text-2xl font-bold text-orange-900">{formatMoney(totalCommission)}</p>
-            </CardContent>
-          </Card>
-
-          <Card className={`border-0 shadow-lg ${netBalance >= 0 ? "bg-gradient-to-br from-emerald-50 to-emerald-100/50" : "bg-gradient-to-br from-rose-50 to-rose-100/50"}`}>
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`h-10 w-10 rounded-xl ${netBalance >= 0 ? "bg-emerald-500" : "bg-rose-500"} flex items-center justify-center`}>
-                  <Wallet className="h-5 w-5 text-white" />
-                </div>
-                <p className={`text-xs font-bold ${netBalance >= 0 ? "text-emerald-700" : "text-rose-700"} uppercase tracking-wider`}>Bakiye</p>
-              </div>
-              <p className={`text-2xl font-bold ${netBalance >= 0 ? "text-emerald-900" : "text-rose-900"}`}>{formatMoney(netBalance)}</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* Data Table */}
-      <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gradient-to-r from-twilight-50 to-twilight-100/50 border-b-2 border-twilight-200">
-                <th className="px-6 py-4 text-left">
-                  <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Tarih</span>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <TrendingUp className="h-4 w-4 text-emerald-600" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Yatırım</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <TrendingDown className="h-4 w-4 text-rose-600" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Çekim</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Banknote className="h-4 w-4 text-purple-600" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Ödeme</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <ArrowUpFromLine className="h-4 w-4 text-blue-600" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Takviye</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <HandCoins className="h-4 w-4 text-orange-600" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Komisyon</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Lock className="h-4 w-4 text-amber-700" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Blokeli</span>
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Wallet className="h-4 w-4 text-amber-600" />
-                    <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Bakiye</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-twilight-100">
-              {viewMode === "monthly" ? (
-                monthlyData.map((row, idx) => (
-                  <motion.tr
-                    key={row.month}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.02 }}
-                    className="hover:bg-amber-50/50 transition-colors group cursor-pointer"
-                    onClick={() => handleMonthClick(row.month)}
-                  >
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-twilight-900 group-hover:text-amber-700 transition-colors">
-                        {row.monthName}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-emerald-600">{formatMoney(row.deposit)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-rose-600">{formatMoney(row.withdrawal)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-purple-600">{formatMoney(row.payment)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-blue-600">{formatMoney(row.topup)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-orange-600">{formatMoney(row.commission)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-amber-700">{formatMoney(row.blocked)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`font-bold ${row.balance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                        {formatMoney(row.balance)}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))
-              ) : isLoadingMonthlyStats ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
-                      <span className="text-twilight-500 font-medium">Günlük veriler yükleniyor...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                dailyData.map((row, idx) => (
-                  <motion.tr
-                    key={row.day}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.01 }}
-                    className="hover:bg-amber-50/50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-twilight-900">{row.date}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-emerald-600">{formatMoney(row.deposit)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-rose-600">{formatMoney(row.withdrawal)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-purple-600">{formatMoney(row.payment)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-blue-600">{formatMoney(row.topup)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-orange-600">{formatMoney(row.commission)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-amber-700">{formatMoney(row.blocked)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`font-bold ${row.balance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                        {formatMoney(row.balance)}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      <Card className="border-0 shadow-lg">
+        <div className="border-b border-twilight-100 bg-twilight-50/30 px-3 sm:px-6 py-2 sm:py-4">
+          <h2 className="text-xs sm:text-lg font-bold text-twilight-900">
+            {selectedMonth
+              ? `${MONTHS[selectedMonth - 1]} ${selectedYear} Günlük Detay`
+              : `${selectedYear} Yıllık Detay`
+            }
+          </h2>
         </div>
+        <CardContent className="p-0">
+          <div className="max-h-[65vh] overflow-y-auto">
+            <table className="w-full table-fixed">
+              <thead className="sticky top-0 z-10 bg-twilight-50/95 backdrop-blur-sm shadow-[0_1px_0_0_theme(colors.twilight.100)]">
+                <tr>
+                  <th className="w-[28px] sm:w-[70px] px-1 sm:px-3 py-1.5 sm:py-3 text-left text-[9px] sm:text-xs font-semibold text-twilight-600 uppercase">TARİH</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-emerald-600 uppercase">YAT.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-rose-600 uppercase">ÇEKİM</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-orange-600 uppercase">ÖDEME</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-blue-600 uppercase">TAK.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-purple-600 uppercase">TES.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-indigo-600 uppercase">T.KOM.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-slate-600 uppercase">KOM.</th>
+                  <th className="px-1 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-twilight-900 uppercase">BAKİYE</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-twilight-50">
+                {selectedMonth ? (
+                  isLoadingMonthlyStats ? (
+                    <tr>
+                      <td colSpan={9} className="px-3 py-8 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                          <span className="text-xs text-twilight-500">Yükleniyor...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    dailyData.map((day) => (
+                      <tr key={day.day} className="hover:bg-twilight-50/50 transition-colors">
+                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900">{day.day}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600">{formatMoney(day.deposit, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600">{formatMoney(day.withdrawal, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600">{formatMoney(day.payment, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-blue-600">{formatMoney(day.topup, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-purple-600">{formatMoney(day.delivery, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-indigo-600">{formatMoney(day.delivery_commission, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-slate-600">{formatMoney(day.commission, "")}</td>
+                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-twilight-900 font-bold">{formatMoney(day.balance, "")}</td>
+                      </tr>
+                    ))
+                  )
+                ) : (
+                  monthlyData.map((row) => (
+                    <tr
+                      key={row.month}
+                      className="hover:bg-twilight-50/50 transition-colors cursor-pointer"
+                      onClick={() => handleMonthClick(row.month)}
+                    >
+                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900">{row.monthName}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600">{formatMoney(row.deposit, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600">{formatMoney(row.withdrawal, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600">{formatMoney(row.payment, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-blue-600">{formatMoney(row.topup, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-purple-600">{formatMoney(row.delivery, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-indigo-600">{formatMoney(row.delivery_commission, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-slate-600">{formatMoney(row.commission, "")}</td>
+                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-twilight-900 font-bold">{formatMoney(row.balance, "")}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot className="sticky bottom-0 z-10 bg-twilight-900 text-white">
+                <tr>
+                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-bold">TOPLAM</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.deposit, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.withdrawal, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.payment, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.topup, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.delivery, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.delivery_commission, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.commission, "")}</td>
+                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(balance, "")}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Active Blocks Section */}
       {hasBlocks && blocksData?.items && blocksData.items.length > 0 && (
-        <Card className="border-0 shadow-xl rounded-3xl overflow-hidden border-l-4 border-l-orange-500">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <Lock className="h-6 w-6 text-orange-600" />
+        <Card className="border-0 shadow-lg border-l-4 border-l-orange-500">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-orange-100 flex items-center justify-center">
+                  <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-twilight-900">Aktif Blokeler</h3>
-                  <p className="text-sm text-twilight-500">Bekleyen işlemler için ayrılmış tutarlar</p>
+                  <h3 className="text-sm sm:text-lg font-bold text-twilight-900">Aktif Blokeler</h3>
+                  <p className="text-[10px] sm:text-sm text-twilight-500">Bekleyen işlemler</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-twilight-500 font-medium">Toplam Bloke</p>
-                <p className="text-2xl font-bold text-orange-600">{formatMoney(blockedAmount)}</p>
+                <p className="text-[10px] sm:text-xs text-twilight-500">Toplam</p>
+                <p className="text-sm sm:text-xl font-bold text-orange-600">{formatMoney(blockedAmount)}</p>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {blocksData.items
                 .filter((block: any) => !block.resolved_at)
                 .map((block: any) => {
@@ -529,28 +419,26 @@ export default function FinancierDetailPage() {
                   return (
                     <div
                       key={block.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-orange-50/50 border border-orange-100 hover:bg-orange-50 transition-colors"
+                      className="flex items-center justify-between p-2.5 sm:p-4 rounded-lg sm:rounded-xl bg-orange-50/50 border border-orange-100"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-2xl font-bold text-orange-600">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-1">
+                          <span className="text-sm sm:text-xl font-bold text-orange-600">
                             {formatMoney(parseFloat(block.amount))}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
-                            {daysPassed} gün önce
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] sm:text-xs font-bold shrink-0">
+                            {daysPassed} gün
                           </span>
                         </div>
                         {block.reason && (
-                          <p className="text-sm text-twilight-600">{block.reason}</p>
+                          <p className="text-[11px] sm:text-sm text-twilight-600 truncate">{block.reason}</p>
                         )}
-                        <p className="text-xs text-twilight-400 mt-1">
-                          Başlangıç: {formatTurkeyDate(block.started_at)}
-                          {block.estimated_days && ` • Tahmini süre: ${block.estimated_days} gün`}
+                        <p className="text-[10px] sm:text-xs text-twilight-400 mt-0.5">
+                          {formatTurkeyDate(block.started_at)}
+                          {block.estimated_days && ` \u2022 Tahmini: ${block.estimated_days} gün`}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Unlock className="h-5 w-5 text-orange-400" />
-                      </div>
+                      <Unlock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400 ml-2 shrink-0" />
                     </div>
                   );
                 })}
@@ -560,58 +448,36 @@ export default function FinancierDetailPage() {
       )}
 
       {/* Legend */}
-      <Card className="border-0 shadow-lg rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50">
-        <CardContent className="p-6">
-          <h3 className="text-sm font-bold text-twilight-900 mb-4 flex items-center gap-2">
-            <span className="h-1 w-1 rounded-full bg-amber-600"></span>
-            Açıklama
-          </h3>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="flex items-start gap-2">
-              <HandCoins className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-twilight-900">Komisyon:</span>
-                <span className="text-twilight-600 ml-1">Finansörün deposit/withdrawal işlemlerinden kazandığı komisyon</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Banknote className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-twilight-900">Ödeme:</span>
-                <span className="text-twilight-600 ml-1">Finansöre yapılan ödemeler (bakiyeyi azaltır)</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <ArrowUpFromLine className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-twilight-900">Takviye:</span>
-                <span className="text-twilight-600 ml-1">Finansörün kasaya yaptığı takviye (bakiyeyi artırır)</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Truck className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-twilight-900">Teslimat:</span>
-                <span className="text-twilight-600 ml-1">Finansörün sitelere yaptığı teslimatlar</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Percent className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-twilight-900">Tes.Komis.:</span>
-                <span className="text-twilight-600 ml-1">Teslimat işlemlerinden kazanılan komisyon</span>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Lock className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-twilight-900">Blokeli:</span>
-                <span className="text-twilight-600 ml-1">Bekleyen işlemler için ayrılmış tutar (anlık)</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-[10px] sm:text-xs text-twilight-500 bg-twilight-50 p-2.5 sm:p-4 rounded-lg sm:rounded-xl">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-emerald-500"></div>
+          <span>Yatırım</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-rose-500"></div>
+          <span>Çekim</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-orange-500"></div>
+          <span>Ödeme</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-blue-500"></div>
+          <span>Takviye</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-purple-500"></div>
+          <span>Teslimat</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-indigo-500"></div>
+          <span>Tes.Kom.</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-slate-500"></div>
+          <span>Komisyon</span>
+        </div>
+      </div>
     </div>
   );
 }

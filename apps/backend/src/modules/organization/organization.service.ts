@@ -112,7 +112,7 @@ export class OrganizationService {
 
         const netProfit = totalIncome.minus(totalExpense);
 
-        // 3. Get Expense Breakdown by Category
+        // 3. Get Expense Breakdown by Category (including uncategorized)
         const expenseBreakdown = await prisma.transaction.groupBy({
             by: ['category_id'],
             _sum: { net_amount: true },
@@ -124,18 +124,24 @@ export class OrganizationService {
                 transaction_date: { gte: startDate, lt: endDate },
                 status: 'COMPLETED',
                 deleted_at: null,
-                category_id: { not: null },
             },
         });
 
-        // Fetch category names
-        const categories = await prisma.category.findMany({
-            where: {
-                id: { in: expenseBreakdown.map((e) => e.category_id!).filter(Boolean) },
-            },
-        });
+        // Fetch category names for categorized expenses
+        const categoryIds = expenseBreakdown.map((e) => e.category_id).filter(Boolean) as string[];
+        const categories = categoryIds.length > 0
+            ? await prisma.category.findMany({ where: { id: { in: categoryIds } } })
+            : [];
 
         const breakdown = expenseBreakdown.map((item) => {
+            if (!item.category_id) {
+                return {
+                    categoryId: null,
+                    categoryName: 'Genel',
+                    color: '#94a3b8',
+                    amount: item._sum.net_amount || new Decimal(0),
+                };
+            }
             const category = categories.find((c) => c.id === item.category_id);
             return {
                 categoryId: item.category_id,
@@ -160,8 +166,20 @@ export class OrganizationService {
     /**
      * Get organization transactions
      */
-    async getTransactions(query: { page: number; limit: number }) {
+    async getTransactions(query: { page: number; limit: number; year?: number; month?: number }) {
         const account = await this.getAccount();
+
+        // Build date filter if year/month provided
+        const dateFilter: any = {};
+        if (query.year) {
+            const startDate = query.month
+                ? new Date(query.year, query.month - 1, 1)
+                : new Date(query.year, 0, 1);
+            const endDate = query.month
+                ? new Date(query.year, query.month, 1)
+                : new Date(query.year + 1, 0, 1);
+            dateFilter.transaction_date = { gte: startDate, lt: endDate };
+        }
 
         // Only show org-related transactions (expenses, income, withdrawals, org payments/topups)
         const whereClause = {
@@ -169,6 +187,7 @@ export class OrganizationService {
             transaction: {
                 status: 'COMPLETED' as const,
                 deleted_at: null,
+                ...dateFilter,
                 OR: [
                     { type: { in: [TransactionType.ORG_EXPENSE, TransactionType.ORG_INCOME, TransactionType.ORG_WITHDRAW] } },
                     { type: TransactionType.PAYMENT, source_type: 'ORGANIZATION' },
