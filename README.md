@@ -1,29 +1,32 @@
-# 💼 FinansPro v3
+# FinansPro v3
 
-> Modern, güvenli ve ölçeklenebilir finansal yönetim platformu
+> Modern, guvenli ve olceklenebilir finansal yonetim platformu
 
-**Versiyon:** 3.1.0
-**Son Güncelleme:** 11 Şubat 2026
-**Durum:** ✅ Production Ready (Test Aşamasında)
-
----
-
-## 🎯 Proje Hakkında
-
-FinansPro v3, site, partner, financier ve organization arasındaki finansal akışları yöneten, **double-entry muhasebe sistemi** ile desteklenen bir SaaS platformudur.
-
-### Temel Özellikler
-
-- ✅ **Double-Entry Accounting:** Her işlem dengeli muhasebe kaydı
-- ✅ **Komisyon Yönetimi:** Otomatik komisyon hesaplama ve dağılımı
-- ✅ **Çok Taraflı Sistem:** Site, Partner, Finansör, Organizasyon
-- ✅ **Gerçek Zamanlı Raporlama:** Dashboard ve detaylı raporlar
-- ✅ **Decimal Precision:** Finansal hesaplamalarda %100 doğruluk
-- ✅ **Modern UI/UX:** Next.js 15 + Tailwind CSS + shadcn/ui
+**Versiyon:** 3.2.0
+**Son Guncelleme:** 22 Subat 2026
+**Durum:** Aktif Gelistirme
 
 ---
 
-## 🚀 Hızlı Başlangıç
+## Proje Hakkinda
+
+FinansPro v3, site, partner, finansor ve organizasyon arasindaki finansal akislari yoneten, **double-entry muhasebe sistemi** ile desteklenen bir SaaS platformudur.
+
+### Temel Ozellikler
+
+- **Double-Entry Accounting:** Her islem dengeli muhasebe kaydi
+- **Komisyon Yonetimi:** Otomatik komisyon hesaplama ve dagilimi
+- **Cok Tarafli Sistem:** Site, Partner, Finansor, Organizasyon, Dis Kisiler
+- **Gercek Zamanli Raporlama:** Dashboard, kasa raporu, mutabakat, analiz
+- **Decimal Precision:** Finansal hesaplamalarda %100 dogruluk (Decimal.js)
+- **Islem Onay Sistemi:** Role-based approval workflow
+- **Bildirim Sistemi:** Panel ici bildirimler
+- **Dark Mode:** Tum rapor sayfalari dark mode uyumlu
+- **Mobil Uyumlu:** Responsive tasarim, tum cihazlarda calisiyor
+
+---
+
+## Hizli Baslangic
 
 ### Gereksinimler
 
@@ -34,10 +37,10 @@ FinansPro v3, site, partner, financier ve organization arasındaki finansal akı
 ### Kurulum
 
 ```bash
-# 1. Bağımlılıkları yükle
+# 1. Bagimliliklari yukle
 pnpm install
 
-# 2. PostgreSQL'i başlat (Docker)
+# 2. PostgreSQL'i baslat (Docker)
 docker run --name finanspro-db \
   -e POSTGRES_PASSWORD=finanspro_v3_secure_password \
   -e POSTGRES_USER=finanspro_v3 \
@@ -45,302 +48,281 @@ docker run --name finanspro-db \
   -p 5432:5432 \
   -d postgres:17
 
-# 3. Database'i hazırla
+# 3. Database'i hazirla
 cd apps/backend
 npx prisma db push
 node --import tsx prisma/seed.ts
 
-# 4. Backend'i başlat (Terminal 1)
+# 4. Backend'i baslat (Terminal 1)
 cd apps/backend
 npm run dev
 # http://localhost:3001
 
-# 5. Frontend'i başlat (Terminal 2)
+# 5. Frontend'i baslat (Terminal 2)
 cd apps/frontend
 npm run dev
 # http://localhost:3000
 ```
 
-### Giriş Bilgileri
+### Giris Bilgileri
 
 ```
 Email: admin@finanspro.com
-Şifre: admin123
+Sifre: admin123
 ```
 
 ---
 
-## 📁 Proje Yapısı
+## Proje Yapisi
 
 ```
 finanspro-v3/
 ├── apps/
-│   ├── backend/          # Fastify + Prisma + PostgreSQL
-│   └── frontend/         # Next.js 15 + React Query + Tailwind
+│   ├── backend/                 # Fastify + Prisma + PostgreSQL
+│   │   ├── src/
+│   │   │   ├── modules/
+│   │   │   │   ├── approval/        # Islem onay workflow
+│   │   │   │   ├── auth/            # JWT authentication
+│   │   │   │   ├── balance/         # Bakiye hesaplama
+│   │   │   │   ├── external-party/  # Dis kisi yonetimi
+│   │   │   │   ├── financier/       # Finansor yonetimi
+│   │   │   │   ├── ledger/          # Muhasebe defteri
+│   │   │   │   ├── notification/    # Bildirim sistemi
+│   │   │   │   ├── organization/    # Organizasyon yonetimi
+│   │   │   │   ├── partner/         # Partner yonetimi
+│   │   │   │   ├── personnel/       # Personel & maas takibi
+│   │   │   │   ├── report/          # Rapor uretimi
+│   │   │   │   ├── settings/        # Komisyon oranlari & ayarlar
+│   │   │   │   ├── site/            # Site yonetimi
+│   │   │   │   └── transaction/     # Islem & komisyon
+│   │   │   └── shared/              # Prisma client, logger, audit
+│   │   └── prisma/                  # Database schema & seed
+│   │
+│   └── frontend/                # Next.js 15 + React Query + Tailwind
+│       └── src/
+│           ├── app/(dashboard)/
+│           │   ├── dashboard/
+│           │   ├── transactions/       # Islem listesi + bulk import
+│           │   ├── sites/              # Site listesi + detay
+│           │   ├── partners/           # Partner listesi + detay
+│           │   ├── financiers/         # Finansor listesi + detay
+│           │   ├── external-parties/   # Dis kisi listesi + detay
+│           │   ├── organization/       # Org yonetimi + personel
+│           │   ├── reports/
+│           │   │   ├── kasa-raporu/        # Kasa raporu
+│           │   │   ├── reconciliation/    # Mutabakat raporu
+│           │   │   ├── analysis/          # Finansal analiz
+│           │   │   ├── daily/             # Gunluk rapor
+│           │   │   └── monthly/           # Aylik rapor
+│           │   ├── approvals/          # Onay bekleyenler
+│           │   └── settings/           # Ayarlar
+│           ├── components/
+│           ├── hooks/                  # React Query hooks
+│           └── lib/                    # API client, utils
+│
 ├── packages/
-│   └── shared/           # Shared types and constants
-├── .claude/              # Claude Code customizations
-│   ├── commands/         # Custom slash commands
-│   ├── skills/           # Domain knowledge
-│   └── CLAUDE.md         # Comprehensive project guide
-├── ROADMAP.md            # Development roadmap & changelog
-└── README.md             # This file
+│   └── shared/                  # Shared types
+│
+└── .claude/                     # Claude Code customizations
+    ├── commands/                # /audit, /financial-test, /deploy-check, /optimize
+    ├── skills/                  # finanspro-accounting, finanspro-testing
+    └── agents/                  # financial-audit-team (3-teammate)
 ```
 
 ---
 
-## 🏗️ Teknoloji Stack
+## Teknoloji Stack
 
 ### Backend
-- **Framework:** Fastify 5
+- **Framework:** Fastify 4
 - **ORM:** Prisma 6
 - **Database:** PostgreSQL 17
 - **Runtime:** Node.js 18+ with tsx
 - **Validation:** Zod schemas
 - **Financial:** Decimal.js (precision guaranteed)
+- **Logging:** Pino
 
 ### Frontend
 - **Framework:** Next.js 15 (App Router)
-- **State:** React Query + Zustand
+- **State:** React Query (TanStack Query) + Zustand
 - **Styling:** Tailwind CSS 4
 - **Charts:** Recharts
 - **UI Components:** Radix UI + shadcn/ui
+- **Animation:** Framer Motion
 
 ---
 
-## 💡 Temel Kavramlar
+## Temel Kavramlar
 
-### Komisyon Yapısı (SABİT - ASLA DEĞİŞMEZ)
+### Komisyon Yapisi
 
-```typescript
-const COMMISSION_RATES = {
-  SITE: 0.06,          // 6%
-  PARTNER: 0.015,      // 1.5%
-  FINANCIER: 0.025,    // 2.5%
-  ORGANIZATION: 0.02,  // 2%
-  TOTAL: 0.12          // 12%
-};
+```
+Site:         6%     (musteri komisyonu)
+Partner:      1.5%   (partner hak edisi)
+Finansor:     2.5%   (finansor komisyonu - otomatik kesilir)
+Organizasyon: 2%     (organizasyon kari)
+Toplam:       12%
 ```
 
-**Örnek:** 100 TL işlem
-- Site: 6 TL komisyon
-- Partner: 1.5 TL
-- Finansör: 2.5 TL (OTOMATIK KESİLİR - deftere girmez)
-- Organizasyon: 2 TL
-- **Muhasebeleştirilen:** 97.5 TL (100 - 2.5 finansör kesintisi)
+**Ornek:** 100 TL islem
+- Finansor 2.5 TL otomatik keser (deftere girmez)
+- Muhasbeleistirilen: 97.5 TL
+- Site: 94 TL, Partner: 1.5 TL, Organizasyon: 2 TL
 
 ### Double-Entry Accounting
 
-**Altın Kural:** Her işlem dengeli ledger kaydı oluşturur
+Her islem dengeli ledger kaydi olusturur: `DEBIT = CREDIT`
 
 ```
-TOPLAM BORÇ (DEBIT) = TOPLAM ALACAK (CREDIT)
+100 TL Yatirim:
+  DEBIT:  Finansor     +97.5 TL  (ASSET)
+  CREDIT: Site         +94.0 TL  (LIABILITY)
+  CREDIT: Partner      +1.5 TL   (LIABILITY)
+  CREDIT: Organizasyon +2.0 TL   (ASSET)
+  Toplam: 97.5 = 94 + 1.5 + 2 (DENGELI)
 ```
 
-**Örnek Yatırım İşlemi (100 TL):**
-```
-BORÇ (DEBIT):
-  Finansör     +97.5 TL (finansörde duran para - AKTİF)
+### Hesap Tipleri
 
-ALACAK (CREDIT):
-  Site         +94.0 TL (müşterilere borç - BORÇ HESABI)
-  Partner      +1.5 TL  (komisyon borcu - BORÇ HESABI)
-  Organizasyon +2.0 TL  (bizim kar - AKTİF)
-
-Toplam: 97.5 = 94 + 1.5 + 2 ✅ DENGELİ
-```
+| Hesap | Tip | Aciklama |
+|-------|-----|----------|
+| Finansor | ASSET | Bizim icin para tutuyor |
+| Organizasyon | ASSET | Bizim kar/sermaye |
+| Site | LIABILITY | Musterilere borc |
+| Partner | LIABILITY | Komisyon borcu |
+| Dis Kisi | LIABILITY | Dis borc |
 
 ---
 
-## 🎨 Tasarım Sistemi
+## Sayfalar
 
-### Renk Paleti - Deep Space Blue
+### Dashboard ve Islemler
+| Sayfa | Yol | Aciklama |
+|-------|-----|----------|
+| Dashboard | `/dashboard` | Genel bakis, ozet istatistikler |
+| Tum Islemler | `/transactions` | Islem listesi, filtreleme, arama |
+| Bulk Import | `/transactions/import` | Toplu islem aktarimi |
 
-```css
---deep-space-blue: #012a4a;    /* Dark base */
---yale-blue: #013a63;          /* Primary */
---rich-cerulean: #2a6f97;      /* Secondary */
---cerulean: #2c7da0;           /* Accent */
---steel-blue: #61a5c2;         /* Muted */
---light-blue: #a9d6e5;         /* Background */
-```
+### Hesaplar
+| Sayfa | Yol | Aciklama |
+|-------|-----|----------|
+| Organizasyon | `/organization` | Org bakiyesi, analytics |
+| Personel | `/organization/personnel` | Personel & maas takibi |
+| Siteler | `/sites` | Site listesi + detay |
+| Partnerler | `/partners` | Partner listesi + detay |
+| Finansorler | `/financiers` | Finansor listesi + detay |
+| Dis Kisiler | `/external-parties` | Dis kisi listesi + detay |
 
-### Tasarım Prensipleri (2026 Modern UI)
+### Raporlar
+| Sayfa | Yol | Aciklama |
+|-------|-----|----------|
+| Kasa Raporu | `/reports/kasa-raporu` | Aylik/gunluk kasa ozeti |
+| Mutabakat | `/reports/reconciliation` | Varlik-yukumluluk dengesi |
+| Analiz | `/reports/analysis` | Performans ve dagilim |
 
-- ✨ Card-based layouts (`rounded-3xl`)
-- 🌊 Generous whitespace
-- 🎭 Subtle shadows (`shadow-lg`, `shadow-xl`)
-- 🌈 Gradient backgrounds
-- 🎬 Smooth transitions (300ms ease)
-- 🎯 Icon + Text combinations
-- 📱 Responsive grid layouts
-- 📊 Data visualization with charts
+### Sistem
+| Sayfa | Yol | Aciklama |
+|-------|-----|----------|
+| Onay Bekleyenler | `/approvals` | Pending islem onay kuyrugu |
+| Ayarlar | `/settings` | Komisyon oranlari, sistem ayarlari |
 
 ---
 
-## 📚 Dökümanlar
+## Gelistirme
 
-- **[ROADMAP.md](./ROADMAP.md)** - Detaylı geliştirme planı, değişiklikler, yapılacaklar
-- **[.claude/CLAUDE.md](./.claude/CLAUDE.md)** - Kapsamlı proje rehberi (CEO-CFO modeli)
-- **[API Docs](http://localhost:3001/docs)** - Swagger/OpenAPI documentation
-
----
-
-## 🔧 Geliştirme
-
-### Önemli Komutlar
+### Onemli Komutlar
 
 ```bash
 # Backend
 cd apps/backend
-npm run dev          # Development server
-npm run build        # Production build
-npx prisma studio    # Database GUI
-npx prisma migrate dev  # Create migration
+npm run dev              # Development server (localhost:3001)
+npm run build            # Production build
+npx prisma studio        # Database GUI
+npx prisma db push       # Schema push
 
 # Frontend
 cd apps/frontend
-npm run dev          # Development server
-npm run build        # Production build
-npm run lint         # ESLint check
+npm run dev              # Development server (localhost:3000)
+npm run build            # Production build
+npx tsc --noEmit         # Type check
 ```
 
-### Custom Slash Commands
+### Claude Code Komutlari
 
 ```bash
-/audit              # Finansal doğruluk kontrolü
+/audit              # Finansal dogruluk kontrolu
+/financial-audit    # 3-teammate ile kapsamli audit
 /financial-test     # E2E test seed data ile
-/deploy-check       # Production hazırlık kontrolü
+/deploy-check       # Production hazirlik kontrolu
 /optimize           # Performans analizi
 ```
 
 ---
 
-## 🧪 Test
-
-### Manuel Test
-
-```bash
-# 1. Sistemi başlat (yukardaki adımlar)
-# 2. Tarayıcıda aç: http://localhost:3000
-# 3. Giriş yap: admin@finanspro.com / admin123
-# 4. Test senaryolarını takip et
-```
-
-### Test Edilmesi Gerekenler
-
-1. **Yatırım İşlemi (100 TL)**
-   - Site bakiyesi: +94 TL
-   - Partner bakiyesi: +1.5 TL
-   - Finansör bakiyesi: +97.5 TL
-   - Org bakiyesi: +2 TL
-   - Ledger dengeli mi?
-
-2. **Komisyon Validasyonu**
-   - Aşırı komisyon girilince hata vermeli
-   - Negatif organizasyon karı engellenmeli
-
-3. **UI/UX Akışı**
-   - Tüm sayfalar açılıyor mu?
-   - Veriler doğru görünüyor mu?
-   - Loading states çalışıyor mu?
-
----
-
-## 🚨 Bilinen Sorunlar
-
-### Next.js Vendor Chunk Hatası
-**Durum:** ⚠️ Düşük öncelik
-**Etki:** Console'da hata görünüyor ama sayfa çalışıyor
-**Geçici Çözüm:** `cd apps/frontend && rm -rf .next && npm run dev`
-
-Detaylar için: [ROADMAP.md - Bilinen Sorunlar](./ROADMAP.md#-bilinen-sorunlar-ve-çözümler)
-
----
-
-## 🤝 Katkıda Bulunma
-
-Bu proje aktif geliştirme aşamasında. Katkıda bulunmak için:
-
-1. Issue aç (bug report veya feature request)
-2. Fork & branch oluştur
-3. Değişiklikleri yap
-4. Pull request gönder
-
----
-
-## 📊 Proje İstatistikleri
+## Proje Istatistikleri
 
 ```
 Backend:
-  ├─ API Endpoints: 60+
-  ├─ Database Tables: 15
-  ├─ Services: 8
-  └─ Lines of Code: ~10,000
+  API Endpoints: 70+
+  Database Tables: 15+
+  Modules: 14
+  Lines of Code: ~12,000
 
 Frontend:
-  ├─ Pages: 20+
-  ├─ Components: 60+
-  ├─ Hooks: 30+
-  └─ Lines of Code: ~15,000
+  Pages: 22+
+  Components: 70+
+  Hooks: 35+
+  Lines of Code: ~18,000
 
-Total: ~25,000 lines of TypeScript
+Total: ~30,000 lines of TypeScript
 ```
 
 ---
 
-## 🎯 Yol Haritası
+## Yol Haritasi
 
-### ✅ Tamamlandı (v3.1.0)
-- Muhasebe sistemi düzeltmesi
+### Tamamlandi (v3.0 - v3.2)
+- Muhasebe sistemi (double-entry, Decimal.js)
 - Komisyon validasyonu
-- Modern UI/UX
-- Double-entry accounting
-- Decimal precision
+- Islem onay & bildirim sistemi
+- Personel yonetimi
+- Dis kisi yonetimi (detay + kasa defteri)
+- Bulk import
+- Kasa raporu, mutabakat, analiz raporlari
+- Dark mode (rapor sayfalari)
+- Mobil optimizasyon
+- Turkey timezone (GMT+3)
+- Admin transaction edit (Undo & Recreate)
 
-### 🚧 Devam Ediyor (v3.2.0)
-- Manuel test completion
+### Devam Ediyor
+- Dark mode (tum sayfalar)
+- Test coverage artirma
 - Performance optimization
-- Error handling improvements
-- Test coverage artırma
 
-### 📋 Planlanan (v3.3.0+)
+### Planlanan
 - Multi-tenant support
 - Excel/PDF export
 - Email/SMS notifications
 - Mobile app
-- Advanced analytics
-- AI-powered insights
 
-Detaylı yol haritası: [ROADMAP.md](./ROADMAP.md)
+Detayli yol haritasi: [ROADMAP.md](./ROADMAP.md)
 
 ---
 
-## 📞 Destek
+## Dokumanlar
 
-- **Teknik Sorular:** [ROADMAP.md - Destek](./ROADMAP.md#-destek)
-- **Proje Rehberi:** [.claude/CLAUDE.md](./.claude/CLAUDE.md)
-- **API Docs:** http://localhost:3001/docs
-
----
-
-## 📜 Lisans
-
-Proprietary - ©2026 FinansPro
+- **[ROADMAP.md](./ROADMAP.md)** - Detayli gelistirme plani
+- **[CHANGELOG.md](./CHANGELOG.md)** - Versiyon gecmisi
+- **[API Docs](http://localhost:3001/docs)** - Swagger/OpenAPI
+- **[.claude/](./.claude/)** - Claude Code customizations
 
 ---
 
-## 🙏 Teşekkürler
+## Lisans
 
-Bu proje Claude Code ve CEO-CFO modeli ile geliştirilmiştir.
-
-- **CEO (Emre):** Strateji, iş mantığı, test
-- **CFO (Claude):** Teknik uygulama, kod kalitesi, muhasebe doğruluğu
+Proprietary - 2026 FinansPro
 
 ---
 
-**Son Güncelleme:** 11 Şubat 2026
-**Versiyon:** 3.1.0
-**Durum:** ✅ Test Edilmeye Hazır
-
-🚀 **Happy Coding!**
+**Son Guncelleme:** 22 Subat 2026
+**Versiyon:** 3.2.0
