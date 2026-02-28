@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: kasalar-arasi-borc-alacak
-status: in_progress
-last_updated: "2026-02-28"
+milestone_name: Kasalar Arasi Borc/Alacak
+status: unknown
+last_updated: "2026-02-28T23:23:54.034Z"
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
