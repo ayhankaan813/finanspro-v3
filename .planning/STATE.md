@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Finansorler arasi borc/alacak iliskisi her an net gorunsun
-**Current focus:** Phase 5 — Data Foundation and API
+**Current focus:** Phase 6 — Borc/Alacak Yonetim Sayfasi
 
 ## Current Position
 
-Phase: 5 of 7 (Data Foundation and API)
-Plan: 05-02 (complete — Phase 5 finished)
-Status: Phase 5 complete — ready for Phase 6 (frontend)
-Last activity: 2026-03-01 — 05-02 complete (Debt backend module: service, schemas, routes)
+Phase: 6 of 7 (Borc/Alacak Yonetim Sayfasi)
+Plan: Planning complete — 3 plans ready for execution
+Status: Phase 6 planned — ready to execute 06-01
+Last activity: 2026-03-01 — Phase 6 planning complete (3 plans: hooks+skeleton, list+history+dialogs, matrix)
 
 Progress: [##########] 100%
 
@@ -68,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 05-02-PLAN.md — Debt backend module (service, schemas, routes, app.ts registration). Phase 5 complete. Next: Phase 6 (frontend debt UI).
+Stopped at: Phase 6 planning complete — 3 PLAN.md files created (06-01, 06-02, 06-03). Ready to execute 06-01 (hooks + sidebar + page skeleton with summary cards).
 Resume file: None

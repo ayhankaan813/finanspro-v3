@@ -110,12 +110,12 @@ Plans:
   2. Acik borclar listesinde sadece kapanmamis borclar listelenir; her satir borc veren, borc alan, baslangic tutari ve kalan bakiyeyi gosterir
   3. Islem gecmisi sekmesinde tum borc verme ve odeme kayitlari kronolojik siraya gore listelenir
   4. Finansor matrix tablosunda her finansorun diger finansorlere olan borc/alacak bakiyesi satir/sutun kesisimlerinde gorulur
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Frontend — /borclar sayfasi iskelet + ozet kartlari (PAGE-01) + React Query hook'lari
-- [ ] 06-02: Frontend — Acik borclar listesi (PAGE-02) ve islem gecmisi (PAGE-03)
-- [ ] 06-03: Frontend — Finansor matrix/capraz tablosu (PAGE-04)
+- [ ] 06-01: Frontend — Debt React Query hooks + sidebar nav + /borclar page skeleton with summary cards (PAGE-01)
+- [ ] 06-02: Frontend — Acik borclar listesi (PAGE-02), islem gecmisi (PAGE-03), create/payment/cancel dialogs (PAGE-01)
+- [ ] 06-03: Frontend — Finansor matrix cross-table with heat map (PAGE-04)
 
 #### Phase 7: Finansor Detay Entegrasyonu
 **Goal**: Mevcut finansor detay sayfasi borc/alacak ozeti ve detay tab'i ile zenginlestirilir
