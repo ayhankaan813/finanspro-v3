@@ -23,11 +23,11 @@ Requirements for mobile responsive overhaul. Each maps to roadmap phases.
 
 ### Kart Grids
 
-- [ ] **GRID-01**: Dashboard kartlari grid-cols-1 sm:grid-cols-2 lg:grid-cols-3+ responsive grid kullanmali
-- [ ] **GRID-02**: Site listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
-- [ ] **GRID-03**: Partner listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
-- [ ] **GRID-04**: Finansor listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
-- [ ] **GRID-05**: Dis kisi listesi kartlari mobilde responsive grid kullanmali
+- [x] **GRID-01**: Dashboard kartlari grid-cols-1 sm:grid-cols-2 lg:grid-cols-3+ responsive grid kullanmali
+- [x] **GRID-02**: Site listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
+- [x] **GRID-03**: Partner listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
+- [x] **GRID-04**: Finansor listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
+- [x] **GRID-05**: Dis kisi listesi kartlari mobilde responsive grid kullanmali
 
 ### Detay Sayfalari
 
@@ -101,11 +101,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TABL-01 | Phase 2 | Complete |
 | TABL-02 | Phase 2 | Complete |
 | TABL-03 | Phase 2 | Complete |
-| GRID-01 | Phase 2 | Pending |
-| GRID-02 | Phase 2 | Pending |
-| GRID-03 | Phase 2 | Pending |
-| GRID-04 | Phase 2 | Pending |
-| GRID-05 | Phase 2 | Pending |
+| GRID-01 | Phase 2 | Complete |
+| GRID-02 | Phase 2 | Complete |
+| GRID-03 | Phase 2 | Complete |
+| GRID-04 | Phase 2 | Complete |
+| GRID-05 | Phase 2 | Complete |
 | DETL-01 | Phase 3 | Pending |
 | DETL-02 | Phase 3 | Pending |
 | DETL-03 | Phase 3 | Pending |
