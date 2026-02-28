@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Tapping any input or select field on iOS Safari does not trigger an automatic zoom of the page
   4. Financial amounts (TL values with many digits) never break mid-number across two lines anywhere in the app
   5. Every button, tab, and interactive row is at least 44px tall and tappable without precision on a touch device
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Apply overflow-x clip to layout root and audit all ancestor overflow values
-- [ ] 01-02: Update shadcn dialog.tsx with mobile-safe width and height constraints
-- [ ] 01-03: Add 16px base font-size rule for all inputs globally, add whitespace-nowrap to financial number elements, audit touch target heights
+- [ ] 01-01-PLAN.md — Add .overflow-x-clip utility to globals.css and apply to dashboard layout root div
+- [ ] 01-02-PLAN.md — Update shadcn dialog.tsx with mobile-safe width, height cap, and internal scroll
+- [ ] 01-03-PLAN.md — Fix iOS zoom (input/select/textarea text-base), touch targets (button h-11, tabs min-h-[44px]), financial nowrap (.font-amount)
 
 ### Phase 2: Tables and Grids
 **Goal**: Every table in the application is horizontally scrollable on mobile and every card grid collapses to a single column on mobile without content overflow
