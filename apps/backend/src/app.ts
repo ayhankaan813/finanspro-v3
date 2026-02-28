@@ -24,6 +24,7 @@ import { organizationRoutes } from './modules/organization/index.js';
 import { notificationRoutes } from './modules/notification/notification.routes.js';
 import { approvalRoutes } from './modules/approval/approval.routes.js';
 import { personnelRoutes } from './modules/personnel/index.js';
+import { debtRoutes } from './modules/debt/index.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -138,6 +139,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
     // Personnel routes
     api.register(personnelRoutes, { prefix: '/organization/personnel' });
+
+    // Debt routes (kasalar arası borç/alacak)
+    api.register(debtRoutes, { prefix: '/debts' });
 
     // Report routes (will be added later)
     // api.register(reportRoutes, { prefix: '/reports' });
