@@ -30,7 +30,7 @@ export const createSitePaymentSchema = z.object({
     message: 'Tutar pozitif bir sayı olmalı',
   }),
   category_id: z.string().uuid().optional(),
-  delivery_type_id: z.string().uuid().optional(),
+  delivery_type_id: z.string().min(1).optional(),
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
 });
@@ -41,7 +41,7 @@ export const createSiteDeliverySchema = z.object({
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
-  delivery_type_id: z.string().uuid().optional(),
+  delivery_type_id: z.string().min(1).optional(),
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
 });
@@ -173,7 +173,7 @@ export const createDeliverySchema = z.object({
   }),
 
   // Teslimat türü (Nakit, Kripto, Banka)
-  delivery_type_id: z.string().uuid('Geçersiz teslimat türü ID'),
+  delivery_type_id: z.string().min(1, 'Teslimat türü seçin'),
 
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
@@ -200,7 +200,7 @@ export const editTransactionSchema = z.object({
   to_financier_id: z.string().uuid('Geçersiz hedef finansör ID').optional(),
 
   // Teslimat tipi için
-  delivery_type_id: z.string().uuid('Geçersiz teslimat türü ID').optional(),
+  delivery_type_id: z.string().min(1, 'Teslimat türü seçin').optional(),
 
   // Basit alanlar
   description: z.string().max(500).optional(),
