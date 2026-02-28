@@ -519,7 +519,7 @@ export default function PersonnelPage() {
                           <>
                             <div className="bg-white rounded-xl ring-1 ring-slate-100 overflow-hidden">
                               {/* Desktop Table */}
-                              <div className="hidden sm:block">
+                              <div className="hidden sm:block overflow-x-auto">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b border-slate-100 text-xs text-slate-500">
