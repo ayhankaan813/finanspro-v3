@@ -17,9 +17,9 @@ Requirements for mobile responsive overhaul. Each maps to roadmap phases.
 
 ### Tablolar
 
-- [ ] **TABL-01**: Tum tablo elementleri overflow-x-auto wrapper icinde olmali (~15 tablo)
-- [ ] **TABL-02**: Tablo wrapper'lari mobilde -mx-3 sm:mx-0 ile kenardan kenara scroll alani saglamali
-- [ ] **TABL-03**: Tablo hucreleri whitespace-nowrap ile icerik kirilmasini onlemeli
+- [x] **TABL-01**: Tum tablo elementleri overflow-x-auto wrapper icinde olmali (~15 tablo)
+- [x] **TABL-02**: Tablo wrapper'lari mobilde -mx-3 sm:mx-0 ile kenardan kenara scroll alani saglamali
+- [x] **TABL-03**: Tablo hucreleri whitespace-nowrap ile icerik kirilmasini onlemeli
 
 ### Kart Grids
 
@@ -98,9 +98,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GLOB-03 | Phase 1 | Complete |
 | GLOB-04 | Phase 1 | Complete |
 | GLOB-05 | Phase 1 | Complete |
-| TABL-01 | Phase 2 | Pending |
-| TABL-02 | Phase 2 | Pending |
-| TABL-03 | Phase 2 | Pending |
+| TABL-01 | Phase 2 | Complete |
+| TABL-02 | Phase 2 | Complete |
+| TABL-03 | Phase 2 | Complete |
 | GRID-01 | Phase 2 | Pending |
 | GRID-02 | Phase 2 | Pending |
 | GRID-03 | Phase 2 | Pending |

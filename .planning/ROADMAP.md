@@ -13,7 +13,7 @@ Four phases take this project from its current partially-responsive state to ful
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Global overflow containment, dialog sizing, iOS Safari input fix, and touch target baseline
-- [ ] **Phase 2: Tables and Grids** - All table scroll wrappers and all card grid responsive patterns applied across the app
+- [x] **Phase 2: Tables and Grids** - All table scroll wrappers and all card grid responsive patterns applied across the app (completed 2026-02-28)
 - [ ] **Phase 3: Entity Pages** - Site, partner, financier, and external-party detail and list pages fully responsive
 - [ ] **Phase 4: Feature Pages and Completion** - Transactions, approvals, organization, reports, settings, and compact number format
 
@@ -94,6 +94,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete    | 2026-02-28 |
-| 2. Tables and Grids | 0/2 | Not started | - |
+| 2. Tables and Grids | 2/2 | Complete   | 2026-02-28 |
 | 3. Entity Pages | 0/3 | Not started | - |
 | 4. Feature Pages and Completion | 0/5 | Not started | - |

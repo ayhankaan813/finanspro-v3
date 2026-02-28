@@ -22,12 +22,12 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 3 of 3 in current phase
-Status: Phase 1 complete
-Last activity: 2026-02-28 — Completed 01-03 (global mobile UI primitives)
+Phase: 2 of 4 (Tables and Grids)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-28 — Completed 02-01 (horizontal scroll wrappers for financier and personnel tables)
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 31%
 
 ## Performance Metrics
 
@@ -41,9 +41,10 @@ Progress: [███░░░░░░░] 25%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3 | ~3 min | ~1 min |
+| 02-tables-and-grids | 1 | ~1 min | ~1 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (overflow-x clip), 01-02 (dialog mobile), 01-03 (input/button/tabs mobile primitives)
+- Last 5 plans: 01-01 (overflow-x clip), 01-02 (dialog mobile), 01-03 (input/button/tabs mobile primitives), 02-01 (financier + personnel table scroll wrappers)
 - Trend: Fast (quick targeted UI primitive fixes)
 
 *Updated after each plan completion*
@@ -76,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 01-03-PLAN.md — global mobile UI primitives applied (Phase 1 complete)
+Stopped at: Completed 02-01-PLAN.md — horizontal scroll wrappers added to financier detail and personnel tables
 Resume file: None
