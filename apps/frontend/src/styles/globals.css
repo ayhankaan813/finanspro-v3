@@ -115,6 +115,7 @@
   font-family: theme("fontFamily.mono");
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.025em;
+  white-space: nowrap;
 }
 
 /* Positive/negative amount colors */
