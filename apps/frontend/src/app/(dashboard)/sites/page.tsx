@@ -938,7 +938,7 @@ export default function SitesPage() {
             items={orderedSites.map(s => s.id)}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {orderedSites.map(site => (
                 <SortableSiteCard
                   key={site.id}
