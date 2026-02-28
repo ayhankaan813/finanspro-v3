@@ -12,7 +12,7 @@ Four phases take this project from its current partially-responsive state to ful
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Global overflow containment, dialog sizing, iOS Safari input fix, and touch target baseline
+- [x] **Phase 1: Foundation** - Global overflow containment, dialog sizing, iOS Safari input fix, and touch target baseline
 - [ ] **Phase 2: Tables and Grids** - All table scroll wrappers and all card grid responsive patterns applied across the app
 - [ ] **Phase 3: Entity Pages** - Site, partner, financier, and external-party detail and list pages fully responsive
 - [ ] **Phase 4: Feature Pages and Completion** - Transactions, approvals, organization, reports, settings, and compact number format
@@ -32,9 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Add .overflow-x-clip utility to globals.css and apply to dashboard layout root div
-- [ ] 01-02-PLAN.md — Update shadcn dialog.tsx with mobile-safe width, height cap, and internal scroll
-- [ ] 01-03-PLAN.md — Fix iOS zoom (input/select/textarea text-base), touch targets (button h-11, tabs min-h-[44px]), financial nowrap (.font-amount)
+- [x] 01-01-PLAN.md — Add .overflow-x-clip utility to globals.css and apply to dashboard layout root div
+- [x] 01-02-PLAN.md — Update shadcn dialog.tsx with mobile-safe width, height cap, and internal scroll
+- [x] 01-03-PLAN.md — Fix iOS zoom (input/select/textarea text-base), touch targets (button h-11, tabs min-h-[44px]), financial nowrap (.font-amount)
 
 ### Phase 2: Tables and Grids
 **Goal**: Every table in the application is horizontally scrollable on mobile and every card grid collapses to a single column on mobile without content overflow
@@ -93,7 +93,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/3 | In Progress|  |
+| 1. Foundation | 3/3 | Complete | 2026-02-28 |
 | 2. Tables and Grids | 0/2 | Not started | - |
 | 3. Entity Pages | 0/3 | Not started | - |
 | 4. Feature Pages and Completion | 0/5 | Not started | - |
