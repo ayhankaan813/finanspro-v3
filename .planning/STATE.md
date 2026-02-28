@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-28 — Roadmap and state initialized
+Plan: 2 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-28 — Completed 01-02 (mobile-safe dialog)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 17%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 2
+- Average duration: ~1 min
+- Total execution time: ~2 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 2 | ~2 min | ~1 min |
 
 **Recent Trend:**
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 01-01 (overflow-x clip), 01-02 (dialog mobile)
+- Trend: Fast (quick single-file fixes)
 
 *Updated after each plan completion*
 
@@ -45,6 +45,8 @@ Recent decisions affecting current work:
 - Foundation: Use overflow-x: clip (not overflow-hidden) to avoid breaking sticky sidebar positioning
 - Foundation: Fix shadcn dialog.tsx once globally before any transaction/approval page work
 - Tables: Remove table-fixed from financial tables; add scroll wrappers instead
+- 01-02: Use dvh not vh for max-height so iOS Safari address-bar show/hide does not cause dialog height jumps
+- 01-02: calc(100vw-32px) gives 16px margin each side on 375px screens; sm:max-w-lg restores desktop appearance
 
 ### Pending Todos
 
@@ -58,5 +60,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Roadmap created, STATE.md initialized — ready to plan Phase 1
+Stopped at: Completed 01-02-PLAN.md — mobile-safe dialog fix applied
 Resume file: None

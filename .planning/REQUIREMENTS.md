@@ -9,10 +9,10 @@ Requirements for mobile responsive overhaul. Each maps to roadmap phases.
 
 ### Global Foundation
 
-- [ ] **GLOB-01**: Layout root overflow-x: clip uygulanmali (sticky pozisyonu bozmadan tasan icerigi onler)
+- [x] **GLOB-01**: Layout root overflow-x: clip uygulanmali (sticky pozisyonu bozmadan tasan icerigi onler)
 - [ ] **GLOB-02**: Tum input/select/textarea elementleri 16px font-size kullanmali (iOS Safari zoom onleme)
 - [ ] **GLOB-03**: Tum interaktif elementler (buton, tab, satir) minimum 44px touch target olmali
-- [ ] **GLOB-04**: shadcn Dialog komponenti mobilde w-full max-w-lg max-h-[90vh] overflow-y-auto olmali
+- [x] **GLOB-04**: shadcn Dialog komponenti mobilde w-full max-w-lg max-h-[90vh] overflow-y-auto olmali
 - [ ] **GLOB-05**: Finansal rakamlar whitespace-nowrap ile korunmali, sayi ortasindan kirilmamali
 
 ### Tablolar
@@ -93,10 +93,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GLOB-01 | Phase 1 | Pending |
+| GLOB-01 | Phase 1 | Complete |
 | GLOB-02 | Phase 1 | Pending |
 | GLOB-03 | Phase 1 | Pending |
-| GLOB-04 | Phase 1 | Pending |
+| GLOB-04 | Phase 1 | Complete |
 | GLOB-05 | Phase 1 | Pending |
 | TABL-01 | Phase 2 | Pending |
 | TABL-02 | Phase 2 | Pending |
