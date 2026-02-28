@@ -311,7 +311,8 @@ export default function FinancierDetailPage() {
         </div>
         <CardContent className="p-0">
           <div className="max-h-[65vh] overflow-y-auto">
-            <table className="w-full table-fixed">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px]">
               <thead className="sticky top-0 z-10 bg-twilight-50/95 backdrop-blur-sm shadow-[0_1px_0_0_theme(colors.twilight.100)]">
                 <tr>
                   <th className="w-[28px] sm:w-[70px] px-1 sm:px-3 py-1.5 sm:py-3 text-left text-[9px] sm:text-xs font-semibold text-twilight-600 uppercase">TARİH</th>
@@ -385,6 +386,7 @@ export default function FinancierDetailPage() {
                 </tr>
               </tfoot>
             </table>
+            </div>
           </div>
         </CardContent>
       </Card>
