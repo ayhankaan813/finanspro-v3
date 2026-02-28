@@ -53,27 +53,25 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | - | Pending |
-| DEBT-02 | - | Pending |
-| DEBT-03 | - | Pending |
-| DEBT-04 | - | Pending |
-| PAGE-01 | - | Pending |
-| PAGE-02 | - | Pending |
-| PAGE-03 | - | Pending |
-| PAGE-04 | - | Pending |
-| FDET-01 | - | Pending |
-| FDET-02 | - | Pending |
-| FDET-03 | - | Pending |
+| DEBT-01 | Phase 5 | Pending |
+| DEBT-02 | Phase 5 | Pending |
+| DEBT-03 | Phase 5 | Pending |
+| DEBT-04 | Phase 5 | Pending |
+| PAGE-01 | Phase 6 | Pending |
+| PAGE-02 | Phase 6 | Pending |
+| PAGE-03 | Phase 6 | Pending |
+| PAGE-04 | Phase 6 | Pending |
+| FDET-01 | Phase 7 | Pending |
+| FDET-02 | Phase 7 | Pending |
+| FDET-03 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11 ⚠️
+- Mapped to phases: 11
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after initial definition*
+*Last updated: 2026-02-28 — Traceability populated after roadmap creation*

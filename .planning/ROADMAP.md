@@ -1,23 +1,14 @@
-# Roadmap: FinansPro v3 — Mobile Responsive Overhaul
+# Roadmap: FinansPro v3
 
-## Overview
+## Milestones
 
-Four phases take this project from its current partially-responsive state to full mobile usability at 375px. Phase 1 locks in the global CSS foundation that every page fix depends on. Phase 2 applies the table and grid patterns that are structurally shared across the entire app. Phase 3 fixes all entity detail and list pages using the patterns established in Phase 2. Phase 4 completes the remaining complex pages (transactions, approvals, organization, reports, settings) and adds compact number formatting. When Phase 4 is done, every page in the application is readable and operable at 375px.
+- [x] **v1.0 Mobile Responsive Overhaul** — Phases 1-4 (in progress, Phases 1-2 complete)
+- **v1.1 Kasalar Arasi Borc/Alacak** — Phases 5-7 (current milestone)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Foundation** - Global overflow containment, dialog sizing, iOS Safari input fix, and touch target baseline
-- [x] **Phase 2: Tables and Grids** - All table scroll wrappers and all card grid responsive patterns applied across the app (completed 2026-02-28)
-- [ ] **Phase 3: Entity Pages** - Site, partner, financier, and external-party detail and list pages fully responsive
-- [ ] **Phase 4: Feature Pages and Completion** - Transactions, approvals, organization, reports, settings, and compact number format
-
-## Phase Details
+<details>
+<summary>v1.0 Mobile Responsive Overhaul (Phases 1-4)</summary>
 
 ### Phase 1: Foundation
 **Goal**: The global CSS environment is safe for mobile — no page-level horizontal scroll, dialogs fit 375px screens, iOS Safari does not zoom on input focus, and all interactive elements meet 44px touch target size
@@ -45,11 +36,12 @@ Plans:
   2. Table rows never wrap their cell content onto multiple lines; text and numbers stay on one line within each cell
   3. Dashboard summary cards display as a single column at 375px, two columns at 640px, and three or more at 1024px
   4. Site, partner, financier, and external-party list card grids each show one card per row at 375px and two per row at 768px
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Wrap all ~15 tables in overflow-x-auto -mx-3 sm:mx-0 containers; add whitespace-nowrap to all td/th elements
-- [ ] 02-02: Apply responsive grid-cols-1 sm:grid-cols-2 lg:grid-cols-N to dashboard cards and all four list page card grids
+- [x] 02-01: Wrap all ~15 tables in overflow-x-auto -mx-3 sm:mx-0 containers; add whitespace-nowrap to all td/th elements
+- [x] 02-02: Apply responsive grid-cols-1 sm:grid-cols-2 lg:grid-cols-N to dashboard cards and all four list page card grids
+- [x] 02-sticky-1: Add sticky date column to monthly report and financier detail tables
 
 ### Phase 3: Entity Pages
 **Goal**: Users can view and interact with site, partner, financier, and external-party detail and list pages on a 375px screen without any content overflowing the viewport
@@ -86,14 +78,70 @@ Plans:
 - [ ] 04-04: Fix reports/daily/page.tsx and reports/monthly/page.tsx — add mobile card view alongside hidden desktop table; verify kasa-raporu/mutabakat/analiz at 375px
 - [ ] 04-05: Fix settings/page.tsx mobile tab navigation and form fields; add formatMoney compact option; apply to dashboard cards with tooltip
 
+</details>
+
+---
+
+### v1.1 Kasalar Arasi Borc/Alacak (Current Milestone)
+
+**Milestone Goal:** Finansorler arasinda borc verme/alma, serbest geri odeme, ve tum borc/alacak durumunun tek noktadan takibi.
+
+#### Phase 5: Data Foundation and API
+**Goal**: Finansorler arasinda borc ve odeme kaydi olusturulabilir, iptal edilebilir — backend hazir
+**Depends on**: Nothing (brownfield, existing financier system in place)
+**Requirements**: DEBT-01, DEBT-02, DEBT-03, DEBT-04
+**Success Criteria** (what must be TRUE):
+  1. Admin yeni bir borc kaydi olusturabilir: borc veren finansor, borc alan finansor, tutar, tarih ve aciklama girildiginde kayit veritabanina yazilir
+  2. Acik bir borca karsi kismi veya tam odeme kaydedilebilir; her odemenin kalan bakiyeye etkisi aninda hesaplanir
+  3. Yanlis girilen bir borc kaydi iptal edilebilir; iptal edilen kayit listede gorunur ancak toplam hesaplamalara dahil edilmez
+  4. Borc ve odeme kayitlarina serbest metin aciklama eklenebilir ve bu aciklama API response'unda donus yapar
+**Plans**: TBD
+
+Plans:
+- [ ] 05-01: Prisma — Debt ve DebtPayment tablolarini olustur, migrate et, seed'e ornek veri ekle
+- [ ] 05-02: Backend — debt.service.ts ve debt.controller.ts (create, pay, cancel, list endpoints)
+
+#### Phase 6: Borc/Alacak Yonetim Sayfasi
+**Goal**: Kullanici tek bir sayfada tum borclari ozet, liste, gecmis ve matrix seklinde gorebilir
+**Depends on**: Phase 5
+**Requirements**: PAGE-01, PAGE-02, PAGE-03, PAGE-04
+**Success Criteria** (what must be TRUE):
+  1. Borc/Alacak sayfasinin ustten ozet kartlarinda toplam borc, toplam alacak, net durum ve aktif borc sayisi dogru rakamlarla gorunur
+  2. Acik borclar listesinde sadece kapanmamis borclar listelenir; her satir borc veren, borc alan, baslangic tutari ve kalan bakiyeyi gosterir
+  3. Islem gecmisi sekmesinde tum borc verme ve odeme kayitlari kronolojik siraya gore listelenir
+  4. Finansor matrix tablosunda her finansorun diger finansorlere olan borc/alacak bakiyesi satir/sutun kesisimlerinde gorulur
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: Frontend — /borclar sayfasi iskelet + ozet kartlari (PAGE-01) + React Query hook'lari
+- [ ] 06-02: Frontend — Acik borclar listesi (PAGE-02) ve islem gecmisi (PAGE-03)
+- [ ] 06-03: Frontend — Finansor matrix/capraz tablosu (PAGE-04)
+
+#### Phase 7: Finansor Detay Entegrasyonu
+**Goal**: Mevcut finansor detay sayfasi borc/alacak ozeti ve detay tab'i ile zenginlestirilir
+**Depends on**: Phase 5
+**Requirements**: FDET-01, FDET-02, FDET-03
+**Success Criteria** (what must be TRUE):
+  1. Finansor detay sayfasinda ozet kart alani bu finansorun toplam alacagi, toplam borcu ve net pozisyonunu gosterir
+  2. Finansor detay sayfasindaki Borc/Alacak tab'i bu finansorle ilgili tum borc ve odeme kayitlarini listeler
+  3. Finansor detay sayfasinda "Borc Ver/Al" butonu tiklandiginda dogrudan bu finansore alinmis veya verilen borc olusturma formu acar
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: Frontend — finansors/[id]/page.tsx'e borc/alacak ozet karti ve Borc/Alacak tab'i ekle
+- [ ] 07-02: Frontend — Borc Ver/Al quick-action butonu ve modal form entegrasyonu
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation | 3/3 | Complete    | 2026-02-28 |
-| 2. Tables and Grids | 3/3 | Complete   | 2026-02-28 |
-| 3. Entity Pages | 0/3 | Not started | - |
-| 4. Feature Pages and Completion | 0/5 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation | v1.0 | 3/3 | Complete | 2026-02-28 |
+| 2. Tables and Grids | v1.0 | 3/3 | Complete | 2026-02-28 |
+| 3. Entity Pages | v1.0 | 0/3 | Not started | - |
+| 4. Feature Pages and Completion | v1.0 | 0/5 | Not started | - |
+| 5. Data Foundation and API | v1.1 | 0/2 | Not started | - |
+| 6. Borc/Alacak Yonetim Sayfasi | v1.1 | 0/3 | Not started | - |
+| 7. Finansor Detay Entegrasyonu | v1.1 | 0/2 | Not started | - |
