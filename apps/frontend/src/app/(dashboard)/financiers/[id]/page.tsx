@@ -315,7 +315,7 @@ export default function FinancierDetailPage() {
             <table className="w-full min-w-[560px]">
               <thead className="sticky top-0 z-10 bg-twilight-50/95 backdrop-blur-sm shadow-[0_1px_0_0_theme(colors.twilight.100)]">
                 <tr>
-                  <th className="w-[28px] sm:w-[70px] px-1 sm:px-3 py-1.5 sm:py-3 text-left text-[9px] sm:text-xs font-semibold text-twilight-600 uppercase whitespace-nowrap">TARİH</th>
+                  <th className="sticky left-0 z-20 bg-twilight-50/95 w-[28px] sm:w-[70px] px-1 sm:px-3 py-1.5 sm:py-3 text-left text-[9px] sm:text-xs font-semibold text-twilight-600 uppercase whitespace-nowrap">TARİH</th>
                   <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-emerald-600 uppercase whitespace-nowrap">YAT.</th>
                   <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-rose-600 uppercase whitespace-nowrap">ÇEKİM</th>
                   <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-orange-600 uppercase whitespace-nowrap">ÖDEME</th>
@@ -340,7 +340,7 @@ export default function FinancierDetailPage() {
                   ) : (
                     dailyData.map((day) => (
                       <tr key={day.day} className="hover:bg-twilight-50/50 transition-colors">
-                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900 whitespace-nowrap">{day.day}</td>
+                        <td className="sticky left-0 z-10 bg-white px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900 whitespace-nowrap">{day.day}</td>
                         <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600 whitespace-nowrap">{formatMoney(day.deposit, "")}</td>
                         <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600 whitespace-nowrap">{formatMoney(day.withdrawal, "")}</td>
                         <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600 whitespace-nowrap">{formatMoney(day.payment, "")}</td>
@@ -359,7 +359,7 @@ export default function FinancierDetailPage() {
                       className="hover:bg-twilight-50/50 transition-colors cursor-pointer"
                       onClick={() => handleMonthClick(row.month)}
                     >
-                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900 whitespace-nowrap">{row.monthName}</td>
+                      <td className="sticky left-0 z-10 bg-white px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900 whitespace-nowrap">{row.monthName}</td>
                       <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600 whitespace-nowrap">{formatMoney(row.deposit, "")}</td>
                       <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600 whitespace-nowrap">{formatMoney(row.withdrawal, "")}</td>
                       <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600 whitespace-nowrap">{formatMoney(row.payment, "")}</td>
@@ -374,7 +374,7 @@ export default function FinancierDetailPage() {
               </tbody>
               <tfoot className="sticky bottom-0 z-10 bg-twilight-900 text-white">
                 <tr>
-                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-bold whitespace-nowrap">TOPLAM</td>
+                  <td className="sticky left-0 z-20 bg-twilight-900 px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-bold whitespace-nowrap">TOPLAM</td>
                   <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.deposit, "")}</td>
                   <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.withdrawal, "")}</td>
                   <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.payment, "")}</td>
