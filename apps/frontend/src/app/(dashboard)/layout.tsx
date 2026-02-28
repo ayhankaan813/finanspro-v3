@@ -68,7 +68,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950">
+    <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950 overflow-x-clip">
       <Sidebar />
       {/* Main content - responsive padding */}
       <main className="lg:pl-64">
