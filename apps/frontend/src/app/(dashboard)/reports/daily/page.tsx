@@ -363,6 +363,7 @@ export default function DailyReportPage() {
           </Card>
 
           {/* Transactions Table */}
+          <div className="-mx-3 sm:mx-0">
           <Card className="rounded-3xl border-0 shadow-xl shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 overflow-hidden">
             <CardHeader className="border-b border-twilight-100 bg-twilight-50/50 py-4 flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-bold text-twilight-900">Günün İşlemleri</CardTitle>
@@ -476,6 +477,7 @@ export default function DailyReportPage() {
               )}
             </div>
           </Card>
+          </div>
 
           {/* Entity Analysis Grid (New Section) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

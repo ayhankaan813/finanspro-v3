@@ -306,6 +306,7 @@ export default function MonthlyReportPage() {
       </div>
 
       {/* Main Table */}
+      <div className="-mx-3 sm:mx-0">
       <Card className="rounded-3xl border-0 shadow-xl shadow-twilight-100/50 bg-white ring-1 ring-twilight-100 overflow-hidden">
         <div className="p-0">
           <div className="overflow-x-auto">
@@ -435,6 +436,7 @@ export default function MonthlyReportPage() {
           </div>
         </div>
       </Card>
+      </div>
     </div>
   );
 }

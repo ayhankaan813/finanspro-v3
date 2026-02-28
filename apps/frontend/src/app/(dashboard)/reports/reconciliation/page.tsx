@@ -221,7 +221,7 @@ export default function ReconciliationPage() {
       </motion.div>
 
       {/* Detail Table */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+      <motion.div className="-mx-3 sm:mx-0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <Card className="border-0 shadow-lg bg-white dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
           <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 p-4 sm:p-6">
             <CardTitle className="text-lg font-bold text-slate-900 dark:text-white">Hesap Detayları</CardTitle>

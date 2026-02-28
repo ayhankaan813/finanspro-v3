@@ -780,6 +780,7 @@ export default function ExternalPartyDetailPage() {
 
       {/* Data Table - Hidden in Ledger View */}
       {viewMode !== "ledger" && (
+      <div className="-mx-3 sm:mx-0">
       <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -888,6 +889,7 @@ export default function ExternalPartyDetailPage() {
           </table>
         </div>
       </Card>
+      </div>
       )}
 
       {/* Recent Transactions - Hidden in Ledger View */}
