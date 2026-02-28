@@ -101,6 +101,15 @@
   }
 }
 
+@layer utilities {
+  /* overflow-x: clip hides horizontal overflow WITHOUT creating a new scroll context.
+     Use this instead of overflow-x: hidden on any container with sticky/fixed descendants.
+     sticky top-0 header in dashboard layout continues to work correctly with clip. */
+  .overflow-x-clip {
+    overflow-x: clip;
+  }
+}
+
 /* Money amounts with monospace font */
 .font-amount {
   font-family: theme("fontFamily.mono");
