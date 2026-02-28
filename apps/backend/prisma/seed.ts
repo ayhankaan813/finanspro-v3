@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient, UserRole, DebtStatus } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -89,14 +89,157 @@ async function main() {
 
   console.log('  ✅ Created 6 categories');
 
+  // ==================== TEST FINANCIERS (for debt seed) ====================
+  console.log('💰 Creating test financiers for debt data...');
+
+  const financier1 = await prisma.financier.upsert({
+    where: { code: 'YAGIZ' },
+    update: {},
+    create: {
+      id: 'fin-yagiz',
+      name: 'Yağız',
+      code: 'YAGIZ',
+      description: 'Test finansör - Yağız',
+      is_active: true,
+    },
+  });
+
+  const financier2 = await prisma.financier.upsert({
+    where: { code: 'TOPRAK' },
+    update: {},
+    create: {
+      id: 'fin-toprak',
+      name: 'Toprak',
+      code: 'TOPRAK',
+      description: 'Test finansör - Toprak',
+      is_active: true,
+    },
+  });
+
+  const financier3 = await prisma.financier.upsert({
+    where: { code: 'DENIZ' },
+    update: {},
+    create: {
+      id: 'fin-deniz',
+      name: 'Deniz',
+      code: 'DENIZ',
+      description: 'Test finansör - Deniz',
+      is_active: true,
+    },
+  });
+
+  console.log('  ✅ Created 3 test financiers');
+
+  // ==================== TEST DEBTS ====================
+  console.log('📋 Creating test debts...');
+
+  // Debt 1: Yağız borrowed 10,000 from Toprak — partially paid (3,000 paid, 7,000 remaining)
+  const debt1 = await prisma.debt.upsert({
+    where: { id: 'debt-001' },
+    update: {},
+    create: {
+      id: 'debt-001',
+      lender_id: financier2.id,
+      borrower_id: financier1.id,
+      amount: 10000,
+      remaining_amount: 7000,
+      status: DebtStatus.ACTIVE,
+      description: 'Yağız kasası için nakit takviye',
+      created_by: admin.id,
+    },
+  });
+
+  // Debt 2: Deniz borrowed 5,000 from Yağız — fully open (no payments)
+  const debt2 = await prisma.debt.upsert({
+    where: { id: 'debt-002' },
+    update: {},
+    create: {
+      id: 'debt-002',
+      lender_id: financier1.id,
+      borrower_id: financier3.id,
+      amount: 5000,
+      remaining_amount: 5000,
+      status: DebtStatus.ACTIVE,
+      description: 'Deniz kasası acil nakit ihtiyacı',
+      created_by: admin.id,
+    },
+  });
+
+  // Debt 3: Toprak borrowed 2,000 from Deniz — fully paid
+  const debt3 = await prisma.debt.upsert({
+    where: { id: 'debt-003' },
+    update: {},
+    create: {
+      id: 'debt-003',
+      lender_id: financier3.id,
+      borrower_id: financier2.id,
+      amount: 2000,
+      remaining_amount: 0,
+      status: DebtStatus.PAID,
+      description: 'Kısa vadeli nakit ihtiyacı',
+      created_by: admin.id,
+    },
+  });
+
+  console.log('  ✅ Created 3 test debts');
+
+  // ==================== TEST DEBT PAYMENTS ====================
+  console.log('💸 Creating test debt payments...');
+
+  // Payment for Debt 1: Yağız paid 3,000 to Toprak (partial)
+  await prisma.debtPayment.upsert({
+    where: { id: 'dpay-001' },
+    update: {},
+    create: {
+      id: 'dpay-001',
+      debt_id: debt1.id,
+      amount: 3000,
+      description: 'İlk kısmi ödeme',
+      created_by: admin.id,
+    },
+  });
+
+  // Payments for Debt 3: Toprak paid 2,000 to Deniz (full, in two payments)
+  await prisma.debtPayment.upsert({
+    where: { id: 'dpay-002' },
+    update: {},
+    create: {
+      id: 'dpay-002',
+      debt_id: debt3.id,
+      amount: 1500,
+      description: 'Birinci ödeme',
+      created_by: admin.id,
+    },
+  });
+
+  await prisma.debtPayment.upsert({
+    where: { id: 'dpay-003' },
+    update: {},
+    create: {
+      id: 'dpay-003',
+      debt_id: debt3.id,
+      amount: 500,
+      description: 'Son ödeme - borç kapandı',
+      created_by: admin.id,
+    },
+  });
+
+  console.log('  ✅ Created 3 test debt payments');
+
   console.log('');
-  console.log('✅ Minimal seed completed!');
+  console.log('✅ Seed completed!');
   console.log('');
   console.log('📋 Login Credentials:');
   console.log('  Email: admin@finanspro.com');
   console.log('  Password: admin123');
   console.log('');
-  console.log('💡 No test data created - database is clean and ready for real data');
+  console.log('📊 Test Data Summary:');
+  console.log('  Financiers: 3 (Yağız, Toprak, Deniz)');
+  console.log('  Debts: 3 (1 active partial, 1 active open, 1 paid)');
+  console.log('  Debt Payments: 3');
+
+  // Suppress unused variable warnings
+  void debt2;
 }
 
 main()
