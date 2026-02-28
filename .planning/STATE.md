@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 Phase: 2 of 4 (Tables and Grids)
 Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-28 — Completed 02-03 (edge-to-edge table Cards and whitespace-nowrap on table cells)
+Last activity: 2026-02-28 - Completed quick task 1: Add sticky first column (date) to report tables
 
 Progress: [██████░░░░] 50%
 
@@ -78,6 +78,12 @@ None yet.
 
 - Phase 4 (Transactions): TransactionFilters.tsx and EditableTransactionGrid.tsx have unknown responsive state — audit before planning Phase 4
 - Phase 4 (Organization): Sub-pages (personnel, site-profitability) marked MINIMAL — extent of changes unknown until files are read during planning
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Add sticky first column (date) to report tables: monthly, financiers detail | 2026-02-28 | e91d9b1 | [1-add-sticky-first-column-date-to-report-t](./quick/1-add-sticky-first-column-date-to-report-t/) |
 
 ## Session Continuity
 
