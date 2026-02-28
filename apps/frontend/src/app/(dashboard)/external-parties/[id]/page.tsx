@@ -786,28 +786,28 @@ export default function ExternalPartyDetailPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-gradient-to-r from-twilight-50 to-twilight-100/50 border-b-2 border-twilight-200">
-                <th className="px-6 py-4 text-left">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Tarih</span>
                 </th>
-                <th className="px-6 py-4 text-right">
+                <th className="px-6 py-4 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end gap-2">
                     <ArrowUpRight className="h-4 w-4 text-rose-600" />
                     <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Borc Verilen</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right">
+                <th className="px-6 py-4 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end gap-2">
                     <ArrowDownLeft className="h-4 w-4 text-violet-600" />
                     <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Borc Alinan</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right">
+                <th className="px-6 py-4 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end gap-2">
                     <HandCoins className="h-4 w-4 text-emerald-600" />
                     <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Odeme</span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right">
+                <th className="px-6 py-4 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end gap-2">
                     <Wallet className="h-4 w-4 text-indigo-600" />
                     <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Bakiye</span>
@@ -826,21 +826,21 @@ export default function ExternalPartyDetailPage() {
                     className="hover:bg-indigo-50/50 transition-colors group cursor-pointer"
                     onClick={() => handleMonthClick(row.month)}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-bold text-twilight-900 group-hover:text-indigo-700 transition-colors">
                         {row.monthName}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className="font-bold text-rose-600">{formatMoney(row.debtOut)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className="font-bold text-violet-600">{formatMoney(row.debtIn)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className="font-bold text-emerald-600">{formatMoney(row.payment)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className={`font-bold ${row.balance >= 0 ? "text-orange-600" : "text-emerald-600"}`}>
                         {row.balance > 0 ? "-" : row.balance < 0 ? "+" : ""}{formatMoney(Math.abs(row.balance))}
                       </span>
@@ -865,19 +865,19 @@ export default function ExternalPartyDetailPage() {
                     transition={{ delay: idx * 0.01 }}
                     className="hover:bg-indigo-50/50 transition-colors"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-bold text-twilight-900">{row.date}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className="font-bold text-rose-600">{formatMoney(row.debtOut)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className="font-bold text-violet-600">{formatMoney(row.debtIn)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className="font-bold text-emerald-600">{formatMoney(row.payment)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <span className={`font-bold ${row.balance >= 0 ? "text-orange-600" : "text-emerald-600"}`}>
                         {row.balance > 0 ? "-" : row.balance < 0 ? "+" : ""}{formatMoney(Math.abs(row.balance))}
                       </span>

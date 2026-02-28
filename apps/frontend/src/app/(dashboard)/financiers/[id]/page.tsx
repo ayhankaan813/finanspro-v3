@@ -315,15 +315,15 @@ export default function FinancierDetailPage() {
             <table className="w-full min-w-[560px]">
               <thead className="sticky top-0 z-10 bg-twilight-50/95 backdrop-blur-sm shadow-[0_1px_0_0_theme(colors.twilight.100)]">
                 <tr>
-                  <th className="w-[28px] sm:w-[70px] px-1 sm:px-3 py-1.5 sm:py-3 text-left text-[9px] sm:text-xs font-semibold text-twilight-600 uppercase">TARİH</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-emerald-600 uppercase">YAT.</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-rose-600 uppercase">ÇEKİM</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-orange-600 uppercase">ÖDEME</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-blue-600 uppercase">TAK.</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-purple-600 uppercase">TES.</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-indigo-600 uppercase">T.KOM.</th>
-                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-slate-600 uppercase">KOM.</th>
-                  <th className="px-1 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-twilight-900 uppercase">BAKİYE</th>
+                  <th className="w-[28px] sm:w-[70px] px-1 sm:px-3 py-1.5 sm:py-3 text-left text-[9px] sm:text-xs font-semibold text-twilight-600 uppercase whitespace-nowrap">TARİH</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-emerald-600 uppercase whitespace-nowrap">YAT.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-rose-600 uppercase whitespace-nowrap">ÇEKİM</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-orange-600 uppercase whitespace-nowrap">ÖDEME</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-blue-600 uppercase whitespace-nowrap">TAK.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-purple-600 uppercase whitespace-nowrap">TES.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-indigo-600 uppercase whitespace-nowrap">T.KOM.</th>
+                  <th className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-slate-600 uppercase whitespace-nowrap">KOM.</th>
+                  <th className="px-1 sm:px-3 py-1.5 sm:py-3 text-right text-[9px] sm:text-xs font-semibold text-twilight-900 uppercase whitespace-nowrap">BAKİYE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-twilight-50">
@@ -340,15 +340,15 @@ export default function FinancierDetailPage() {
                   ) : (
                     dailyData.map((day) => (
                       <tr key={day.day} className="hover:bg-twilight-50/50 transition-colors">
-                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900">{day.day}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600">{formatMoney(day.deposit, "")}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600">{formatMoney(day.withdrawal, "")}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600">{formatMoney(day.payment, "")}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-blue-600">{formatMoney(day.topup, "")}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-purple-600">{formatMoney(day.delivery, "")}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-indigo-600">{formatMoney(day.delivery_commission, "")}</td>
-                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-slate-600">{formatMoney(day.commission, "")}</td>
-                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-twilight-900 font-bold">{formatMoney(day.balance, "")}</td>
+                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900 whitespace-nowrap">{day.day}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600 whitespace-nowrap">{formatMoney(day.deposit, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600 whitespace-nowrap">{formatMoney(day.withdrawal, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600 whitespace-nowrap">{formatMoney(day.payment, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-blue-600 whitespace-nowrap">{formatMoney(day.topup, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-purple-600 whitespace-nowrap">{formatMoney(day.delivery, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-indigo-600 whitespace-nowrap">{formatMoney(day.delivery_commission, "")}</td>
+                        <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-slate-600 whitespace-nowrap">{formatMoney(day.commission, "")}</td>
+                        <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-twilight-900 font-bold whitespace-nowrap">{formatMoney(day.balance, "")}</td>
                       </tr>
                     ))
                   )
@@ -359,30 +359,30 @@ export default function FinancierDetailPage() {
                       className="hover:bg-twilight-50/50 transition-colors cursor-pointer"
                       onClick={() => handleMonthClick(row.month)}
                     >
-                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900">{row.monthName}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600">{formatMoney(row.deposit, "")}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600">{formatMoney(row.withdrawal, "")}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600">{formatMoney(row.payment, "")}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-blue-600">{formatMoney(row.topup, "")}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-purple-600">{formatMoney(row.delivery, "")}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-indigo-600">{formatMoney(row.delivery_commission, "")}</td>
-                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-slate-600">{formatMoney(row.commission, "")}</td>
-                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-twilight-900 font-bold">{formatMoney(row.balance, "")}</td>
+                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[10px] sm:text-sm font-medium text-twilight-900 whitespace-nowrap">{row.monthName}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-emerald-600 whitespace-nowrap">{formatMoney(row.deposit, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-rose-600 whitespace-nowrap">{formatMoney(row.withdrawal, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-orange-600 whitespace-nowrap">{formatMoney(row.payment, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-blue-600 whitespace-nowrap">{formatMoney(row.topup, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-purple-600 whitespace-nowrap">{formatMoney(row.delivery, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-indigo-600 whitespace-nowrap">{formatMoney(row.delivery_commission, "")}</td>
+                      <td className="px-0.5 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-slate-600 whitespace-nowrap">{formatMoney(row.commission, "")}</td>
+                      <td className="px-1 sm:px-3 py-1 sm:py-2.5 text-[9px] sm:text-sm font-mono text-right text-twilight-900 font-bold whitespace-nowrap">{formatMoney(row.balance, "")}</td>
                     </tr>
                   ))
                 )}
               </tbody>
               <tfoot className="sticky bottom-0 z-10 bg-twilight-900 text-white">
                 <tr>
-                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-bold">TOPLAM</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.deposit, "")}</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.withdrawal, "")}</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.payment, "")}</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.topup, "")}</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.delivery, "")}</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.delivery_commission, "")}</td>
-                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(tableTotals.commission, "")}</td>
-                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold">{formatMoney(balance, "")}</td>
+                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-bold whitespace-nowrap">TOPLAM</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.deposit, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.withdrawal, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.payment, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.topup, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.delivery, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.delivery_commission, "")}</td>
+                  <td className="px-0.5 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(tableTotals.commission, "")}</td>
+                  <td className="px-1 sm:px-3 py-1.5 sm:py-3 text-[9px] sm:text-sm font-mono text-right font-bold whitespace-nowrap">{formatMoney(balance, "")}</td>
                 </tr>
               </tfoot>
             </table>

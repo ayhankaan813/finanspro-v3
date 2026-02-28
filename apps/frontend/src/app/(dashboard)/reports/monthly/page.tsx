@@ -315,45 +315,45 @@ export default function MonthlyReportPage() {
               <table className="w-full hidden sm:table">
                 <thead>
                   <tr className="bg-twilight-900 text-white">
-                    <th className="py-4 px-4 text-sm font-semibold text-left">Tarih</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300">Yatırım</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300">Çekim</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300">Komisyon</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200">Teslim Kom.</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-yellow-200">Ödeme</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right text-cyan-300">Takviye</th>
-                    <th className="py-4 px-4 text-sm font-semibold text-right font-bold">Kasa</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-left whitespace-nowrap">Tarih</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300 whitespace-nowrap">Yatırım</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300 whitespace-nowrap">Çekim</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300 whitespace-nowrap">Komisyon</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200 whitespace-nowrap">Teslim</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-orange-200 whitespace-nowrap">Teslim Kom.</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-yellow-200 whitespace-nowrap">Ödeme</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right text-cyan-300 whitespace-nowrap">Takviye</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-right font-bold whitespace-nowrap">Kasa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-twilight-50">
                   {dailyData.map((day) => (
                     <tr key={day.dayStr} className="hover:bg-twilight-50/50 transition-colors group">
-                      <td className="py-3 px-4 text-sm text-twilight-700 font-medium">
+                      <td className="py-3 px-4 text-sm text-twilight-700 font-medium whitespace-nowrap">
                         {format(day.date, "dd.MM.yyyy", { locale: tr })}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors">
+                      <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors whitespace-nowrap">
                         {day.deposit > 0 ? formatMoney(day.deposit) : <span className="text-emerald-300/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-rose-600 bg-rose-50/30 group-hover:bg-rose-50/50 transition-colors">
+                      <td className="py-3 px-4 text-right text-sm font-bold text-rose-600 bg-rose-50/30 group-hover:bg-rose-50/50 transition-colors whitespace-nowrap">
                         {day.withdrawal > 0 ? formatMoney(day.withdrawal) : <span className="text-rose-300/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium text-violet-600">
+                      <td className="py-3 px-4 text-right text-sm font-medium text-violet-600 whitespace-nowrap">
                         {day.commission > 0 ? formatMoney(day.commission) : <span className="text-twilight-200/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
+                      <td className="py-3 px-4 text-right text-sm font-medium text-orange-600 whitespace-nowrap">
                         {day.delivery > 0 ? formatMoney(day.delivery) : <span className="text-twilight-200/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium text-orange-600">
+                      <td className="py-3 px-4 text-right text-sm font-medium text-orange-600 whitespace-nowrap">
                         {day.deliveryCommission > 0 ? formatMoney(day.deliveryCommission) : <span className="text-twilight-200/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium text-yellow-600">
+                      <td className="py-3 px-4 text-right text-sm font-medium text-yellow-600 whitespace-nowrap">
                         {day.payment > 0 ? formatMoney(day.payment) : <span className="text-twilight-200/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium text-cyan-600">
+                      <td className="py-3 px-4 text-right text-sm font-medium text-cyan-600 whitespace-nowrap">
                         {day.topup > 0 ? formatMoney(day.topup) : <span className="text-twilight-200/50">-</span>}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold font-mono text-twilight-900 bg-twilight-50/50">
+                      <td className="py-3 px-4 text-right text-sm font-bold font-mono text-twilight-900 bg-twilight-50/50 whitespace-nowrap">
                         {formatMoney(day.balance)}
                       </td>
                     </tr>
@@ -361,15 +361,15 @@ export default function MonthlyReportPage() {
                 </tbody>
                 <tfoot className="bg-twilight-900 border-t border-twilight-200 text-white font-bold">
                   <tr>
-                    <td className="py-4 px-4 text-sm text-left">TOPLAM</td>
-                    <td className="py-4 px-4 text-sm text-right text-emerald-300">{formatMoney(totals.deposit)}</td>
-                    <td className="py-4 px-4 text-sm text-right text-rose-300">{formatMoney(totals.withdrawal)}</td>
-                    <td className="py-4 px-4 text-sm text-right text-violet-300">{formatMoney(totals.commission)}</td>
-                    <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.delivery)}</td>
-                    <td className="py-4 px-4 text-sm text-right text-orange-200">{formatMoney(totals.deliveryCommission)}</td>
-                    <td className="py-4 px-4 text-sm text-right text-yellow-200">{formatMoney(totals.payment)}</td>
-                    <td className="py-4 px-4 text-sm text-right text-cyan-300">{formatMoney(totals.topup)}</td>
-                    <td className="py-4 px-4 text-sm text-right">{formatMoney(totals.endBalance)}</td>
+                    <td className="py-4 px-4 text-sm text-left whitespace-nowrap">TOPLAM</td>
+                    <td className="py-4 px-4 text-sm text-right text-emerald-300 whitespace-nowrap">{formatMoney(totals.deposit)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-rose-300 whitespace-nowrap">{formatMoney(totals.withdrawal)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-violet-300 whitespace-nowrap">{formatMoney(totals.commission)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-orange-200 whitespace-nowrap">{formatMoney(totals.delivery)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-orange-200 whitespace-nowrap">{formatMoney(totals.deliveryCommission)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-yellow-200 whitespace-nowrap">{formatMoney(totals.payment)}</td>
+                    <td className="py-4 px-4 text-sm text-right text-cyan-300 whitespace-nowrap">{formatMoney(totals.topup)}</td>
+                    <td className="py-4 px-4 text-sm text-right whitespace-nowrap">{formatMoney(totals.endBalance)}</td>
                   </tr>
                 </tfoot>
               </table>

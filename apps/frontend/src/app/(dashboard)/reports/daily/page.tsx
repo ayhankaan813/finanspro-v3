@@ -379,20 +379,20 @@ export default function DailyReportPage() {
                     <table className="w-full hidden sm:table">
                       <thead>
                         <tr className="bg-twilight-50/30 text-left border-b border-twilight-100">
-                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Saat</th>
-                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Tür</th>
-                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Site/Partner</th>
-                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider text-right">Tutar</th>
-                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider">Durum</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider whitespace-nowrap">Saat</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider whitespace-nowrap">Tür</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider whitespace-nowrap">Site/Partner</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider text-right whitespace-nowrap">Tutar</th>
+                          <th className="py-3 px-6 text-xs font-semibold text-twilight-500 uppercase tracking-wider whitespace-nowrap">Durum</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-twilight-50">
                         {transactions.items.slice(0, 8).map((tx) => (
                           <tr key={tx.id} className="hover:bg-twilight-50/50 transition-colors">
-                            <td className="py-4 px-6 text-sm text-twilight-600 font-medium">
+                            <td className="py-4 px-6 text-sm text-twilight-600 font-medium whitespace-nowrap">
                               {formatTurkeyTime(tx.transaction_date)}
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-4 px-6 whitespace-nowrap">
                               <span className={cn(
                                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
                                 tx.type === "DEPOSIT"
@@ -404,7 +404,7 @@ export default function DailyReportPage() {
                                 {tx.type === "DEPOSIT" ? "Yatırım" : tx.type === "WITHDRAWAL" ? "Çekim" : tx.type}
                               </span>
                             </td>
-                            <td className="py-4 px-6 text-sm text-twilight-900">
+                            <td className="py-4 px-6 text-sm text-twilight-900 whitespace-nowrap">
                               {tx.site ? (
                                 <span className="font-medium">{tx.site.name}</span>
                               ) : tx.partner ? (
@@ -414,7 +414,7 @@ export default function DailyReportPage() {
                             <td className="py-4 px-6 text-right font-amount font-bold text-twilight-900">
                               {formatMoney(parseFloat(tx.gross_amount))}
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-4 px-6 whitespace-nowrap">
                               {getStatusBadge(tx.status)}
                             </td>
                           </tr>
