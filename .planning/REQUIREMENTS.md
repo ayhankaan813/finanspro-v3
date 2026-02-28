@@ -93,41 +93,41 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GLOB-01 | — | Pending |
-| GLOB-02 | — | Pending |
-| GLOB-03 | — | Pending |
-| GLOB-04 | — | Pending |
-| GLOB-05 | — | Pending |
-| TABL-01 | — | Pending |
-| TABL-02 | — | Pending |
-| TABL-03 | — | Pending |
-| GRID-01 | — | Pending |
-| GRID-02 | — | Pending |
-| GRID-03 | — | Pending |
-| GRID-04 | — | Pending |
-| GRID-05 | — | Pending |
-| DETL-01 | — | Pending |
-| DETL-02 | — | Pending |
-| DETL-03 | — | Pending |
-| DETL-04 | — | Pending |
-| DETL-05 | — | Pending |
-| TXNP-01 | — | Pending |
-| TXNP-02 | — | Pending |
-| ORGN-01 | — | Pending |
-| ORGN-02 | — | Pending |
-| ORGN-03 | — | Pending |
-| REPT-01 | — | Pending |
-| REPT-02 | — | Pending |
-| REPT-03 | — | Pending |
-| SETT-01 | — | Pending |
-| CMPN-01 | — | Pending |
-| CMPN-02 | — | Pending |
+| GLOB-01 | Phase 1 | Pending |
+| GLOB-02 | Phase 1 | Pending |
+| GLOB-03 | Phase 1 | Pending |
+| GLOB-04 | Phase 1 | Pending |
+| GLOB-05 | Phase 1 | Pending |
+| TABL-01 | Phase 2 | Pending |
+| TABL-02 | Phase 2 | Pending |
+| TABL-03 | Phase 2 | Pending |
+| GRID-01 | Phase 2 | Pending |
+| GRID-02 | Phase 2 | Pending |
+| GRID-03 | Phase 2 | Pending |
+| GRID-04 | Phase 2 | Pending |
+| GRID-05 | Phase 2 | Pending |
+| DETL-01 | Phase 3 | Pending |
+| DETL-02 | Phase 3 | Pending |
+| DETL-03 | Phase 3 | Pending |
+| DETL-04 | Phase 3 | Pending |
+| DETL-05 | Phase 3 | Pending |
+| TXNP-01 | Phase 4 | Pending |
+| TXNP-02 | Phase 4 | Pending |
+| ORGN-01 | Phase 4 | Pending |
+| ORGN-02 | Phase 4 | Pending |
+| ORGN-03 | Phase 4 | Pending |
+| REPT-01 | Phase 4 | Pending |
+| REPT-02 | Phase 4 | Pending |
+| REPT-03 | Phase 4 | Pending |
+| SETT-01 | Phase 4 | Pending |
+| CMPN-01 | Phase 4 | Pending |
+| CMPN-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 (pending roadmap creation)
+- Mapped to phases: 29
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after initial definition*
+*Last updated: 2026-02-28 after roadmap creation*
