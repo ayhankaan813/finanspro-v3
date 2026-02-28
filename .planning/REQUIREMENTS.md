@@ -1,91 +1,55 @@
-# Requirements: FinansPro v3 — Mobile Responsive Overhaul
+# Requirements: FinansPro v3 — Kasalar Arası Borç/Alacak
 
 **Defined:** 2026-02-28
-**Core Value:** Hicbir sayfada icerik tasmamali, tablo kirilmamali, yazi kesilmemeli — 375px'ten itibaren her sey okunakli ve kullanilabilir olmali.
+**Core Value:** Finansörler arası borç/alacak ilişkisi her an net görünsün — kim kime ne kadar borçlu, toplam açık borç ne kadar, hangi ödemeler yapılmış.
 
 ## v1 Requirements
 
-Requirements for mobile responsive overhaul. Each maps to roadmap phases.
+Requirements for milestone v1.1. Each maps to roadmap phases.
 
-### Global Foundation
+### Borç Yönetimi
 
-- [x] **GLOB-01**: Layout root overflow-x: clip uygulanmali (sticky pozisyonu bozmadan tasan icerigi onler)
-- [x] **GLOB-02**: Tum input/select/textarea elementleri 16px font-size kullanmali (iOS Safari zoom onleme)
-- [x] **GLOB-03**: Tum interaktif elementler (buton, tab, satir) minimum 44px touch target olmali
-- [x] **GLOB-04**: shadcn Dialog komponenti mobilde w-full max-w-lg max-h-[90vh] overflow-y-auto olmali
-- [x] **GLOB-05**: Finansal rakamlar whitespace-nowrap ile korunmali, sayi ortasindan kirilmamali
+- [ ] **DEBT-01**: Finansörler arası borç verme/alma kaydı oluşturulabilir (borç veren, alan, tutar, tarih, açıklama)
+- [ ] **DEBT-02**: Açık borca karşı geri ödeme kaydedilebilir (kısmi veya tam)
+- [ ] **DEBT-03**: Yanlış girilen borç iptal edilebilir
+- [ ] **DEBT-04**: Borç ve ödemeye açıklama/not eklenebilir
 
-### Tablolar
+### Borç/Alacak Sayfası
 
-- [x] **TABL-01**: Tum tablo elementleri overflow-x-auto wrapper icinde olmali (~15 tablo)
-- [x] **TABL-02**: Tablo wrapper'lari mobilde -mx-3 sm:mx-0 ile kenardan kenara scroll alani saglamali
-- [x] **TABL-03**: Tablo hucreleri whitespace-nowrap ile icerik kirilmasini onlemeli
+- [ ] **PAGE-01**: Borç/Alacak sayfasında özet dashboard görünür (toplam borç, toplam alacak, net durum, aktif borç sayısı)
+- [ ] **PAGE-02**: Açık borçlar listesi görüntülenebilir (kapanmamış borçlar, kalan tutar, borç veren/alan taraflar)
+- [ ] **PAGE-03**: İşlem geçmişi görüntülenebilir (tüm borç verme ve ödeme kayıtları kronolojik sırada)
+- [ ] **PAGE-04**: Finansör çapraz tablosu (matrix) görüntülenebilir (kimin kime ne kadar borçlu olduğu)
 
-### Kart Grids
+### Finansör Detay Entegrasyonu
 
-- [x] **GRID-01**: Dashboard kartlari grid-cols-1 sm:grid-cols-2 lg:grid-cols-3+ responsive grid kullanmali
-- [x] **GRID-02**: Site listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
-- [x] **GRID-03**: Partner listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
-- [x] **GRID-04**: Finansor listesi kartlari mobilde tek sutun, tablette iki sutun gorunmeli
-- [x] **GRID-05**: Dis kisi listesi kartlari mobilde responsive grid kullanmali
+- [ ] **FDET-01**: Finansör detay sayfasında toplam borç/alacak özet kartı görünür
+- [ ] **FDET-02**: Finansör detay sayfasında Borç/Alacak tab'ı ile ilgili borçlar ve ödemeler listelenir
+- [ ] **FDET-03**: Finansör detay sayfasından 'Borç Ver/Al' hızlı işlem butonu ile yeni borç oluşturulabilir
 
-### Detay Sayfalari
+## Future Requirements
 
-- [ ] **DETL-01**: Site detay sayfasi (/sites/[id]) — istatistik kartlari, tablar ve tablo mobilde duzgun gorunmeli
-- [ ] **DETL-02**: Partner detay sayfasi (/partners/[id]) — kart ve tablo icerigi mobilde tasmamali
-- [ ] **DETL-03**: Finansor detay sayfasi (/financiers/[id]) — bakiye kartlari ve islem tablosu responsive olmali
-- [ ] **DETL-04**: Dis kisi detay sayfasi (/external-parties/[id]) — ekran goruntusundeki tasan icerik duzeltilmeli
-- [ ] **DETL-05**: shadcn Tabs componentleri mobilde ScrollArea ile yatay scroll desteklemeli
+### Borç Yönetimi Gelişmiş
 
-### Islem ve Onay Sayfalari
+- **DEBT-05**: Borç üzerinde faiz/komisyon hesaplama
+- **DEBT-06**: Taksit planı oluşturma ve takip
+- **DEBT-07**: Borç onay mekanizması (büyük tutarlar için)
 
-- [ ] **TXNP-01**: Islem listesi sayfasi (/transactions) — filtre + tablo mobilde kullanilabilir olmali
-- [ ] **TXNP-02**: Onay sayfasi (/approvals) — onay tablosu ve aksiyon butonlari mobilde erisilebilir olmali
+### Raporlama
 
-### Organization
-
-- [ ] **ORGN-01**: Organization ana sayfasi (/organization) — analitik kartlar ve grafikler responsive olmali
-- [ ] **ORGN-02**: Site karlilik sayfasi (/organization/site-profitability) — tablo ve kartlar mobil uyumlu olmali
-- [ ] **ORGN-03**: Personel sayfasi (/organization/personnel) — liste ve detaylar mobilde duzgun gorunmeli
-
-### Raporlar
-
-- [ ] **REPT-01**: Gunluk rapor sayfasi (/reports/daily) — mobilde icerik goruntulenebilir olmali
-- [ ] **REPT-02**: Aylik rapor sayfasi (/reports/monthly) — mobilde icerik goruntulenebilir olmali
-- [ ] **REPT-03**: Kasa raporu, mutabakat ve analiz sayfalari 375px'te dogrulanmali
-
-### Ayarlar
-
-- [ ] **SETT-01**: Ayarlar sayfasi (/settings) — tab navigasyonu ve form alanlari mobilde kullanilabilir olmali
-
-### Compact Number Format
-
-- [ ] **CMPN-01**: formatMoney utility'sine compact secenegi eklenmeli (1.250.000 → 1,25M)
-- [ ] **CMPN-02**: Dashboard kartlarinda compact format kullanilmali (tam deger tooltip'te)
-
-## v2 Requirements
-
-Deferred to future release. Tracked but not in current roadmap.
-
-### Enhanced Mobile UX
-
-- **EMUX-01**: Tablolarda sticky first column (CSS position: sticky)
-- **EMUX-02**: Islem sayfasinda collapsible filter panel
-- **EMUX-03**: Column priority hiding (sm: altinda dusuk oncelikli sutunlari gizle)
-- **EMUX-04**: Mobil sticky CTA bar (alt kisimda sabit aksiyon butonu)
+- **REPT-01**: Borç/alacak raporu PDF export
+- **REPT-02**: Borç vade analizi ve uyarıları
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Card view tablo donusumu | Finansal veri karsilastirmasini bozar, cift rendering path karmasikligi |
-| Pull-to-refresh | iOS PWA uyumsuzlugu, React Query zaten veri tazeligi saglar |
-| Bottom navigation bar | 10+ bolum var, bottom nav max 5 destekler, IA yeniden tasarimi gerekir |
-| Swipe gestures | iOS Safari geri hareketi ile carpisir, finansal islemler acik onay ister |
-| Ayri mobil sayfa/route | Bakim yukunu ikiye katlar, her yeni ozellik iki kez yazilir |
-| Offline mode / PWA | Finansal veri gercek zamanli olmali, eski cache guven sorunu yaratir |
-| Tasarim degisikligi | Mevcut renk paleti, font, kart yapisi korunacak |
-| Backend degisiklikleri | Tamamen frontend calismasi |
+| Faiz/komisyon hesaplama | İlk versiyonda karmaşıklık eklememek |
+| Onay mekanizması | Admin tek kullanıcı, onay gereksiz |
+| Ledger entegrasyonu | Borç/alacak ayrı tablo, mevcut muhasebe dışında |
+| Taksit planı | Serbest ödeme modeli tercih edildi |
+| Partner/site arası borç | Sadece finansörler arası |
+| Faiz uyarıları/hatırlatmaları | Faiz yok, vade yok |
 
 ## Traceability
 
@@ -93,41 +57,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GLOB-01 | Phase 1 | Complete |
-| GLOB-02 | Phase 1 | Complete |
-| GLOB-03 | Phase 1 | Complete |
-| GLOB-04 | Phase 1 | Complete |
-| GLOB-05 | Phase 1 | Complete |
-| TABL-01 | Phase 2 | Complete |
-| TABL-02 | Phase 2 | Complete |
-| TABL-03 | Phase 2 | Complete |
-| GRID-01 | Phase 2 | Complete |
-| GRID-02 | Phase 2 | Complete |
-| GRID-03 | Phase 2 | Complete |
-| GRID-04 | Phase 2 | Complete |
-| GRID-05 | Phase 2 | Complete |
-| DETL-01 | Phase 3 | Pending |
-| DETL-02 | Phase 3 | Pending |
-| DETL-03 | Phase 3 | Pending |
-| DETL-04 | Phase 3 | Pending |
-| DETL-05 | Phase 3 | Pending |
-| TXNP-01 | Phase 4 | Pending |
-| TXNP-02 | Phase 4 | Pending |
-| ORGN-01 | Phase 4 | Pending |
-| ORGN-02 | Phase 4 | Pending |
-| ORGN-03 | Phase 4 | Pending |
-| REPT-01 | Phase 4 | Pending |
-| REPT-02 | Phase 4 | Pending |
-| REPT-03 | Phase 4 | Pending |
-| SETT-01 | Phase 4 | Pending |
-| CMPN-01 | Phase 4 | Pending |
-| CMPN-02 | Phase 4 | Pending |
+| DEBT-01 | - | Pending |
+| DEBT-02 | - | Pending |
+| DEBT-03 | - | Pending |
+| DEBT-04 | - | Pending |
+| PAGE-01 | - | Pending |
+| PAGE-02 | - | Pending |
+| PAGE-03 | - | Pending |
+| PAGE-04 | - | Pending |
+| FDET-01 | - | Pending |
+| FDET-02 | - | Pending |
+| FDET-03 | - | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total
-- Mapped to phases: 29
-- Unmapped: 0
+- v1 requirements: 11 total
+- Mapped to phases: 0
+- Unmapped: 11 ⚠️
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after roadmap creation*
+*Last updated: 2026-02-28 after initial definition*
