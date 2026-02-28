@@ -1069,7 +1069,7 @@ export default function FinanciersPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {data?.items.map((financier) => {
                 const balance = parseFloat(financier.account?.balance || "0");
                 const blocked = parseFloat(financier.account?.blocked_amount || "0");
