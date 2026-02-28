@@ -133,6 +133,10 @@ model Financier {
   blocks           FinancierBlock[]
   transactions     Transaction[]
 
+  // Debt relations
+  debts_as_lender  Debt[] @relation("DebtsAsLender")
+  debts_as_borrower Debt[] @relation("DebtsAsBorrower")
+
   // Account relation
   account Account?
 
@@ -773,4 +777,72 @@ model PersonnelPayment {
   @@index([period_year, period_month])
   @@index([personnel_id, period_year, period_month])
   @@map("personnel_payment")
+}
+
+// ==================== DEBT (Kasalar Arasi Borc/Alacak) ====================
+
+enum DebtStatus {
+  ACTIVE    // Acik borc (odenmemis veya kismi odenmis)
+  PAID      // Tamamen odenmis
+  CANCELLED // Iptal edilmis
+}
+
+model Debt {
+  id     String     @id @default(uuid())
+  status DebtStatus @default(ACTIVE)
+
+  // Borc veren ve alan finansorler
+  lender_id   String
+  borrower_id String
+
+  // Tutarlar
+  amount           Decimal @db.Decimal(15, 2) // Baslangic tutari
+  remaining_amount Decimal @db.Decimal(15, 2) // Kalan borc tutari
+
+  // Aciklama
+  description String?
+
+  // Iptal bilgisi
+  cancelled_at        DateTime?
+  cancellation_reason String?
+
+  // Relations
+  lender   Financier @relation("DebtsAsLender", fields: [lender_id], references: [id])
+  borrower Financier @relation("DebtsAsBorrower", fields: [borrower_id], references: [id])
+  payments DebtPayment[]
+
+  // Audit
+  created_by String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([lender_id])
+  @@index([borrower_id])
+  @@index([status])
+  @@index([lender_id, status])
+  @@index([borrower_id, status])
+  @@index([created_at])
+  @@map("debts")
+}
+
+model DebtPayment {
+  id      String @id @default(uuid())
+  debt_id String
+
+  // Odeme tutari
+  amount Decimal @db.Decimal(15, 2)
+
+  // Aciklama
+  description String?
+
+  // Relations
+  debt Debt @relation(fields: [debt_id], references: [id])
+
+  // Audit
+  created_by String
+  created_at DateTime @default(now())
+
+  @@index([debt_id])
+  @@index([created_at])
+  @@map("debt_payments")
 }
