@@ -315,7 +315,7 @@ export default function MonthlyReportPage() {
               <table className="w-full hidden sm:table">
                 <thead>
                   <tr className="bg-twilight-900 text-white">
-                    <th className="py-4 px-4 text-sm font-semibold text-left whitespace-nowrap">Tarih</th>
+                    <th className="sticky left-0 z-10 bg-twilight-900 py-4 px-4 text-sm font-semibold text-left whitespace-nowrap">Tarih</th>
                     <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300 whitespace-nowrap">Yatırım</th>
                     <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300 whitespace-nowrap">Çekim</th>
                     <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300 whitespace-nowrap">Komisyon</th>
@@ -329,7 +329,7 @@ export default function MonthlyReportPage() {
                 <tbody className="divide-y divide-twilight-50">
                   {dailyData.map((day) => (
                     <tr key={day.dayStr} className="hover:bg-twilight-50/50 transition-colors group">
-                      <td className="py-3 px-4 text-sm text-twilight-700 font-medium whitespace-nowrap">
+                      <td className="sticky left-0 z-10 bg-white group-hover:bg-twilight-50/50 py-3 px-4 text-sm text-twilight-700 font-medium whitespace-nowrap">
                         {format(day.date, "dd.MM.yyyy", { locale: tr })}
                       </td>
                       <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors whitespace-nowrap">
@@ -361,7 +361,7 @@ export default function MonthlyReportPage() {
                 </tbody>
                 <tfoot className="bg-twilight-900 border-t border-twilight-200 text-white font-bold">
                   <tr>
-                    <td className="py-4 px-4 text-sm text-left whitespace-nowrap">TOPLAM</td>
+                    <td className="sticky left-0 z-10 bg-twilight-900 py-4 px-4 text-sm text-left whitespace-nowrap">TOPLAM</td>
                     <td className="py-4 px-4 text-sm text-right text-emerald-300 whitespace-nowrap">{formatMoney(totals.deposit)}</td>
                     <td className="py-4 px-4 text-sm text-right text-rose-300 whitespace-nowrap">{formatMoney(totals.withdrawal)}</td>
                     <td className="py-4 px-4 text-sm text-right text-violet-300 whitespace-nowrap">{formatMoney(totals.commission)}</td>
