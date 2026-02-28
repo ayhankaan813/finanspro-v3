@@ -8,7 +8,7 @@ progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 5 of 7 (Data Foundation and API)
-Plan: 05-02 (next to execute)
-Status: In progress — 05-01 complete, 05-02 remaining
-Last activity: 2026-02-28 — 05-01 complete (Prisma schema + seed data for Debt models)
+Plan: 05-02 (complete — Phase 5 finished)
+Status: Phase 5 complete — ready for Phase 6 (frontend)
+Last activity: 2026-03-01 — 05-02 complete (Debt backend module: service, schemas, routes)
 
-Progress: [#####░░░░░] 50%
+Progress: [##########] 100%
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Progress: [#####░░░░░] 50%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| Phase 05 | 1/2 complete | ~2 min | ~2 min |
+| Phase 05 | 2/2 complete | ~5 min | ~2.5 min |
 
 *Updated after each plan completion*
 
@@ -54,6 +54,8 @@ Progress: [#####░░░░░] 50%
 - Serbest geri odeme — kismi veya tam, istendigi zaman
 - Responsive milestone (v1.0) durduruldu, v1.1 oncelikli
 - [Phase 05]: Debt schema uses two named Financier FK relations (DebtsAsLender, DebtsAsBorrower) with remaining_amount stored denormalized on Debt for query speed
+- [Phase 05-02]: Analytics routes (summary, financier-summary, matrix) defined before /:id to prevent Fastify route-param collision
+- [Phase 05-02]: Prisma Decimal fields converted via .toString() before Decimal.js construction for precision safety
 
 ### Pending Todos
 
@@ -65,6 +67,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 05-01-PLAN.md — Debt schema and seed data. Next: 05-02 (Backend debt service + routes).
+Last session: 2026-03-01
+Stopped at: Completed 05-02-PLAN.md — Debt backend module (service, schemas, routes, app.ts registration). Phase 5 complete. Next: Phase 6 (frontend debt UI).
 Resume file: None

@@ -10,8 +10,8 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 ### Borç Yönetimi
 
 - [x] **DEBT-01**: Finansörler arası borç verme/alma kaydı oluşturulabilir (borç veren, alan, tutar, tarih, açıklama)
-- [ ] **DEBT-02**: Açık borca karşı geri ödeme kaydedilebilir (kısmi veya tam)
-- [ ] **DEBT-03**: Yanlış girilen borç iptal edilebilir
+- [x] **DEBT-02**: Açık borca karşı geri ödeme kaydedilebilir (kısmi veya tam)
+- [x] **DEBT-03**: Yanlış girilen borç iptal edilebilir
 - [x] **DEBT-04**: Borç ve ödemeye açıklama/not eklenebilir
 
 ### Borç/Alacak Sayfası
@@ -56,8 +56,8 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DEBT-01 | Phase 5 | Complete |
-| DEBT-02 | Phase 5 | Pending |
-| DEBT-03 | Phase 5 | Pending |
+| DEBT-02 | Phase 5 | Complete |
+| DEBT-03 | Phase 5 | Complete |
 | DEBT-04 | Phase 5 | Complete |
 | PAGE-01 | Phase 6 | Pending |
 | PAGE-02 | Phase 6 | Pending |
