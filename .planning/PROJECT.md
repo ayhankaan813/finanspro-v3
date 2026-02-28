@@ -1,69 +1,78 @@
-# FinansPro v3 — Mobile Responsive Overhaul
+# FinansPro v3 — Kasalar Arası Borç/Alacak Sistemi
 
 ## What This Is
 
-FinansPro v3'un tum frontend sayfalarini (dashboard, site detay, partner, finansor, dis kisiler, raporlar, ayarlar, onaylar, islemler) mobil ve tablet ekranlarda duzenli gorunecek sekilde responsive hale getirmek. Mevcut tasarim korunacak, sadece mobil uyumluluk eklenecek.
+FinansPro v3'e finansörler (kasalar) arası borç verme ve alacak takip sistemi eklenmesi. Finansörler birbirlerine borç verebilir, borç alabilir, serbest geri ödeme yapabilir. Tüm borç/alacak durumu dedike bir sayfada ve finansör detay sayfasında takip edilir.
 
 ## Core Value
 
-Hicbir sayfada icerik tasmamali, tablo kirilmamali, yazi kesilmemeli — 375px genislikten itibaren her sey okunaklı ve kullanilabilir olmali.
+Finansörler arası borç/alacak ilişkisi her an net görünsün — kim kime ne kadar borçlu, toplam açık borç ne kadar, hangi ödemeler yapılmış.
+
+## Current Milestone: v1.1 Kasalar Arası Borç/Alacak
+
+**Goal:** Finansörler birbirlerine borç verebilsin, geri ödeme yapabilsin, tüm borç/alacak durumu takip edilebilsin.
+
+**Target features:**
+- Borç verme/alma işlemi oluşturma (onaysız, admin direkt)
+- Serbest geri ödeme (parça parça, istediği zaman)
+- Borç/Alacak yönetim sayfası (özet, geçmiş, açık borçlar, çapraz tablo)
+- Finansör detay sayfasında borç/alacak özet kartı ve tab'ı
 
 ## Requirements
 
 ### Validated
 
-- ✓ Dashboard layout (sidebar + main content) — existing
-- ✓ Hamburger menu (mobil sidebar toggle) — existing, working
-- ✓ Temel responsive padding (`container px-3 py-1 sm:py-6 lg:px-8`) — existing in layout
-- ✓ Rapor sayfalari (kasa-raporu, mutabakat, analiz) dark mode + responsive header — existing
+- ✓ Finansör CRUD (liste, detay, oluşturma, düzenleme) — existing
+- ✓ Finansör detay sayfası (tab yapısı, istatistikler) — existing
+- ✓ Double-entry muhasebe sistemi (ledger) — existing
+- ✓ Finansör bakiye takibi — existing
+- ✓ Dashboard layout (sidebar + responsive) — existing
+- ✓ Rapor sayfaları (kasa-raporu, mutabakat, analiz) — existing
 
 ### Active
 
-- [ ] Tum sayfalarda tasan icerik duzeltilmeli (overflow-x: hidden + uygun wrapping)
-- [ ] Tablolar mobilde yatay scroll ile goruntulenebilmeli
-- [ ] Kartlar responsive grid'e gecmeli (mobilde tek sutun, tablette iki, masaustunde uc+)
-- [ ] Finansal rakamlar (bakiye, komisyon) mobilde kesilmeden gorunmeli
-- [ ] Form diyaloglari mobil ekranda duzenli gorunmeli
-- [ ] Chart/grafik alanlari mobil ekrana sigmali
-- [ ] Site detay sayfalari (tabs, istatistikler) mobilde kullanilabilir olmali
-- [ ] Partner/Finansor detay sayfalari mobil uyumlu olmali
-- [ ] Dis kisi detay sayfasi (ekran goruntusundeki gibi) mobilde duzeltilmeli
-- [ ] Islem tablosu sayfasi mobil uyumlu olmali
-- [ ] Onay sayfasi mobil uyumlu olmali
-- [ ] Ayarlar sayfasi mobil uyumlu olmali
-- [ ] Organization analitik sayfasi + alt sayfalari mobil uyumlu olmali
-- [ ] 375px (telefon) ve 768px (tablet) icin breakpoint'ler ayarlanmali
+- [ ] Finansörler arası borç verme/alma işlemi oluşturulabilmeli
+- [ ] Borç serbest geri ödeme ile kapatılabilmeli (parça parça veya tek seferde)
+- [ ] Borç/Alacak yönetim sayfası — tüm borçların özeti
+- [ ] İşlem geçmişi — kim kime ne zaman ne kadar verdi/ödedi
+- [ ] Açık borçlar listesi — henüz kapanmamış borçlar, kalan tutar
+- [ ] Finansör çapraz tablosu — matrix şeklinde kimin kime borçlu olduğu
+- [ ] Finansör detay sayfasında borç/alacak özet kartı
+- [ ] Finansör detay sayfasında Borç/Alacak tab'ı (ilgili finansörün borç detayları)
 
 ### Out of Scope
 
-- Tasarim degisikligi — mevcut renk paleti, font, karti aynen korunacak
-- Yeni ozellik ekleme — sadece mevcut icerigin responsive yapilmasi
-- Backend degisiklikleri — tamamen frontend calismasi
-- PWA veya mobil app — sadece responsive web
+- Faiz/komisyon hesaplama — sadece anapara takibi, faiz yok
+- Onay mekanizması — admin direkt işlem yapar
+- Ledger entegrasyonu — borç/alacak ayrı tabloda takip edilir, mevcut muhasebe dışında
+- Taksit planı — serbest ödeme, sabit taksit zorunluluğu yok
+- Partner/site arası borç — sadece finansörler arası
 
 ## Context
 
-- Proje: Next.js 15 (App Router) + Tailwind CSS 3.4.1 + shadcn/ui + Radix UI
-- 20+ sayfa mevcut (dashboard, site/partner/finansor listeler + detaylar, raporlar, ayarlar, islemler, onaylar)
-- Layout zaten `lg:pl-64` ile sidebar offset'i kullaniyor
-- Bazi sayfalar kismi responsive (raporlar), cogu degil
-- Ekran goruntusundeki sorun: kartlardaki rakamlar tasiyor, tablo sutunlari dar ekrana sigmiyor
-- Sidebar zaten hamburger menuyle calisiyor
+- Mevcut finansör sistemi çalışıyor (CRUD, detay sayfası, tab'lar, istatistikler)
+- Prisma ORM ile yeni tablo(lar) eklenecek — `Debt`, `DebtPayment` gibi
+- Frontend: Next.js 15 App Router + React Query + shadcn/ui
+- Borç işlemleri mevcut ledger'dan bağımsız, ayrı tablo ile takip
+- Mevcut finansör detay sayfasına yeni kart ve tab eklenmesi gerekecek
+- Örnek senaryo: Yağız (finansör) Toprak'tan (finansör) 10.000 TL borç alıyor → serbest geri ödüyor
 
 ## Constraints
 
-- **Tech stack**: Sadece Tailwind CSS siniflari — yeni paket eklenmeyecek
-- **Korunacak**: Mevcut tasarim, renk paleti, komponent yapisi bozulmayacak
-- **Breakpoints**: 375px (sm-), 640px (sm), 768px (md), 1024px (lg) — Tailwind defaults
-- **Test**: Her sayfa mobil + tablet + masaustu gorunumde kontrol edilmeli
+- **Tech stack**: Mevcut stack (Fastify + Prisma + Next.js) — yeni paket eklenmeyecek
+- **Muhasebe**: Borç/alacak ledger'a yansımayacak, ayrı tablo
+- **Faiz**: Faiz hesaplama yok, sadece anapara
+- **Onay**: Onay mekanizması yok, admin direkt işler
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Tablolar yatay scroll | Kullanici istegi, veri kaybini onler | — Pending |
-| Mevcut tasarim korunacak | Kullanici istegi, hizli teslim | — Pending |
-| Sadece Tailwind siniflari | Yeni dependency eklememek, proje tutarliligi | — Pending |
+| Ledger dışında ayrı tablo | Borç/alacak mevcut komisyonlu işlemlerden farklı kavram | — Pending |
+| Faiz yok | İlk versiyonda karmaşıklık eklememek | — Pending |
+| Onay yok | Admin tek kullanıcı, onay gereksiz | — Pending |
+| Serbest geri ödeme | Taksit planı gereksiz karmaşıklık | — Pending |
+| Responsive milestone durduruldu | Borç/alacak öncelikli | — Pending |
 
 ---
-*Last updated: 2026-02-28 after initialization*
+*Last updated: 2026-02-28 after milestone v1.1 initialization*
