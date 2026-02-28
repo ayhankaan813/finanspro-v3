@@ -8,7 +8,7 @@ progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 2 of 4 (Tables and Grids)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-28 — Completed 02-02 (card grid breakpoints on all four entity list pages)
+Last activity: 2026-02-28 — Completed 02-03 (edge-to-edge table Cards and whitespace-nowrap on table cells)
 
-Progress: [█████░░░░░] 38%
+Progress: [██████░░░░] 50%
 
 ## Performance Metrics
 
@@ -41,10 +41,10 @@ Progress: [█████░░░░░] 38%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3 | ~3 min | ~1 min |
-| 02-tables-and-grids | 2 | ~2 min | ~1 min |
+| 02-tables-and-grids | 3 | ~11 min | ~3.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (overflow-x clip), 01-02 (dialog mobile), 01-03 (input/button/tabs mobile primitives), 02-01 (financier + personnel table scroll wrappers), 02-02 (card grid breakpoints)
+- Last 6 plans: 01-01 (overflow-x clip), 01-02 (dialog mobile), 01-03 (input/button/tabs mobile primitives), 02-01 (financier + personnel table scroll wrappers), 02-02 (card grid breakpoints), 02-03 (edge-to-edge Cards + whitespace-nowrap)
 - Trend: Fast (quick targeted UI fixes)
 
 *Updated after each plan completion*
@@ -66,6 +66,9 @@ Recent decisions affecting current work:
 - 01-03: .font-amount nowrap is global foundation; per-page min-w-0 flex overflow fixes deferred to Phase 2+
 - 02-02: Use sm:grid-cols-2 (640px) instead of md:grid-cols-2 (768px) as first multi-column breakpoint on entity list pages
 - 02-02: Remove redundant xl:grid-cols-3 from partners/financiers since lg:grid-cols-3 already covers 1024px+
+- 02-03: Add -mx-3 sm:mx-0 to existing motion.div instead of inserting a new wrapper div (reconciliation page)
+- 02-03: reconciliation excluded from whitespace-nowrap (no table elements; div-based layout with font-amount)
+- 02-03: financiers/[id] excluded from -mx-3 sm:mx-0 (CardContent p-0 leaves no padding to offset)
 
 ### Pending Todos
 
@@ -79,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 02-02-PLAN.md — card grid breakpoints fixed on sites, partners, financiers, external-parties
+Stopped at: Completed 02-03-PLAN.md — edge-to-edge table Card wrappers and whitespace-nowrap on table cells
 Resume file: None
