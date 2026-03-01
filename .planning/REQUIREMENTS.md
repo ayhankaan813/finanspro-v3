@@ -19,7 +19,7 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 - [x] **PAGE-01**: Borç/Alacak sayfasında özet dashboard görünür (toplam borç, toplam alacak, net durum, aktif borç sayısı)
 - [x] **PAGE-02**: Açık borçlar listesi görüntülenebilir (kapanmamış borçlar, kalan tutar, borç veren/alan taraflar)
 - [x] **PAGE-03**: İşlem geçmişi görüntülenebilir (tüm borç verme ve ödeme kayıtları kronolojik sırada)
-- [ ] **PAGE-04**: Finansör çapraz tablosu (matrix) görüntülenebilir (kimin kime ne kadar borçlu olduğu)
+- [x] **PAGE-04**: Finansör çapraz tablosu (matrix) görüntülenebilir (kimin kime ne kadar borçlu olduğu)
 
 ### Finansör Detay Entegrasyonu
 
@@ -62,7 +62,7 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 | PAGE-01 | Phase 6 | Complete |
 | PAGE-02 | Phase 6 | Complete |
 | PAGE-03 | Phase 6 | Complete |
-| PAGE-04 | Phase 6 | Pending |
+| PAGE-04 | Phase 6 | Complete |
 | FDET-01 | Phase 7 | Pending |
 | FDET-02 | Phase 7 | Pending |
 | FDET-03 | Phase 7 | Pending |

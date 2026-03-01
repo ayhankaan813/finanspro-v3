@@ -143,5 +143,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Entity Pages | v1.0 | 0/3 | Not started | - |
 | 4. Feature Pages and Completion | v1.0 | 0/5 | Not started | - |
 | 5. Data Foundation and API | 2/2 | Complete   | 2026-02-28 | - |
-| 6. Borc/Alacak Yonetim Sayfasi | 2/3 | In Progress|  | - |
+| 6. Borc/Alacak Yonetim Sayfasi | 3/3 | Complete   | 2026-03-01 | - |
 | 7. Finansor Detay Entegrasyonu | v1.1 | 0/2 | Not started | - |
