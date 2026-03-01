@@ -39,6 +39,7 @@ import {
   Menu,
   X,
   Briefcase,
+  HandCoins,
 } from "lucide-react";
 import { useState, useMemo, memo, useCallback } from "react";
 import { useApprovalStats } from "@/hooks/use-api";
@@ -77,6 +78,7 @@ const navigation: NavGroup[] = [
       { title: "Partnerler", href: "/partners", icon: Users },
       { title: "Finansörler", href: "/financiers", icon: Wallet },
       { title: "Dış Kişiler", href: "/external-parties", icon: UserCircle },
+      { title: "Borç/Alacak", href: "/borclar", icon: HandCoins },
     ],
   },
   {
