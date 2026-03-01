@@ -2264,3 +2264,192 @@ export function useAddPersonnelPayment() {
     },
   });
 }
+
+// ==================== DEBT (Borc/Alacak) ====================
+
+export interface Debt {
+  id: string;
+  status: 'ACTIVE' | 'PAID' | 'CANCELLED';
+  lender_id: string;
+  borrower_id: string;
+  amount: string;
+  remaining_amount: string;
+  description: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  lender: { id: string; name: string; code: string };
+  borrower: { id: string; name: string; code: string };
+  payments?: DebtPayment[];
+}
+
+export interface DebtPayment {
+  id: string;
+  debt_id: string;
+  amount: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface DebtSummary {
+  total_active_debt: number;
+  total_paid: number;
+  active_debt_count: number;
+  total_created: number;
+  paid_count: number;
+  cancelled_count: number;
+}
+
+export interface DebtFinancierSummary {
+  financier: { id: string; name: string; code: string };
+  total_receivable: number;
+  total_owed: number;
+  net_position: number;
+}
+
+export interface DebtMatrixResponse {
+  financiers: Array<{ id: string; name: string; code: string }>;
+  matrix: Array<{
+    lender: { id: string; name: string; code: string };
+    borrower: { id: string; name: string; code: string };
+    amount: number;
+  }>;
+}
+
+export interface DebtListResponse {
+  items: Debt[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// --- Debt Queries ---
+
+export function useDebtSummary() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["debt-summary"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<DebtSummary>("/api/debts/summary");
+    },
+    enabled: !!accessToken,
+    staleTime: 30000,
+  });
+}
+
+export function useDebts(params?: { status?: string; financier_id?: string; page?: number; limit?: number }) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["debts", params],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      const queryParams: Record<string, string> = {};
+      if (params?.status) queryParams.status = params.status;
+      if (params?.financier_id) queryParams.financier_id = params.financier_id;
+      if (params?.page) queryParams.page = String(params.page);
+      if (params?.limit) queryParams.limit = String(params.limit);
+      return api.get<DebtListResponse>("/api/debts", { params: queryParams });
+    },
+    enabled: !!accessToken,
+  });
+}
+
+export function useDebt(id: string | null) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["debt", id],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<Debt>(`/api/debts/${id}`);
+    },
+    enabled: !!accessToken && !!id,
+  });
+}
+
+export function useDebtFinancierSummary() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["debt-financier-summary"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<DebtFinancierSummary[]>("/api/debts/financier-summary");
+    },
+    enabled: !!accessToken,
+    staleTime: 30000,
+  });
+}
+
+export function useDebtMatrix() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ["debt-matrix"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<DebtMatrixResponse>("/api/debts/matrix");
+    },
+    enabled: !!accessToken,
+    staleTime: 30000,
+  });
+}
+
+// --- Debt Mutations ---
+
+export function useCreateDebt() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async (data: { lender_id: string; borrower_id: string; amount: string; description?: string }) => {
+      api.setToken(accessToken);
+      return api.post<Debt>("/api/debts", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["debts"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-financier-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-matrix"] });
+    },
+  });
+}
+
+export function usePayDebt() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ debtId, ...data }: { debtId: string; amount: string; description?: string }) => {
+      api.setToken(accessToken);
+      return api.post<Debt>(`/api/debts/${debtId}/payments`, data);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["debts"] });
+      queryClient.invalidateQueries({ queryKey: ["debt", vars.debtId] });
+      queryClient.invalidateQueries({ queryKey: ["debt-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-financier-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-matrix"] });
+    },
+  });
+}
+
+export function useCancelDebt() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ debtId, cancellation_reason }: { debtId: string; cancellation_reason?: string }) => {
+      api.setToken(accessToken);
+      return api.patch<Debt>(`/api/debts/${debtId}/cancel`, { cancellation_reason });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["debts"] });
+      queryClient.invalidateQueries({ queryKey: ["debt", vars.debtId] });
+      queryClient.invalidateQueries({ queryKey: ["debt-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-financier-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["debt-matrix"] });
+    },
+  });
+}
