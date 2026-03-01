@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Kasalar Arasi Borc/Alacak
 status: unknown
-last_updated: "2026-03-01T13:26:20.007Z"
+last_updated: "2026-03-01T13:33:32Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 6 of 7 (Borc/Alacak Yonetim Sayfasi)
-Plan: 2 of 3 — ready to execute 06-02
-Status: Phase 6 in progress — 06-01 complete, executing 06-02 next
-Last activity: 2026-03-01 — 06-01 complete (debt hooks + sidebar + borclar page skeleton)
+Plan: 3 of 3 — ready to execute 06-03
+Status: Phase 6 in progress — 06-02 complete, executing 06-03 next
+Last activity: 2026-03-01 — 06-02 complete (Acik Borclar tab, Islem Gecmisi tab, all dialogs)
 
 Progress: [##########] 100%
 
@@ -59,6 +59,8 @@ Progress: [##########] 100%
 - [Phase 05-02]: Prisma Decimal fields converted via .toString() before Decimal.js construction for precision safety
 - [Phase 06]: Toplam Alacak calculated from useDebtFinancierSummary sum (not a direct summary field)
 - [Phase 06]: Net Durum uses conditional color: green if positive (net alacak), red if negative (net borc)
+- [Phase 06-02]: Progress bar via plain div width% (shadcn Progress not installed); cancel button hidden when payments exist
+- [Phase 06-02]: DebtListResponse.pagination lacks hasPrev/hasNext — derived from page/totalPages comparison
 
 ### Pending Todos
 
@@ -71,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 06-01-PLAN.md — debt hooks + sidebar nav + borclar page skeleton. Ready for 06-02.
+Stopped at: Completed 06-02-PLAN.md — Acik Borclar tab, Islem Gecmisi tab, Create/Payment/Cancel dialogs. Ready for 06-03.
 Resume file: None
