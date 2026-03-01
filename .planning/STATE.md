@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Kasalar Arasi Borc/Alacak
 status: unknown
-last_updated: "2026-02-28T23:23:54.034Z"
+last_updated: "2026-03-01T13:26:20.007Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 11
+  completed_plans: 9
 ---
 
 # Project State
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 6 of 7 (Borc/Alacak Yonetim Sayfasi)
-Plan: Planning complete — 3 plans ready for execution
-Status: Phase 6 planned — ready to execute 06-01
-Last activity: 2026-03-01 — Phase 6 planning complete (3 plans: hooks+skeleton, list+history+dialogs, matrix)
+Plan: 2 of 3 — ready to execute 06-02
+Status: Phase 6 in progress — 06-01 complete, executing 06-02 next
+Last activity: 2026-03-01 — 06-01 complete (debt hooks + sidebar + borclar page skeleton)
 
 Progress: [##########] 100%
 
@@ -43,6 +43,7 @@ Progress: [##########] 100%
 | Phase 05 | 2/2 complete | ~5 min | ~2.5 min |
 
 *Updated after each plan completion*
+| Phase 06 P01 | 2 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -56,6 +57,8 @@ Progress: [##########] 100%
 - [Phase 05]: Debt schema uses two named Financier FK relations (DebtsAsLender, DebtsAsBorrower) with remaining_amount stored denormalized on Debt for query speed
 - [Phase 05-02]: Analytics routes (summary, financier-summary, matrix) defined before /:id to prevent Fastify route-param collision
 - [Phase 05-02]: Prisma Decimal fields converted via .toString() before Decimal.js construction for precision safety
+- [Phase 06]: Toplam Alacak calculated from useDebtFinancierSummary sum (not a direct summary field)
+- [Phase 06]: Net Durum uses conditional color: green if positive (net alacak), red if negative (net borc)
 
 ### Pending Todos
 
@@ -68,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Phase 6 planning complete — 3 PLAN.md files created (06-01, 06-02, 06-03). Ready to execute 06-01 (hooks + sidebar + page skeleton with summary cards).
+Stopped at: Completed 06-01-PLAN.md — debt hooks + sidebar nav + borclar page skeleton. Ready for 06-02.
 Resume file: None
