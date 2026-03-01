@@ -60,6 +60,7 @@ import {
   usePayDebt,
   useCancelDebt,
   useFinanciers,
+  useDebtMatrix,
   type Debt,
 } from "@/hooks/use-api";
 import { toast } from "@/hooks/use-toast";
@@ -163,6 +164,59 @@ export default function BorclarPage() {
   });
   const { data: expandedDebt, isLoading: isLoadingExpanded } = useDebt(expandedDebtId);
   const { data: financiersData } = useFinanciers({ limit: 100 });
+
+  // Matrix data
+  const { data: matrixData, isLoading: isLoadingMatrix } = useDebtMatrix();
+
+  // Build matrix lookup: matrixMap[lender_id][borrower_id] = amount
+  const matrixMap = new Map<string, Map<string, number>>();
+  const matrixFinanciers = matrixData?.financiers ?? [];
+  const matrixEntries = matrixData?.matrix ?? [];
+
+  for (const entry of matrixEntries) {
+    if (!matrixMap.has(entry.lender.id)) {
+      matrixMap.set(entry.lender.id, new Map());
+    }
+    matrixMap.get(entry.lender.id)!.set(entry.borrower.id, entry.amount);
+  }
+
+  // Find max amount for heat map scaling
+  const maxMatrixAmount =
+    matrixEntries.length > 0 ? Math.max(...matrixEntries.map((e) => e.amount)) : 0;
+
+  // Heat map color function
+  const getHeatMapColor = (amount: number): string => {
+    if (amount === 0 || maxMatrixAmount === 0) return "";
+    const ratio = amount / maxMatrixAmount;
+    if (ratio <= 0.2) return "bg-sky-50 text-sky-700";
+    if (ratio <= 0.4) return "bg-sky-100 text-sky-800";
+    if (ratio <= 0.6) return "bg-blue-100 text-blue-800";
+    if (ratio <= 0.8) return "bg-blue-200 text-blue-900";
+    return "bg-blue-300 text-blue-900";
+  };
+
+  // Calculate row totals (total alacak per lender)
+  const rowTotals = new Map<string, number>();
+  for (const f of matrixFinanciers) {
+    let total = 0;
+    const row = matrixMap.get(f.id);
+    if (row) {
+      for (const amount of row.values()) {
+        total += amount;
+      }
+    }
+    rowTotals.set(f.id, total);
+  }
+
+  // Calculate column totals (total borc per borrower)
+  const colTotals = new Map<string, number>();
+  for (const f of matrixFinanciers) {
+    let total = 0;
+    for (const [, row] of matrixMap) {
+      total += row.get(f.id) || 0;
+    }
+    colTotals.set(f.id, total);
+  }
 
   // Mutations
   const createDebtMutation = useCreateDebt();
@@ -772,13 +826,136 @@ export default function BorclarPage() {
           </Card>
         </TabsContent>
 
-        {/* ======== MATRIX TAB (placeholder) ======== */}
+        {/* ======== FINANSOR MATRIX TAB ======== */}
         <TabsContent value="matrix" className="mt-4">
           <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              <Grid3X3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-lg font-medium">Finansor Matrix</p>
-              <p className="text-sm">Bu sekme bir sonraki guncellemede aktif olacak.</p>
+            <CardContent className="p-4 sm:p-6">
+              {isLoadingMatrix ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-64 w-full" />
+                </div>
+              ) : matrixFinanciers.length === 0 || matrixEntries.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Grid3X3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-lg font-medium">Matrix Verisi Yok</p>
+                  <p className="text-sm">
+                    Aktif borc kaydi bulunmadiginda matrix tablosu goruntulenememektedir.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold">Finansor Borc/Alacak Matrisi</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Satirlar: Borc veren (alacakli) &middot; Sutunlar: Borc alan (borclu) &middot; Degerler: Kalan borc tutari
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky left-0 bg-white z-10 whitespace-nowrap font-semibold min-w-[120px]">
+                            Alacakli \ Borclu
+                          </TableHead>
+                          {matrixFinanciers.map((f) => (
+                            <TableHead
+                              key={f.id}
+                              className="whitespace-nowrap text-center min-w-[100px] font-semibold"
+                            >
+                              {f.name}
+                            </TableHead>
+                          ))}
+                          <TableHead className="whitespace-nowrap text-center min-w-[120px] font-bold bg-slate-50">
+                            Toplam Alacak
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {matrixFinanciers.map((lender) => (
+                          <TableRow key={lender.id}>
+                            <TableCell className="sticky left-0 bg-white z-10 whitespace-nowrap font-medium">
+                              {lender.name}
+                            </TableCell>
+                            {matrixFinanciers.map((borrower) => {
+                              const isDiagonal = lender.id === borrower.id;
+                              const amount =
+                                matrixMap.get(lender.id)?.get(borrower.id) || 0;
+
+                              if (isDiagonal) {
+                                return (
+                                  <TableCell
+                                    key={borrower.id}
+                                    className="text-center bg-slate-100"
+                                  >
+                                    <span className="text-slate-400">&mdash;</span>
+                                  </TableCell>
+                                );
+                              }
+
+                              return (
+                                <TableCell
+                                  key={borrower.id}
+                                  className={`text-center font-mono whitespace-nowrap ${getHeatMapColor(amount)}`}
+                                >
+                                  {amount > 0 ? formatMoney(amount) : ""}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-center font-mono font-bold whitespace-nowrap bg-slate-50">
+                              {(rowTotals.get(lender.id) || 0) > 0
+                                ? formatMoney(rowTotals.get(lender.id) || 0)
+                                : ""}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {/* Totals row */}
+                        <TableRow className="bg-slate-50 font-bold">
+                          <TableCell className="sticky left-0 bg-slate-50 z-10 whitespace-nowrap font-bold">
+                            Toplam Borc
+                          </TableCell>
+                          {matrixFinanciers.map((borrower) => (
+                            <TableCell
+                              key={borrower.id}
+                              className="text-center font-mono whitespace-nowrap"
+                            >
+                              {(colTotals.get(borrower.id) || 0) > 0
+                                ? formatMoney(colTotals.get(borrower.id) || 0)
+                                : ""}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-center font-mono whitespace-nowrap bg-slate-100">
+                            {matrixEntries.reduce((sum, e) => sum + e.amount, 0) > 0
+                              ? formatMoney(
+                                  matrixEntries.reduce((sum, e) => sum + e.amount, 0)
+                                )
+                              : ""}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {/* Legend */}
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-4 h-4 rounded bg-slate-100 border"></span>
+                      Kendisi
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-4 h-4 rounded bg-sky-50 border"></span>
+                      Dusuk
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-4 h-4 rounded bg-blue-100 border"></span>
+                      Orta
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-4 h-4 rounded bg-blue-300 border"></span>
+                      Yuksek
+                    </span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
