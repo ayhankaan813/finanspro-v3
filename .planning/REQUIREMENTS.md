@@ -25,7 +25,7 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 
 - [x] **FDET-01**: Finansör detay sayfasında toplam borç/alacak özet kartı görünür
 - [x] **FDET-02**: Finansör detay sayfasında Borç/Alacak tab'ı ile ilgili borçlar ve ödemeler listelenir
-- [ ] **FDET-03**: Finansör detay sayfasından 'Borç Ver/Al' hızlı işlem butonu ile yeni borç oluşturulabilir
+- [x] **FDET-03**: Finansör detay sayfasından 'Borç Ver/Al' hızlı işlem butonu ile yeni borç oluşturulabilir
 
 ## Future Requirements
 
@@ -65,7 +65,7 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 | PAGE-04 | Phase 6 | Complete |
 | FDET-01 | Phase 7 | Complete |
 | FDET-02 | Phase 7 | Complete |
-| FDET-03 | Phase 7 | Pending |
+| FDET-03 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 11 total
