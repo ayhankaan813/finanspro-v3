@@ -24,8 +24,29 @@ import {
   useFinancierDebtSummary,
   useDebts,
   useDebt,
+  useCreateDebt,
+  useFinanciers,
   type Debt,
 } from "@/hooks/use-api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Wallet,
@@ -99,6 +120,22 @@ export default function FinancierDetailPage() {
     limit: 20,
   });
   const { data: expandedDebt, isLoading: isLoadingExpandedDebt } = useDebt(expandedDebtId);
+
+  // Create debt dialog state
+  const [isCreateDebtOpen, setIsCreateDebtOpen] = useState(false);
+  const [debtDirection, setDebtDirection] = useState<'lend' | 'borrow'>('lend');
+  // 'lend' = this financier lends money (this financier = lender, counterparty = borrower)
+  // 'borrow' = this financier borrows money (counterparty = lender, this financier = borrower)
+  const [counterpartyId, setCounterpartyId] = useState('');
+  const [debtAmount, setDebtAmount] = useState('');
+  const [debtDescription, setDebtDescription] = useState('');
+  const [debtFormError, setDebtFormError] = useState('');
+
+  const { data: financiersData } = useFinanciers({ limit: 100 });
+  const createDebtMutation = useCreateDebt();
+
+  // Filter out current financier from counterparty list
+  const counterpartyOptions = financiersData?.items.filter(f => f.id !== financierId) ?? [];
 
   if (isLoadingFinancier || isLoadingStats) {
     return (
@@ -229,6 +266,55 @@ export default function FinancierDetailPage() {
     { label: "Komisyon", value: totals.commission, color: "text-slate-600", bg: "bg-slate-100", icon: Landmark },
   ];
 
+  function openCreateDebtDialog() {
+    setDebtDirection('lend');
+    setCounterpartyId('');
+    setDebtAmount('');
+    setDebtDescription('');
+    setDebtFormError('');
+    setIsCreateDebtOpen(true);
+  }
+
+  function closeCreateDebtDialog() {
+    setIsCreateDebtOpen(false);
+    setCounterpartyId('');
+    setDebtAmount('');
+    setDebtDescription('');
+    setDebtFormError('');
+  }
+
+  async function handleCreateDebt(e: React.FormEvent) {
+    e.preventDefault();
+    setDebtFormError('');
+
+    if (!counterpartyId) {
+      setDebtFormError('Karsi taraf secilmelidir.');
+      return;
+    }
+
+    const amount = parseFloat(debtAmount);
+    if (!debtAmount || isNaN(amount) || amount <= 0) {
+      setDebtFormError('Gecerli bir tutar girilmelidir.');
+      return;
+    }
+
+    const lenderId = debtDirection === 'lend' ? financierId : counterpartyId;
+    const borrowerId = debtDirection === 'lend' ? counterpartyId : financierId;
+
+    try {
+      await createDebtMutation.mutateAsync({
+        lender_id: lenderId,
+        borrower_id: borrowerId,
+        amount: debtAmount,
+        description: debtDescription || undefined,
+      });
+      toast({ title: 'Basarili', description: 'Borc basariyla olusturuldu.', variant: 'success' });
+      closeCreateDebtDialog();
+    } catch {
+      toast({ title: 'Hata', description: 'Borc olusturulamadi.', variant: 'destructive' });
+    }
+  }
+
   return (
     <div className="space-y-3 sm:space-y-6 pb-12">
       {/* Header */}
@@ -247,11 +333,21 @@ export default function FinancierDetailPage() {
             <p className="text-[10px] sm:text-sm text-twilight-500 font-mono">{financier.code}</p>
           </div>
         </div>
-        <Button variant="outline" className="gap-1 sm:gap-2 h-7 sm:h-10 text-[11px] sm:text-sm px-2 sm:px-4 rounded-lg sm:rounded-xl">
-          <FileDown className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Excel&apos;e Aktar</span>
-          <span className="sm:hidden">Excel</span>
-        </Button>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button
+            onClick={openCreateDebtDialog}
+            className="gap-1 sm:gap-2 h-7 sm:h-10 text-[11px] sm:text-sm px-2 sm:px-4 rounded-lg sm:rounded-xl bg-slate-800 text-white hover:bg-slate-700"
+          >
+            <HandCoins className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Borc Ver/Al</span>
+            <span className="sm:hidden">Borc</span>
+          </Button>
+          <Button variant="outline" className="gap-1 sm:gap-2 h-7 sm:h-10 text-[11px] sm:text-sm px-2 sm:px-4 rounded-lg sm:rounded-xl">
+            <FileDown className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Excel&apos;e Aktar</span>
+            <span className="sm:hidden">Excel</span>
+          </Button>
+        </div>
       </div>
 
       {/* Balance Card */}
@@ -754,6 +850,118 @@ export default function FinancierDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Debt Dialog */}
+      <Dialog open={isCreateDebtOpen} onOpenChange={setIsCreateDebtOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HandCoins className="h-5 w-5" />
+              Borc Ver / Al
+            </DialogTitle>
+            <DialogDescription>
+              {financier.name} icin yeni borc kaydi olusturun.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateDebt} className="space-y-4">
+            {/* Direction toggle */}
+            <div className="space-y-2">
+              <Label>Islem Yonu</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={debtDirection === 'lend' ? 'default' : 'outline'}
+                  className={`h-11 text-sm ${debtDirection === 'lend' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                  onClick={() => setDebtDirection('lend')}
+                >
+                  <TrendingUp className="h-4 w-4 mr-1.5" />
+                  Borc Ver
+                </Button>
+                <Button
+                  type="button"
+                  variant={debtDirection === 'borrow' ? 'default' : 'outline'}
+                  className={`h-11 text-sm ${debtDirection === 'borrow' ? 'bg-rose-600 hover:bg-rose-700' : ''}`}
+                  onClick={() => setDebtDirection('borrow')}
+                >
+                  <TrendingDown className="h-4 w-4 mr-1.5" />
+                  Borc Al
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {debtDirection === 'lend'
+                  ? `${financier.name} \u2192 karsi tarafa borc verir (alacakli olur)`
+                  : `Karsi taraf \u2192 ${financier.name}'a borc verir (borclu olur)`
+                }
+              </p>
+            </div>
+
+            {/* Counterparty selection */}
+            <div className="space-y-2">
+              <Label>Karsi Taraf (Finansor)</Label>
+              <Select value={counterpartyId} onValueChange={setCounterpartyId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Finansor secin..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {counterpartyOptions.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name} ({f.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label>Tutar (TL)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="0,00"
+                value={debtAmount}
+                onChange={(e) => setDebtAmount(e.target.value)}
+                className="font-mono"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Aciklama (Opsiyonel)</Label>
+              <Textarea
+                placeholder="Borc aciklamasi..."
+                value={debtDescription}
+                onChange={(e) => setDebtDescription(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Error message */}
+            {debtFormError && (
+              <p className="text-sm text-red-500 flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4" />
+                {debtFormError}
+              </p>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeCreateDebtDialog}>
+                Vazgec
+              </Button>
+              <Button
+                type="submit"
+                disabled={createDebtMutation.isPending}
+                className={debtDirection === 'lend' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}
+              >
+                {createDebtMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {debtDirection === 'lend' ? 'Borc Ver' : 'Borc Al'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
