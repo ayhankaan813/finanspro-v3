@@ -113,9 +113,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Frontend — Debt React Query hooks + sidebar nav + /borclar page skeleton with summary cards (PAGE-01)
-- [ ] 06-02: Frontend — Acik borclar listesi (PAGE-02), islem gecmisi (PAGE-03), create/payment/cancel dialogs (PAGE-01)
-- [ ] 06-03: Frontend — Finansor matrix cross-table with heat map (PAGE-04)
+- [x] 06-01: Frontend — Debt React Query hooks + sidebar nav + /borclar page skeleton with summary cards (PAGE-01)
+- [x] 06-02: Frontend — Acik borclar listesi (PAGE-02), islem gecmisi (PAGE-03), create/payment/cancel dialogs (PAGE-01)
+- [x] 06-03: Frontend — Finansor matrix cross-table with heat map (PAGE-04)
 
 #### Phase 7: Finansor Detay Entegrasyonu
 **Goal**: Mevcut finansor detay sayfasi borc/alacak ozeti ve detay tab'i ile zenginlestirilir
@@ -144,4 +144,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Feature Pages and Completion | v1.0 | 0/5 | Not started | - |
 | 5. Data Foundation and API | 2/2 | Complete   | 2026-02-28 | - |
 | 6. Borc/Alacak Yonetim Sayfasi | 3/3 | Complete   | 2026-03-01 | - |
-| 7. Finansor Detay Entegrasyonu | v1.1 | 0/2 | Not started | - |
+| 7. Finansor Detay Entegrasyonu | 1/2 | In Progress|  | - |
