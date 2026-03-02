@@ -2386,6 +2386,28 @@ export function useDebtFinancierSummary() {
   });
 }
 
+/**
+ * Get debt summary for a single financier.
+ * Derives from useDebtFinancierSummary by filtering to the target financier.
+ */
+export function useFinancierDebtSummary(financierId: string) {
+  const { data: allSummary, isLoading, error } = useDebtFinancierSummary();
+
+  const summary = allSummary?.find((s) => s.financier.id === financierId) ?? null;
+
+  return {
+    data: summary
+      ? {
+          total_receivable: summary.total_receivable,
+          total_owed: summary.total_owed,
+          net_position: summary.net_position,
+        }
+      : null,
+    isLoading,
+    error,
+  };
+}
+
 export function useDebtMatrix() {
   const { accessToken } = useAuthStore();
   return useQuery({
