@@ -46,3 +46,4 @@ apps/backend/prisma/*.db-journal
 # Local backups and data
 _backup/
 postgres-data/
+.vercel
