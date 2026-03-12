@@ -24,6 +24,8 @@ import {
 } from "@/hooks/use-api";
 import dynamic from "next/dynamic";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useRole } from "@/hooks/use-role";
+import { PartnerDashboard } from "@/components/dashboard/partner-dashboard";
 
 const OverviewChart = dynamic(
   () => import("@/components/dashboard/overview-chart").then((mod) => ({ default: mod.OverviewChart })),
@@ -34,6 +36,12 @@ const OverviewChart = dynamic(
 );
 
 export default function DashboardPage() {
+  const { role } = useRole();
+
+  // PARTNER gets their own dashboard
+  if (role === "PARTNER") {
+    return <PartnerDashboard />;
+  }
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: blocks, isLoading: blocksLoading } = useActiveBlocks();
 

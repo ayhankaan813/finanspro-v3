@@ -40,6 +40,8 @@ import {
   X,
   Briefcase,
   HandCoins,
+  ScrollText,
+  UserCog,
 } from "lucide-react";
 import { useState, useMemo, memo, useCallback } from "react";
 import { useApprovalStats } from "@/hooks/use-api";
@@ -49,6 +51,7 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   badge?: number;
+  roles?: string[]; // Boş = herkes görebilir
 }
 
 interface NavGroup {
@@ -56,45 +59,57 @@ interface NavGroup {
   items: NavItem[];
 }
 
+// Role erişim matrisi:
+// ADMIN: Her şey
+// OPERATOR: İşlemler, Hesaplar (görüntüleme), Raporlar (kısıtlı), Onaylar
+// PARTNER: Dashboard, kendi işlemleri, kendi siteleri, onay talepleri
+// VIEWER: Her şey (read-only) — ayarlar/kullanıcılar hariç
+const ALL_ROLES = ["ADMIN", "OPERATOR", "PARTNER", "VIEWER", "USER"];
+const ADMIN_ONLY = ["ADMIN"];
+const ADMIN_VIEWER = ["ADMIN", "VIEWER"];
+const NO_PARTNER = ["ADMIN", "OPERATOR", "VIEWER", "USER"];
+
 const navigation: NavGroup[] = [
   {
     title: "",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard }, // herkes
     ],
   },
   {
     title: "İŞLEMLER",
     items: [
-      { title: "Tüm İşlemler", href: "/transactions", icon: CreditCard },
-      { title: "Bulk Import", href: "/transactions/import", icon: Upload },
+      { title: "Tüm İşlemler", href: "/transactions", icon: CreditCard }, // herkes
+      { title: "Bulk Import", href: "/transactions/import", icon: Upload, roles: NO_PARTNER },
     ],
   },
   {
     title: "HESAPLAR",
     items: [
-      { title: "Organizasyon", href: "/organization", icon: Briefcase },
-      { title: "Siteler", href: "/sites", icon: Building2 },
-      { title: "Partnerler", href: "/partners", icon: Users },
-      { title: "Finansörler", href: "/financiers", icon: Wallet },
-      { title: "Dış Kişiler", href: "/external-parties", icon: UserCircle },
-      { title: "Borç/Alacak", href: "/borclar", icon: HandCoins },
+      { title: "Organizasyon", href: "/organization", icon: Briefcase, roles: NO_PARTNER },
+      { title: "Siteler", href: "/sites", icon: Building2 }, // herkes (partner kendi sitelerini görür)
+      { title: "Partnerler", href: "/partners", icon: Users, roles: NO_PARTNER },
+      { title: "Finansörler", href: "/financiers", icon: Wallet, roles: NO_PARTNER },
+      { title: "Dış Kişiler", href: "/external-parties", icon: UserCircle, roles: NO_PARTNER },
+      { title: "Borç/Alacak", href: "/borclar", icon: HandCoins, roles: ["ADMIN", "PARTNER", "VIEWER"] },
     ],
   },
   {
     title: "RAPORLAR",
     items: [
-      { title: "Günlük Özet", href: "/reports/daily", icon: Calendar },
-      { title: "Aylık Rapor", href: "/reports/monthly", icon: FileBarChart },
-      { title: "Mutabakat", href: "/reports/reconciliation", icon: Search },
-      { title: "Analiz", href: "/reports/analysis", icon: PieChart },
+      { title: "Günlük Özet", href: "/reports/daily", icon: Calendar, roles: NO_PARTNER },
+      { title: "Aylık Rapor", href: "/reports/monthly", icon: FileBarChart, roles: NO_PARTNER },
+      { title: "Mutabakat", href: "/reports/reconciliation", icon: Search, roles: NO_PARTNER },
+      { title: "Analiz", href: "/reports/analysis", icon: PieChart, roles: NO_PARTNER },
     ],
   },
   {
     title: "SİSTEM",
     items: [
-      { title: "Onay Bekleyenler", href: "/approvals", icon: Clock },
-      { title: "Ayarlar", href: "/settings", icon: Settings },
+      { title: "Onay Bekleyenler", href: "/approvals", icon: Clock, roles: ["ADMIN", "PARTNER", "VIEWER"] },
+      { title: "Kullanıcılar", href: "/users", icon: UserCog, roles: ADMIN_ONLY },
+      { title: "Audit Log", href: "/audit-log", icon: ScrollText, roles: ADMIN_VIEWER },
+      { title: "Ayarlar", href: "/settings", icon: Settings, roles: ADMIN_ONLY },
     ],
   },
 ];
@@ -120,19 +135,27 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
       .slice(0, 2);
   };
 
-  // Inject dynamic badge for "Onay Bekleyenler"
+  // Role-based navigation filtering + dynamic badge
   const dynamicNavigation = useMemo(() => {
     const pendingCount = approvalStats?.pendingCount || 0;
-    return navigation.map(group => ({
-      ...group,
-      items: group.items.map(item => {
-        if (item.href === "/approvals" && pendingCount > 0) {
-          return { ...item, badge: pendingCount };
-        }
-        return item;
-      }),
-    }));
-  }, [approvalStats]);
+    const userRole = user?.role || "USER";
+
+    return navigation
+      .map(group => ({
+        ...group,
+        items: group.items
+          // Rol filtresi: roles tanımlıysa, kullanıcının rolü listede olmalı
+          .filter(item => !item.roles || item.roles.includes(userRole))
+          .map(item => {
+            if (item.href === "/approvals" && pendingCount > 0) {
+              return { ...item, badge: pendingCount };
+            }
+            return item;
+          }),
+      }))
+      // Boş grupları kaldır
+      .filter(group => group.items.length > 0);
+  }, [approvalStats, user?.role]);
 
   return (
     <div className="flex h-full flex-col">

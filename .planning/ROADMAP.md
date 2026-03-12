@@ -128,8 +128,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 07-01: Frontend — finansors/[id]/page.tsx'e borc/alacak ozet karti ve Borc/Alacak tab'i ekle
-- [ ] 07-02: Frontend — Borc Ver/Al quick-action butonu ve modal form entegrasyonu
+- [x] 07-01: Frontend — finansors/[id]/page.tsx'e borc/alacak ozet karti ve Borc/Alacak tab'i ekle
+- [x] 07-02: Frontend — Borc Ver/Al quick-action butonu ve modal form entegrasyonu
 
 ## Progress
 

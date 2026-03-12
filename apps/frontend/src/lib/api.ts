@@ -3,6 +3,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  pending?: boolean;
+  message?: string;
   error?: {
     code: string;
     message: string;
@@ -134,6 +136,12 @@ class ApiClient {
 
     if (!response.ok || !data.success) {
       throw new Error(data.error?.message || "An error occurred");
+    }
+
+    // Pending transaction durumunu data'ya ekle
+    if (data.pending && data.data && typeof data.data === 'object') {
+      (data.data as any).__pending = true;
+      (data.data as any).__message = data.message;
     }
 
     return data.data as T;

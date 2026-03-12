@@ -38,7 +38,46 @@ import type {
   TransactionQueryInput,
   BulkImportInput,
 } from './transaction.schema.js';
-import { authenticate, requireAdmin } from '../auth/auth.routes.js';
+import { authenticate, requireAdmin, getPartnerFilter } from '../auth/auth.routes.js';
+import { requiresApproval, pendingService } from '../pending/pending.service.js';
+
+/**
+ * Role-aware transaction handler wrapper
+ * Admin → direkt işle
+ * Operator (yatırım/çekim) → direkt işle
+ * Operator (diğerleri) → onay kuyruğuna
+ * Partner → onay kuyruğuna
+ */
+async function handleWithApproval(
+  request: any,
+  reply: any,
+  type: string,
+  input: any,
+  directProcessor: () => Promise<any>
+) {
+  const role = request.user?.role || 'USER';
+
+  if (requiresApproval(role, type)) {
+    // Onay kuyruğuna ekle
+    const pending = await pendingService.create({
+      transaction_type: type,
+      payload: input,
+      requested_by: request.user!.userId,
+      requester_role: role,
+    });
+
+    return reply.status(202).send({
+      success: true,
+      data: pending,
+      message: 'İşlem talebi oluşturuldu, admin onayı bekleniyor',
+      pending: true,
+    });
+  }
+
+  // Direkt işle
+  const transaction = await directProcessor();
+  return reply.status(201).send({ success: true, data: transaction });
+}
 
 export async function transactionRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
@@ -51,6 +90,18 @@ export async function transactionRoutes(app: FastifyInstance) {
     '/',
     async (request, reply) => {
       const query = transactionQuerySchema.parse(request.query);
+      
+      // PARTNER: Sadece kendi sitelerindeki işlemleri görsün
+      const partnerFilter = getPartnerFilter(request);
+      if (partnerFilter.siteIds && partnerFilter.siteIds.length > 0) {
+        query.site_id = query.site_id || undefined;
+        // Service'e partner site filtresi gönder
+        (query as any).partner_site_ids = partnerFilter.siteIds;
+      }
+      if (partnerFilter.partnerId) {
+        (query as any).partner_filter_id = partnerFilter.partnerId;
+      }
+      
       const result = await transactionService.findAll(query);
 
       return { success: true, data: result };
@@ -69,199 +120,140 @@ export async function transactionRoutes(app: FastifyInstance) {
     }
   );
 
-  /**
-   * POST /transactions/deposit
-   * Create a deposit transaction
-   */
+  // ==================== YATIRIM ====================
   app.post<{ Body: CreateDepositInput }>(
     '/deposit',
     async (request, reply) => {
       const input = createDepositSchema.parse(request.body);
-      const transaction = await transactionService.processDeposit(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'deposit', input,
+        () => transactionService.processDeposit(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/withdrawal
-   * Create a withdrawal transaction
-   */
+  // ==================== ÇEKİM ====================
   app.post<{ Body: CreateWithdrawalInput }>(
     '/withdrawal',
     async (request, reply) => {
       const input = createWithdrawalSchema.parse(request.body);
-      const transaction = await transactionService.processWithdrawal(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'withdrawal', input,
+        () => transactionService.processWithdrawal(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/site-delivery
-   * Create a site delivery transaction
-   */
+  // ==================== SİTE TESLİM ====================
   app.post<{ Body: CreateSiteDeliveryInput }>(
     '/site-delivery',
     async (request, reply) => {
       const input = createSiteDeliverySchema.parse(request.body);
-      const transaction = await transactionService.processSiteDelivery(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'site-delivery', input,
+        () => transactionService.processSiteDelivery(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/partner-payment
-   * Create a partner payment transaction
-   */
+  // ==================== PARTNER ÖDEME ====================
   app.post<{ Body: CreatePartnerPaymentInput }>(
     '/partner-payment',
     async (request, reply) => {
       const input = createPartnerPaymentSchema.parse(request.body);
-      const transaction = await transactionService.processPartnerPayment(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'partner-payment', input,
+        () => transactionService.processPartnerPayment(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/financier-transfer
-   * Transfer between two financiers
-   */
+  // ==================== FİNANSÖR TRANSFER ====================
   app.post<{ Body: CreateFinancierTransferInput }>(
     '/financier-transfer',
     async (request, reply) => {
       const input = createFinancierTransferSchema.parse(request.body);
-      const transaction = await transactionService.processFinancierTransfer(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'financier-transfer', input,
+        () => transactionService.processFinancierTransfer(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/external-debt
-   * Create external debt transaction (in or out)
-   */
+  // ==================== DIŞ BORÇ ====================
   app.post<{ Body: CreateExternalDebtInput }>(
     '/external-debt',
     async (request, reply) => {
       const input = createExternalDebtSchema.parse(request.body);
-
-      let transaction;
-      if (input.direction === 'in') {
-        const { direction, ...rest } = input;
-        transaction = await transactionService.processExternalDebtIn(rest, request.user!.userId);
-      } else {
-        const { direction, ...rest } = input;
-        transaction = await transactionService.processExternalDebtOut(rest, request.user!.userId);
-      }
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'external-debt', input, async () => {
+        if (input.direction === 'in') {
+          const { direction, ...rest } = input;
+          return transactionService.processExternalDebtIn(rest, request.user!.userId);
+        } else {
+          const { direction, ...rest } = input;
+          return transactionService.processExternalDebtOut(rest, request.user!.userId);
+        }
+      });
     }
   );
 
-  /**
-   * POST /transactions/external-payment
-   * Pay to external party
-   */
+  // ==================== DIŞ ÖDEME ====================
   app.post<{ Body: CreateExternalPaymentInput }>(
     '/external-payment',
     async (request, reply) => {
       const input = createExternalPaymentSchema.parse(request.body);
-      const transaction = await transactionService.processExternalPayment(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'external-payment', input,
+        () => transactionService.processExternalPayment(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/org-expense
-   * Organization expense
-   */
+  // ==================== ORG GİDER ====================
   app.post<{ Body: CreateOrgExpenseInput }>(
     '/org-expense',
     async (request, reply) => {
       const input = createOrgExpenseSchema.parse(request.body);
-      const transaction = await transactionService.processOrgExpense(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'org-expense', input,
+        () => transactionService.processOrgExpense(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/org-income
-   * Organization income
-   */
+  // ==================== ORG GELİR ====================
   app.post<{ Body: CreateOrgIncomeInput }>(
     '/org-income',
     async (request, reply) => {
       const input = createOrgIncomeSchema.parse(request.body);
-      const transaction = await transactionService.processOrgIncome(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'org-income', input,
+        () => transactionService.processOrgIncome(input, request.user!.userId));
     }
   );
 
-  /**
-   * POST /transactions/org-withdraw
-   * Organization owner withdraws profit
-   */
+  // ==================== ORG ÇEKİM ====================
   app.post<{ Body: CreateOrgWithdrawInput }>(
     '/org-withdraw',
     async (request, reply) => {
       const input = createOrgWithdrawSchema.parse(request.body);
-      const transaction = await transactionService.processOrgWithdraw(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'org-withdraw', input,
+        () => transactionService.processOrgWithdraw(input, request.user!.userId));
     }
   );
 
-  // ==================== YENİ: ÖDEME (Payment) ====================
-  /**
-   * POST /transactions/payment
-   * Create a payment transaction (to anyone - no commission)
-   * Source types: SITE, PARTNER, EXTERNAL_PARTY, ORGANIZATION
-   */
+  // ==================== ÖDEME ====================
   app.post<{ Body: CreatePaymentInput }>(
     '/payment',
     async (request, reply) => {
       const input = createPaymentSchema.parse(request.body);
-      const transaction = await transactionService.processPayment(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'payment', input,
+        () => transactionService.processPayment(input, request.user!.userId));
     }
   );
 
-  // ==================== YENİ: TAKVİYE (Top-up) ====================
-  /**
-   * POST /transactions/top-up
-   * Create a top-up transaction (cash injection to financier)
-   * Source types: PARTNER, ORGANIZATION, EXTERNAL
-   */
+  // ==================== TAKVİYE ====================
   app.post<{ Body: CreateTopUpInput }>(
     '/top-up',
     async (request, reply) => {
       const input = createTopUpSchema.parse(request.body);
-      const transaction = await transactionService.processTopUp(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'top-up', input,
+        () => transactionService.processTopUp(input, request.user!.userId));
     }
   );
 
-  // ==================== YENİ: TESLİM (Delivery) ====================
-  /**
-   * POST /transactions/delivery
-   * Create a delivery transaction (site receives money - WITH commission)
-   * Commission based on: site + delivery type + partner (if applicable)
-   */
+  // ==================== TESLİM ====================
   app.post<{ Body: CreateDeliveryInput }>(
     '/delivery',
     async (request, reply) => {
       const input = createDeliverySchema.parse(request.body);
-      const transaction = await transactionService.processDelivery(input, request.user!.userId);
-
-      return reply.status(201).send({ success: true, data: transaction });
+      return handleWithApproval(request, reply, 'delivery', input,
+        () => transactionService.processDelivery(input, request.user!.userId));
     }
   );
 

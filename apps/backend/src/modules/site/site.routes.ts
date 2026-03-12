@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { siteService } from './site.service.js';
 import { createSiteSchema, updateSiteSchema, siteQuerySchema } from './site.schema.js';
 import type { CreateSiteInput, UpdateSiteInput, SiteQueryInput } from './site.schema.js';
-import { authenticate, requireAdmin } from '../auth/auth.routes.js';
+import { authenticate, requireAdmin, getPartnerFilter } from '../auth/auth.routes.js';
 import { commissionRateService } from '../settings/commission-rate.service.js';
 import { EntityType, TransactionType } from '@prisma/client';
 
@@ -13,11 +13,19 @@ export async function siteRoutes(app: FastifyInstance) {
   /**
    * GET /sites
    * List all sites with pagination
+   * PARTNER: Sadece kendi siteleri
    */
   app.get<{ Querystring: SiteQueryInput }>(
     '/',
     async (request, reply) => {
       const query = siteQuerySchema.parse(request.query);
+      
+      // PARTNER filtresi: sadece kendi siteleri
+      const partnerFilter = getPartnerFilter(request);
+      if (partnerFilter.siteIds && partnerFilter.siteIds.length > 0) {
+        (query as any).partner_site_ids = partnerFilter.siteIds;
+      }
+      
       const result = await siteService.findAll(query);
 
       return {

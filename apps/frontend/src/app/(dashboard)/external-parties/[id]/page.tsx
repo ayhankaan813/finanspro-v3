@@ -442,15 +442,15 @@ export default function ExternalPartyDetailPage() {
             Dis Kisilere Don
           </Button>
 
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="h-20 w-20 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
-                <span className="text-3xl font-bold text-indigo-50">
+          <div className="flex items-start justify-between gap-3 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
+              <div className="h-14 w-14 sm:h-20 sm:w-20 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20 shrink-0">
+                <span className="text-xl sm:text-3xl font-bold text-indigo-50">
                   {party.name.substring(0, 2).toUpperCase()}
                 </span>
               </div>
               <div>
-                <h1 className="text-4xl font-bold mb-2">{party.name}</h1>
+                <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">{party.name}</h1>
                 <div className="flex items-center gap-4 text-indigo-100/80">
                   {party.phone && (
                     <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -471,25 +471,25 @@ export default function ExternalPartyDetailPage() {
           </div>
 
           {/* Balance + Debt Direction */}
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-5 border border-white/20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 sm:mt-8">
+            <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-3 sm:p-5 border border-white/20">
               <p className="text-indigo-100/70 text-sm font-bold uppercase tracking-wider mb-2">Toplam Bakiye</p>
               <p className={`text-3xl font-bold ${balance === 0 ? "text-white" : balance > 0 ? "text-orange-300" : "text-emerald-300"}`}>
                 {formatMoney(Math.abs(balance))}
               </p>
             </div>
-            <div className={`rounded-2xl backdrop-blur-sm p-5 border ${debtDirection === "they_owe" ? "bg-emerald-500/20 border-emerald-400/30" : "bg-white/5 border-white/10"}`}>
+            <div className={`rounded-2xl backdrop-blur-sm p-3 sm:p-5 border ${debtDirection === "they_owe" ? "bg-emerald-500/20 border-emerald-400/30" : "bg-white/5 border-white/10"}`}>
               <p className="text-emerald-100/70 text-sm font-bold uppercase tracking-wider mb-2">Bize Borclu</p>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-xl sm:text-3xl font-bold text-white">
                 {debtDirection === "they_owe" ? formatMoney(Math.abs(balance)) : formatMoney(0)}
               </p>
               {debtDirection === "they_owe" && (
                 <p className="text-emerald-200/60 text-xs mt-1 font-medium">Bu kisi bize borclu</p>
               )}
             </div>
-            <div className={`rounded-2xl backdrop-blur-sm p-5 border ${debtDirection === "we_owe" ? "bg-orange-500/20 border-orange-400/30" : "bg-white/5 border-white/10"}`}>
+            <div className={`rounded-2xl backdrop-blur-sm p-3 sm:p-5 border ${debtDirection === "we_owe" ? "bg-orange-500/20 border-orange-400/30" : "bg-white/5 border-white/10"}`}>
               <p className="text-orange-100/70 text-sm font-bold uppercase tracking-wider mb-2">Bizim Borcumuz</p>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-xl sm:text-3xl font-bold text-white">
                 {debtDirection === "we_owe" ? formatMoney(Math.abs(balance)) : formatMoney(0)}
               </p>
               {debtDirection === "we_owe" && (
@@ -499,7 +499,7 @@ export default function ExternalPartyDetailPage() {
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex gap-3 mt-6">
+          <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 sm:mt-6">
             <Button
               onClick={() => setShowDebtOutModal(true)}
               className="bg-rose-500 hover:bg-rose-600 text-white rounded-xl px-6 py-5 shadow-lg shadow-rose-900/30 text-sm font-bold transition-all hover:scale-105 active:scale-95"
@@ -783,10 +783,10 @@ export default function ExternalPartyDetailPage() {
       <div className="-mx-3 sm:mx-0">
       <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[520px]">
             <thead>
               <tr className="bg-gradient-to-r from-twilight-50 to-twilight-100/50 border-b-2 border-twilight-200">
-                <th className="px-6 py-4 text-left whitespace-nowrap">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left whitespace-nowrap">
                   <span className="text-xs font-bold text-twilight-600 uppercase tracking-wider">Tarih</span>
                 </th>
                 <th className="px-6 py-4 text-right whitespace-nowrap">

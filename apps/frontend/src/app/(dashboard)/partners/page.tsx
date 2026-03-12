@@ -501,7 +501,7 @@ export default function PartnersPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data?.items.map((partner) => (
                 <motion.div
                   key={partner.id}
@@ -509,82 +509,56 @@ export default function PartnersPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Card className="group h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 hover:ring-emerald-500/50">
-                    <CardHeader className="p-0">
-                      {/* Card Banner */}
-                      <div className="h-24 bg-gradient-to-r from-emerald-50 to-teal-50 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
-
-                        <div className="absolute top-4 right-4 flex gap-2">
-                          {partner.is_active ? (
-                            <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-emerald-600 shadow-sm border border-emerald-100 flex items-center gap-1.5">
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
-                              AKTİF
-                            </div>
-                          ) : (
-                            <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-500 shadow-sm border border-gray-100 flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full bg-gray-400"></span>
-                              PASİF
-                            </div>
-                          )}
+                  <Card className="group h-full border shadow-sm hover:shadow-md transition-all duration-200 bg-white overflow-hidden rounded-xl ring-1 ring-twilight-100/50">
+                    <CardContent className="p-4">
+                      {/* Header Row */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                          {partner.name.substring(0, 2).toUpperCase()}
                         </div>
-                      </div>
-
-                      <div className="px-4 sm:px-6 flex gap-3 sm:gap-4 -mt-8 sm:-mt-10">
-                        <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-                          <div className="h-full w-full rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-inner">
-                            {partner.name.substring(0, 2).toUpperCase()}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm text-twilight-900 truncate">{partner.name}</h3>
+                          <div className="flex items-center gap-2 text-xs text-twilight-400">
+                            <Briefcase className="h-3 w-3 shrink-0" />
+                            <span className="font-mono">{partner.code}</span>
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${partner.is_active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${partner.is_active ? "bg-emerald-500" : "bg-gray-400"}`} />
+                              {partner.is_active ? "Aktif" : "Pasif"}
+                            </span>
                           </div>
                         </div>
-                        <div className="pt-9 sm:pt-11 flex-1 min-w-0">
-                          <h3 className="font-bold text-base sm:text-lg text-twilight-900 truncate group-hover:text-emerald-700 transition-colors">
-                            {partner.name}
-                          </h3>
-                          <div className="flex items-center gap-2 text-xs font-mono text-twilight-400">
-                            <Briefcase className="h-3 w-3" />
-                            {partner.code}
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="mt-9 sm:mt-11 text-twilight-400 hover:text-twilight-600">
-                          <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-twilight-400 hover:text-twilight-600 shrink-0">
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
                       </div>
-                    </CardHeader>
 
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="py-4 sm:py-5 text-center bg-twilight-50/50 rounded-xl sm:rounded-2xl mb-4 sm:mb-5 border border-twilight-100/50 group-hover:bg-emerald-50/30 group-hover:border-emerald-100/50 transition-colors">
-                        <p className="text-[10px] sm:text-xs font-bold text-twilight-400 uppercase tracking-widest mb-1 sm:mb-1.5 flex items-center justify-center gap-1.5">
-                          Hak Ediş Bakiyesi
-                        </p>
-                        <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${parseFloat(partner.account?.balance || "0") >= 0
-                          ? "text-emerald-600"
-                          : "text-rose-600"
-                          }`}>
+                      {/* Balance */}
+                      <div className="py-2.5 text-center bg-twilight-50/50 rounded-lg mb-3 border border-twilight-100/50">
+                        <p className="text-[10px] font-semibold text-twilight-400 uppercase tracking-wider mb-0.5">Hak Ediş Bakiyesi</p>
+                        <p className={`text-lg font-bold font-mono ${parseFloat(partner.account?.balance || "0") >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                           {formatMoney(parseFloat(partner.account?.balance || "0"))}
                         </p>
                       </div>
 
                       {partner.description && (
-                        <p className="text-sm text-twilight-500 mb-6 bg-white p-3 rounded-xl border border-twilight-100 italic">
+                        <p className="text-xs text-twilight-500 mb-3 p-2 rounded-lg border border-twilight-100 italic truncate">
                           "{partner.description}"
                         </p>
                       )}
 
-                      <div className="flex gap-3">
+                      {/* Actions */}
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          className="flex-1 h-10 rounded-xl border-twilight-200 text-twilight-600 hover:border-emerald-200 hover:text-emerald-700 hover:bg-emerald-50/50 font-semibold text-xs"
+                          className="flex-1 h-8 rounded-lg border-twilight-200 text-twilight-600 hover:border-emerald-200 hover:text-emerald-700 hover:bg-emerald-50/50 font-medium text-xs"
                           onClick={() => setCommissionPartner(partner)}
                         >
-                          <Percent className="mr-2 h-3.5 w-3.5" />
+                          <Percent className="mr-1.5 h-3 w-3" />
                           Komisyon
                         </Button>
-                        <Button className="flex-1 h-10 rounded-xl bg-twilight-900 text-white hover:bg-twilight-800 shadow-lg shadow-twilight-900/10 font-semibold text-xs" asChild>
+                        <Button className="flex-1 h-8 rounded-lg bg-twilight-900 text-white hover:bg-twilight-800 font-medium text-xs" asChild>
                           <Link href={`/partners/${partner.id}`}>
-                            <Eye className="mr-2 h-3.5 w-3.5" />
+                            <Eye className="mr-1.5 h-3 w-3" />
                             Detay
                           </Link>
                         </Button>

@@ -69,7 +69,7 @@ export class ExternalPartyService {
           action: 'CREATE',
           entity_type: 'ExternalParty',
           entity_id: newParty.id,
-          new_data: newParty as unknown as Prisma.JsonObject,
+          new_values: newParty as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
         },
@@ -192,8 +192,8 @@ export class ExternalPartyService {
           action: 'UPDATE',
           entity_type: 'ExternalParty',
           entity_id: id,
-          old_data: existing as unknown as Prisma.JsonObject,
-          new_data: updated as unknown as Prisma.JsonObject,
+          old_values: existing as unknown as Prisma.JsonObject,
+          new_values: updated as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
         },
@@ -241,7 +241,7 @@ export class ExternalPartyService {
           action: 'DELETE',
           entity_type: 'ExternalParty',
           entity_id: id,
-          old_data: existing as unknown as Prisma.JsonObject,
+          old_values: existing as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
         },
@@ -334,6 +334,12 @@ export class ExternalPartyService {
         case 'EXTERNAL_PAYMENT':
           monthlyStats[month].payment = monthlyStats[month].payment.plus(grossAmount);
           break;
+        case 'PAYMENT':
+          // PAYMENT with source_type EXTERNAL_PARTY = external payment
+          if (tx.source_type === 'EXTERNAL_PARTY') {
+            monthlyStats[month].payment = monthlyStats[month].payment.plus(grossAmount);
+          }
+          break;
       }
     }
 
@@ -411,6 +417,11 @@ export class ExternalPartyService {
           break;
         case 'EXTERNAL_PAYMENT':
           dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.plus(grossAmount);
+          break;
+        case 'PAYMENT':
+          if (tx.source_type === 'EXTERNAL_PARTY') {
+            dailyStats[dayIndex].payment = dailyStats[dayIndex].payment.plus(grossAmount);
+          }
           break;
       }
     }

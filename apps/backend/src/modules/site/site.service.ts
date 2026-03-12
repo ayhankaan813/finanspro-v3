@@ -102,7 +102,7 @@ export class SiteService {
             action: 'CREATE',
             entity_type: 'Site',
             entity_id: newSite.id,
-            new_data: newSite as unknown as Prisma.JsonObject,
+            new_values: newSite as unknown as Prisma.JsonObject,
             user_id: createdBy,
             user_email: '', // Will be filled by middleware
           },
@@ -177,6 +177,12 @@ export class SiteService {
       deleted_at: null,
     };
 
+    // PARTNER filtresi: sadece kendi siteleri
+    const partnerSiteIds = (query as any).partner_site_ids as string[] | undefined;
+    if (partnerSiteIds && partnerSiteIds.length > 0) {
+      where.id = { in: partnerSiteIds };
+    }
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -242,8 +248,8 @@ export class SiteService {
             action: 'UPDATE',
             entity_type: 'Site',
             entity_id: id,
-            old_data: existing as unknown as Prisma.JsonObject,
-            new_data: updated as unknown as Prisma.JsonObject,
+            old_values: existing as unknown as Prisma.JsonObject,
+            new_values: updated as unknown as Prisma.JsonObject,
             user_id: updatedBy,
             user_email: '',
           },
@@ -289,7 +295,7 @@ export class SiteService {
             action: 'DELETE',
             entity_type: 'Site',
             entity_id: id,
-            old_data: existing as unknown as Prisma.JsonObject,
+            old_values: existing as unknown as Prisma.JsonObject,
             user_id: deletedBy,
             user_email: '',
           },

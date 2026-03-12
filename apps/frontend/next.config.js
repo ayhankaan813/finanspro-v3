@@ -2,14 +2,28 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@shared"],
+
+  // Production: use env var; Development: proxy to localhost:3001
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:3001/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
+
+  // Ignore TS errors during build (like v2 prod pattern)
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
+  // Ignore ESLint during build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",

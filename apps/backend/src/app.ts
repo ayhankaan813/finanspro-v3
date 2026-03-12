@@ -25,6 +25,12 @@ import { notificationRoutes } from './modules/notification/notification.routes.j
 import { approvalRoutes } from './modules/approval/approval.routes.js';
 import { personnelRoutes } from './modules/personnel/index.js';
 import { debtRoutes } from './modules/debt/index.js';
+import { adjustmentRoutes } from './modules/adjustment/index.js';
+import { reportRoutes } from './modules/report/report.routes.js';
+import { auditRoutes } from './modules/audit/audit.routes.js';
+import { registerAuditHook } from './modules/audit/audit.hook.js';
+import { userRoutes } from './modules/user/user.routes.js';
+import { pendingRoutes } from './modules/pending/pending.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -41,10 +47,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   await app.register(cors, {
-    origin: isDev ? true : env.CORS_ORIGIN.split(','),
+    origin: isDev ? true : (env.CORS_ORIGIN ? env.CORS_ORIGIN.split(',').map(s => s.trim()) : true),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Fingerprint'],
   });
 
   await app.register(rateLimit, {
@@ -96,15 +102,29 @@ export async function buildApp(): Promise<FastifyInstance> {
     });
   }
 
+  // Global Audit Log Hook — her mutating request'i logla
+  registerAuditHook(app);
+
   // Error handler
   app.setErrorHandler(errorHandler);
 
   // Health check
   app.get('/health', async () => {
+    let dbStatus = 'unknown';
+    try {
+      const { prisma } = await import('./shared/prisma/client.js');
+      await prisma.$queryRaw`SELECT 1`;
+      dbStatus = 'connected';
+    } catch {
+      dbStatus = 'disconnected';
+    }
+
     return {
-      status: 'ok',
+      status: dbStatus === 'connected' ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      version: '3.0.0',
+      version: '3.4.0',
+      environment: env.NODE_ENV,
+      database: dbStatus,
     };
   });
 
@@ -143,8 +163,22 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Debt routes (kasalar arası borç/alacak)
     api.register(debtRoutes, { prefix: '/debts' });
 
-    // Report routes (will be added later)
-    // api.register(reportRoutes, { prefix: '/reports' });
+    // Adjustment routes (düzeltme talepleri)
+    api.register(adjustmentRoutes, { prefix: '/adjustments' });
+
+    // Report routes
+    api.register(reportRoutes, { prefix: '/reports' });
+
+    // User Management routes
+    api.register(userRoutes, { prefix: '/users' });
+
+    // Pending Transaction routes (onay bekleyen işlemler)
+    api.register(pendingRoutes, { prefix: '/pending-transactions' });
+
+    // Audit Log routes
+    api.register(auditRoutes, { prefix: '/audit-logs' });
+
+
   }, { prefix: '/api' });
 
   return app;

@@ -8,6 +8,8 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  partnerId?: string;
+  allowedSites?: string[];
 }
 
 export interface AuthUser {
@@ -15,6 +17,8 @@ export interface AuthUser {
   email: string;
   name: string;
   role: string;
+  partner_id?: string | null;
+  allowed_sites?: string[] | null;
 }
 
 export class AuthService {
@@ -32,6 +36,8 @@ export class AuthService {
         password_hash: true,
         is_active: true,
         deleted_at: true,
+        partner_id: true,
+        allowed_sites: true,
       },
     });
 
@@ -64,6 +70,8 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: user.role,
+      partner_id: user.partner_id,
+      allowed_sites: user.allowed_sites as string[] | null,
     };
   }
 
@@ -127,11 +135,19 @@ export class AuthService {
    * Create token payload
    */
   createTokenPayload(user: AuthUser): TokenPayload {
-    return {
+    const payload: TokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
     };
+
+    // Partner rolü için ek bilgiler token'a ekle
+    if (user.partner_id) payload.partnerId = user.partner_id;
+    if (user.allowed_sites && user.allowed_sites.length > 0) {
+      payload.allowedSites = user.allowed_sites;
+    }
+
+    return payload;
   }
 }
 

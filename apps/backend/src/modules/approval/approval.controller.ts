@@ -4,30 +4,38 @@ import { z } from 'zod';
 
 const ApproveSchema = z.object({
   reviewNote: z.string().optional(),
-});
+  note: z.string().optional(),
+}).transform(data => ({
+  reviewNote: data.reviewNote || data.note,
+}));
 
 const RejectSchema = z.object({
-  rejectionReason: z.string().min(1, 'Rejection reason is required'),
+  rejectionReason: z.string().min(1, 'Rejection reason is required').optional(),
+  reason: z.string().min(1, 'Rejection reason is required').optional(),
+}).transform(data => ({
+  rejectionReason: data.rejectionReason || data.reason || '',
+})).refine(data => data.rejectionReason && data.rejectionReason.length > 0, {
+  message: 'Rejection reason is required',
 });
 
 export class ApprovalController {
   /**
    * GET /api/approvals/pending
-   * Get all pending transactions
    */
   async getPendingTransactions(request: FastifyRequest, reply: FastifyReply) {
     try {
       const transactions = await approvalService.getPendingTransactions();
-
-      return reply.send({ items: transactions, count: transactions.length });
+      return reply.send({
+        success: true,
+        data: { items: transactions, count: transactions.length },
+      });
     } catch (error: any) {
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * POST /api/approvals/transactions/:id/approve
-   * Approve a pending transaction
    */
   async approveTransaction(
     request: FastifyRequest<{
@@ -47,21 +55,20 @@ export class ApprovalController {
         body.reviewNote
       );
 
-      return reply.send(transaction);
+      return reply.send({ success: true, data: transaction });
     } catch (error: any) {
       if (error.message.includes('not found')) {
-        return reply.status(404).send({ error: error.message });
+        return reply.status(404).send({ success: false, error: { message: error.message } });
       }
       if (error.message.includes('not pending')) {
-        return reply.status(400).send({ error: error.message });
+        return reply.status(400).send({ success: false, error: { message: error.message } });
       }
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * POST /api/approvals/transactions/:id/reject
-   * Reject a pending transaction
    */
   async rejectTransaction(
     request: FastifyRequest<{
@@ -81,32 +88,30 @@ export class ApprovalController {
         body.rejectionReason
       );
 
-      return reply.send(transaction);
+      return reply.send({ success: true, data: transaction });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
+        return reply.status(400).send({ success: false, error: { message: error.errors[0]?.message || 'Validation error' } });
       }
       if (error.message.includes('not found')) {
-        return reply.status(404).send({ error: error.message });
+        return reply.status(404).send({ success: false, error: { message: error.message } });
       }
       if (error.message.includes('not pending') || error.message.includes('required')) {
-        return reply.status(400).send({ error: error.message });
+        return reply.status(400).send({ success: false, error: { message: error.message } });
       }
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * GET /api/approvals/stats
-   * Get approval statistics
    */
   async getStats(request: FastifyRequest, reply: FastifyReply) {
     try {
       const stats = await approvalService.getApprovalStats();
-
-      return reply.send(stats);
+      return reply.send({ success: true, data: stats });
     } catch (error: any) {
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 }

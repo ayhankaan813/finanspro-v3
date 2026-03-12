@@ -28,6 +28,7 @@ import {
   UserCircle
 } from "lucide-react";
 import { useDashboardStats, useTransactions } from "@/hooks/use-api";
+import { exportDailyReport } from "@/lib/export-utils";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale/tr";
@@ -56,7 +57,7 @@ export default function DailyReportPage() {
     date_from: selectedDate,
     date_to: selectedDate,
     status: "COMPLETED",
-    limit: 200,
+    limit: 100,
   });
 
   const isLoading = statsLoading || txLoading;
@@ -217,7 +218,21 @@ export default function DailyReportPage() {
             className="w-auto h-8 sm:h-10 border-none shadow-none focus-visible:ring-0 bg-transparent font-medium text-twilight-700 text-sm"
           />
           <div className="h-5 sm:h-6 w-px bg-twilight-200" />
-          <Button variant="ghost" size="sm" className="h-8 sm:h-9 text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50 px-2 sm:px-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 sm:h-9 text-twilight-600 hover:text-twilight-900 hover:bg-twilight-50 px-2 sm:px-3"
+            onClick={() => {
+              if (transactions?.items) {
+                exportDailyReport(
+                  transactions.items.filter(tx => tx.type !== "REVERSAL"),
+                  dailyStats,
+                  selectedDate
+                );
+              }
+            }}
+            title="Excel İndir"
+          >
             <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
         </div>

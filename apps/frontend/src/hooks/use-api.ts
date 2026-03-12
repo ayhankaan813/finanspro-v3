@@ -1932,6 +1932,177 @@ export function useTransactionEditHistory(transactionId: string | null) {
   });
 }
 
+// ==================== ADJUSTMENTS ====================
+export interface AdjustmentItem {
+  id: string;
+  type: string;
+  status: string;
+  target_type: string;
+  target_id: string;
+  field_name?: string;
+  old_value: Record<string, any>;
+  new_value: Record<string, any>;
+  reason: string;
+  requested_by: string;
+  requested_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_note?: string;
+  applied_at?: string;
+  requester?: { id: string; name: string; email: string };
+  reviewer?: { id: string; name: string; email: string };
+}
+
+export function useAdjustmentStats() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ['adjustment-stats'],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ pending: number; applied: number; rejected: number }>('/api/adjustments/stats');
+    },
+    enabled: !!accessToken,
+  });
+}
+
+export function usePendingAdjustments() {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ['pending-adjustments'],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ items: AdjustmentItem[]; count: number }>('/api/adjustments/pending');
+    },
+    enabled: !!accessToken,
+  });
+}
+
+export function useRequestAmountChange() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ transactionId, amount, reason }: { transactionId: string; amount: string; reason: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/adjustments/transaction/${transactionId}/amount`, { amount, reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustment-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useRequestDateChange() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ transactionId, date, reason }: { transactionId: string; date: string; reason: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/adjustments/transaction/${transactionId}/date`, { date, reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustment-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useRequestDelete() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ transactionId, reason }: { transactionId: string; reason: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/adjustments/transaction/${transactionId}/delete`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustment-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useApproveAdjustment() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/adjustments/${id}/approve`, { note });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustment-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useRejectAdjustment() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/adjustments/${id}/reject`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustment-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+// ==================== REPORTS ====================
+export interface KasaRaporuRow {
+  label: string;
+  period: number;
+  devir: string;
+  takviye: string;
+  yatirim: string;
+  cekim: string;
+  teslim: string;
+  orgKar: string;
+  partnerKar: Record<string, string>;
+  odeme: string;
+  kasa: string;
+}
+
+export interface KasaRaporuResponse {
+  meta: {
+    year: number;
+    month?: number;
+    view: 'daily' | 'monthly';
+    partners: Array<{ id: string; name: string }>;
+    currentKasa: string;
+  };
+  summary: KasaRaporuRow;
+  rows: KasaRaporuRow[];
+}
+
+export function useKasaRaporu(params: { year: number; month?: number; view: 'daily' | 'monthly' }) {
+  const { accessToken } = useAuthStore();
+  return useQuery({
+    queryKey: ['kasa-raporu', params.year, params.month, params.view],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      const qs = new URLSearchParams({
+        year: String(params.year),
+        view: params.view,
+      });
+      if (params.month) qs.set('month', String(params.month));
+      return api.get<KasaRaporuResponse>(`/api/reports/kasa-raporu?${qs.toString()}`);
+    },
+    enabled: !!accessToken,
+  });
+}
+
 // ==================== NOTIFICATIONS ====================
 export interface Notification {
   id: string;
@@ -2472,6 +2643,106 @@ export function useCancelDebt() {
       queryClient.invalidateQueries({ queryKey: ["debt-summary"] });
       queryClient.invalidateQueries({ queryKey: ["debt-financier-summary"] });
       queryClient.invalidateQueries({ queryKey: ["debt-matrix"] });
+    },
+  });
+}
+
+// =============================================================================
+// PENDING TRANSACTIONS (Onay Bekleyen İşlemler)
+// =============================================================================
+
+export interface PendingTransaction {
+  id: string;
+  transaction_type: string;
+  payload: Record<string, any>;
+  description: string | null;
+  requested_by: string;
+  requester_role: string;
+  requester: { id: string; name: string; email: string; role: string };
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewed_by: string | null;
+  reviewer: { id: string; name: string; email: string; role: string } | null;
+  review_note: string | null;
+  reviewed_at: string | null;
+  result_transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function usePendingTransactions(params?: {
+  status?: string;
+  transaction_type?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const { accessToken } = useAuthStore();
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.transaction_type) qs.set("transaction_type", params.transaction_type);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
+
+  return useQuery({
+    queryKey: ["pending-transactions", params],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{
+        items: PendingTransaction[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>(`/api/pending-transactions?${qs.toString()}`);
+    },
+    enabled: !!accessToken,
+    refetchInterval: 15000,
+  });
+}
+
+export function usePendingTransactionCount() {
+  const { accessToken } = useAuthStore();
+
+  return useQuery({
+    queryKey: ["pending-transaction-count"],
+    queryFn: async () => {
+      api.setToken(accessToken);
+      return api.get<{ count: number }>("/api/pending-transactions/count");
+    },
+    enabled: !!accessToken,
+    refetchInterval: 10000,
+  });
+}
+
+export function useApprovePendingTransaction() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/pending-transactions/${id}/approve`, { note });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-transaction-count"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+    },
+  });
+}
+
+export function useRejectPendingTransaction() {
+  const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+      api.setToken(accessToken);
+      return api.post(`/api/pending-transactions/${id}/reject`, { note });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-transaction-count"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
     },
   });
 }

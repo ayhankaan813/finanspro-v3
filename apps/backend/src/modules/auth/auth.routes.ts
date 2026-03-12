@@ -3,6 +3,7 @@ import { authService } from './auth.service.js';
 import { loginSchema, refreshTokenSchema, changePasswordSchema } from './auth.schema.js';
 import type { LoginInput, RefreshTokenInput, ChangePasswordInput } from './auth.schema.js';
 import { env } from '../../config/index.js';
+import { auditService } from '../audit/audit.service.js';
 
 // Extend FastifyRequest to include user
 declare module 'fastify' {
@@ -25,7 +26,7 @@ export async function authRoutes(app: FastifyInstance) {
     {
       config: {
         rateLimit: {
-          max: 5,
+          max: 50,
           timeWindow: '1 minute',
         },
       },
@@ -54,6 +55,25 @@ export async function authRoutes(app: FastifyInstance) {
         { expiresIn: env.JWT_REFRESH_EXPIRES_IN }
       );
 
+      // Audit log — LOGIN
+      const forwarded = request.headers['x-forwarded-for'];
+      const clientIp = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : request.ip || 'unknown';
+      auditService.log({
+        action: 'LOGIN',
+        entity_type: 'auth',
+        entity_id: user.id,
+        description: `${user.name} (${user.role}) sisteme giriş yaptı`,
+        user_id: user.id,
+        user_email: user.email,
+        user_role: user.role,
+        ip_address: clientIp,
+        user_agent: request.headers['user-agent'] || undefined,
+        fingerprint: request.headers['x-fingerprint'] as string || undefined,
+        request_method: 'POST',
+        request_path: '/api/auth/login',
+        status_code: 200,
+      }).catch(() => {}); // fire-and-forget
+
       return {
         success: true,
         data: {
@@ -64,6 +84,7 @@ export async function authRoutes(app: FastifyInstance) {
             email: user.email,
             name: user.name,
             role: user.role,
+            partner_id: user.partner_id || undefined,
           },
         },
       };
@@ -211,6 +232,20 @@ export async function authenticate(
     }>();
 
     request.user = decoded;
+
+    // VIEWER write guard — sadece GET/HEAD/OPTIONS yapabilir
+    if (
+      decoded.role === 'VIEWER' &&
+      request.method !== 'GET' &&
+      request.method !== 'HEAD' &&
+      request.method !== 'OPTIONS'
+    ) {
+      reply.status(403).send({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'İzleyici hesaplar işlem yapamaz (sadece görüntüleme)' },
+      });
+      return;
+    }
   } catch (error) {
     reply.status(401).send({
       success: false,
@@ -232,4 +267,53 @@ export async function requireAdmin(
       error: { code: 'FORBIDDEN', message: 'Bu işlem için admin yetkisi gerekiyor' },
     });
   }
+}
+
+/**
+ * Rol bazlı yetkilendirme factory
+ * Kullanım: preHandler: [authenticate, requireRole('ADMIN', 'OPERATOR')]
+ */
+export function requireRole(...roles: string[]) {
+  return async function (request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    const userRole = request.user?.role;
+    if (!userRole || !roles.includes(userRole)) {
+      reply.status(403).send({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: `Bu işlem için ${roles.join(' veya ')} yetkisi gerekiyor`,
+        },
+      });
+    }
+  };
+}
+
+/**
+ * Yazma yetkisi middleware — VIEWER hariç tüm roller
+ */
+export async function requireWrite(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  if (request.user?.role === 'VIEWER') {
+    reply.status(403).send({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'İzleyici hesaplar işlem yapamaz' },
+    });
+  }
+}
+
+/**
+ * Partner data filtreleme helper
+ * Partner rolündeki kullanıcı sadece kendi verilerini görebilir
+ */
+export function getPartnerFilter(request: FastifyRequest): { partnerId?: string; siteIds?: string[] } {
+  if (request.user?.role !== 'PARTNER') return {};
+
+  // JWT'den partner bilgisi (login sırasında token'a eklenir)
+  const decoded = request.user as any;
+  return {
+    partnerId: decoded.partnerId,
+    siteIds: decoded.allowedSites,
+  };
 }

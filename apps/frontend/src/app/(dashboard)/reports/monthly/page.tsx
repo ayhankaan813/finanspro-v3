@@ -25,6 +25,7 @@ import {
   Calendar
 } from "lucide-react";
 import { useTransactions, useFinanciers } from "@/hooks/use-api";
+import { exportMonthlyReport } from "@/lib/export-utils";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDaysInMonth } from "date-fns";
 import { tr } from "date-fns/locale/tr";
@@ -234,7 +235,17 @@ export default function MonthlyReportPage() {
             <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
           <div className="h-5 sm:h-6 w-px bg-twilight-200 mx-0.5 sm:mx-1" />
-          <Button variant="ghost" size="sm" className="h-8 sm:h-9 text-twilight-600 hover:text-twilight-900 px-2 sm:px-3 text-xs sm:text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 sm:h-9 text-twilight-600 hover:text-twilight-900 px-2 sm:px-3 text-xs sm:text-sm"
+            onClick={() => {
+              if (processedData) {
+                const monthLabel = format(currentDate, "yyyy_MM");
+                exportMonthlyReport(processedData.dailyData, processedData.totals, monthLabel);
+              }
+            }}
+          >
             <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> Excel
           </Button>
         </div>
@@ -315,7 +326,7 @@ export default function MonthlyReportPage() {
               <table className="w-full hidden sm:table">
                 <thead>
                   <tr className="bg-twilight-900 text-white">
-                    <th className="sticky left-0 z-10 bg-twilight-900 py-4 px-4 text-sm font-semibold text-left whitespace-nowrap">Tarih</th>
+                    <th className="sticky left-0 z-10 bg-twilight-900 py-4 px-5 text-sm font-semibold text-center whitespace-nowrap shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] min-w-[90px]">Tarih</th>
                     <th className="py-4 px-4 text-sm font-semibold text-right text-emerald-300 whitespace-nowrap">Yatırım</th>
                     <th className="py-4 px-4 text-sm font-semibold text-right text-rose-300 whitespace-nowrap">Çekim</th>
                     <th className="py-4 px-4 text-sm font-semibold text-right text-violet-300 whitespace-nowrap">Komisyon</th>
@@ -328,9 +339,16 @@ export default function MonthlyReportPage() {
                 </thead>
                 <tbody className="divide-y divide-twilight-50">
                   {dailyData.map((day) => (
-                    <tr key={day.dayStr} className="hover:bg-twilight-50/50 transition-colors group">
-                      <td className="sticky left-0 z-10 bg-white group-hover:bg-twilight-50/50 py-3 px-4 text-sm text-twilight-700 font-medium whitespace-nowrap">
-                        {format(day.date, "dd.MM.yyyy", { locale: tr })}
+                    <tr key={day.dayStr} className={`hover:bg-twilight-50/50 transition-colors group ${[0, 6].includes(day.date.getDay()) ? 'bg-twilight-50/30' : ''}`}>
+                      <td className="sticky left-0 z-10 bg-white group-hover:bg-twilight-50/50 py-2.5 px-5 whitespace-nowrap shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${[0, 6].includes(day.date.getDay()) ? 'bg-twilight-100 text-twilight-500' : 'bg-twilight-900 text-white'}`}>
+                            {format(day.date, "d")}
+                          </div>
+                          <span className={`text-[11px] font-semibold uppercase tracking-wide ${[0, 6].includes(day.date.getDay()) ? 'text-twilight-400' : 'text-twilight-500'}`}>
+                            {format(day.date, "EEE", { locale: tr })}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-right text-sm font-bold text-emerald-600 bg-emerald-50/30 group-hover:bg-emerald-50/50 transition-colors whitespace-nowrap">
                         {day.deposit > 0 ? formatMoney(day.deposit) : <span className="text-emerald-300/50">-</span>}
@@ -361,7 +379,7 @@ export default function MonthlyReportPage() {
                 </tbody>
                 <tfoot className="bg-twilight-900 border-t border-twilight-200 text-white font-bold">
                   <tr>
-                    <td className="sticky left-0 z-10 bg-twilight-900 py-4 px-4 text-sm text-left whitespace-nowrap">TOPLAM</td>
+                    <td className="sticky left-0 z-10 bg-twilight-900 py-4 px-5 text-sm text-center whitespace-nowrap shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] font-bold tracking-wider">TOPLAM</td>
                     <td className="py-4 px-4 text-sm text-right text-emerald-300 whitespace-nowrap">{formatMoney(totals.deposit)}</td>
                     <td className="py-4 px-4 text-sm text-right text-rose-300 whitespace-nowrap">{formatMoney(totals.withdrawal)}</td>
                     <td className="py-4 px-4 text-sm text-right text-violet-300 whitespace-nowrap">{formatMoney(totals.commission)}</td>

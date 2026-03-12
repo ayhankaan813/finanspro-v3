@@ -1,18 +1,13 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { notificationService } from './notification.service';
-import { z } from 'zod';
 
 export class NotificationController {
   /**
    * GET /api/notifications
-   * Get user's notifications (paginated)
    */
   async getNotifications(
     request: FastifyRequest<{
-      Querystring: {
-        limit?: string;
-        offset?: string;
-      };
+      Querystring: { limit?: string; offset?: string };
     }>,
     reply: FastifyReply
   ) {
@@ -22,102 +17,85 @@ export class NotificationController {
       const offset = request.query.offset ? parseInt(request.query.offset) : 0;
 
       const result = await notificationService.getUserNotifications(userId, limit, offset);
-
-      return reply.send(result);
+      return reply.send({ success: true, data: result });
     } catch (error: any) {
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * GET /api/notifications/unread
-   * Get unread notifications
    */
   async getUnreadNotifications(request: FastifyRequest, reply: FastifyReply) {
     try {
       const userId = (request.user as any).userId;
-
       const notifications = await notificationService.getUnreadNotifications(userId);
-
-      return reply.send({ items: notifications, count: notifications.length });
+      return reply.send({
+        success: true,
+        data: { items: notifications, count: notifications.length },
+      });
     } catch (error: any) {
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * GET /api/notifications/unread/count
-   * Get unread count
    */
   async getUnreadCount(request: FastifyRequest, reply: FastifyReply) {
     try {
       const userId = (request.user as any).userId;
-
       const count = await notificationService.getUnreadCount(userId);
-
-      return reply.send({ count });
+      return reply.send({ success: true, data: { count } });
     } catch (error: any) {
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * PUT /api/notifications/:id/read
-   * Mark notification as read
    */
   async markAsRead(
-    request: FastifyRequest<{
-      Params: { id: string };
-    }>,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
   ) {
     try {
       const userId = (request.user as any).userId;
       const { id } = request.params;
-
       const notification = await notificationService.markAsRead(id, userId);
-
-      return reply.send(notification);
+      return reply.send({ success: true, data: notification });
     } catch (error: any) {
-      return reply.status(404).send({ error: error.message });
+      return reply.status(404).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * PUT /api/notifications/read-all
-   * Mark all notifications as read
    */
   async markAllAsRead(request: FastifyRequest, reply: FastifyReply) {
     try {
       const userId = (request.user as any).userId;
-
       const result = await notificationService.markAllAsRead(userId);
-
-      return reply.send({ count: result.count });
+      return reply.send({ success: true, data: { count: result.count } });
     } catch (error: any) {
-      return reply.status(500).send({ error: error.message });
+      return reply.status(500).send({ success: false, error: { message: error.message } });
     }
   }
 
   /**
    * DELETE /api/notifications/:id
-   * Delete notification
    */
   async deleteNotification(
-    request: FastifyRequest<{
-      Params: { id: string };
-    }>,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
   ) {
     try {
       const userId = (request.user as any).userId;
       const { id } = request.params;
-
       await notificationService.deleteNotification(id, userId);
-
       return reply.status(204).send();
     } catch (error: any) {
-      return reply.status(404).send({ error: error.message });
+      return reply.status(404).send({ success: false, error: { message: error.message } });
     }
   }
 }

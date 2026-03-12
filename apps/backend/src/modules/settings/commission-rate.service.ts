@@ -104,7 +104,7 @@ export class CommissionRateService {
           action: 'CREATE',
           entity_type: 'CommissionRate',
           entity_id: newRate.id,
-          new_data: {
+          new_values: {
             ...newRate,
             rate: newRate.rate.toString(),
           } as unknown as Prisma.JsonObject,
@@ -204,11 +204,11 @@ export class CommissionRateService {
             action: 'UPDATE',
             entity_type: 'CommissionRate',
             entity_id: id,
-            old_data: {
+            old_values: {
               ...existing,
               rate: existing.rate.toString(),
             } as unknown as Prisma.JsonObject,
-            new_data: {
+            new_values: {
               ...updated,
               rate: updated.rate.toString(),
             } as unknown as Prisma.JsonObject,
@@ -256,11 +256,11 @@ export class CommissionRateService {
             action: 'COMMISSION_RATE_CHANGE',
             entity_type: 'CommissionRate',
             entity_id: newRate.id,
-            old_data: {
+            old_values: {
               ...existing,
               rate: existing.rate.toString(),
             } as unknown as Prisma.JsonObject,
-            new_data: {
+            new_values: {
               ...newRate,
               rate: newRate.rate.toString(),
             } as unknown as Prisma.JsonObject,

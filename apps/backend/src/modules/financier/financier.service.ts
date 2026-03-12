@@ -77,7 +77,7 @@ export class FinancierService {
           action: 'CREATE',
           entity_type: 'Financier',
           entity_id: newFinancier.id,
-          new_data: newFinancier as unknown as Prisma.JsonObject,
+          new_values: newFinancier as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
         },
@@ -214,8 +214,8 @@ export class FinancierService {
           action: 'UPDATE',
           entity_type: 'Financier',
           entity_id: id,
-          old_data: existing as unknown as Prisma.JsonObject,
-          new_data: updated as unknown as Prisma.JsonObject,
+          old_values: existing as unknown as Prisma.JsonObject,
+          new_values: updated as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
         },
@@ -266,7 +266,7 @@ export class FinancierService {
           action: 'DELETE',
           entity_type: 'Financier',
           entity_id: id,
-          old_data: existing as unknown as Prisma.JsonObject,
+          old_values: existing as unknown as Prisma.JsonObject,
           user_id: user.id,
           user_email: user.email,
         },
@@ -354,7 +354,7 @@ export class FinancierService {
           action: 'CREATE_BLOCK',
           entity_type: 'FinancierBlock',
           entity_id: newBlock.id,
-          new_data: {
+          new_values: {
             financier_id: financierId,
             amount: blockAmount.toString(),
             reason: input.reason,
@@ -426,8 +426,8 @@ export class FinancierService {
           action: 'RESOLVE_BLOCK',
           entity_type: 'FinancierBlock',
           entity_id: blockId,
-          old_data: { resolved_at: null } as unknown as Prisma.JsonObject,
-          new_data: {
+          old_values: { resolved_at: null } as unknown as Prisma.JsonObject,
+          new_values: {
             resolved_at: new Date().toISOString(),
             resolution_note: input.resolution_note || null,
           } as unknown as Prisma.JsonObject,

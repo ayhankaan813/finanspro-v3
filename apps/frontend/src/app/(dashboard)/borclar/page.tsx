@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -378,7 +379,7 @@ export default function BorclarPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Toplam Borc</p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-600 font-mono truncate">
+                  <p className="text-base sm:text-lg font-bold text-red-600 font-mono whitespace-nowrap">
                     {formatMoney(summary?.total_active_debt ?? 0)}
                   </p>
                 </div>
@@ -402,7 +403,7 @@ export default function BorclarPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Toplam Alacak</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-600 font-mono truncate">
+                  <p className="text-base sm:text-lg font-bold text-green-600 font-mono whitespace-nowrap">
                     {formatMoney(totalReceivable)}
                   </p>
                 </div>
@@ -427,7 +428,7 @@ export default function BorclarPage() {
                 <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Net Durum</p>
                   <p
-                    className={`text-xl sm:text-2xl font-bold font-mono truncate ${
+                    className={`text-base sm:text-lg font-bold font-mono whitespace-nowrap ${
                       netPosition >= 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
@@ -544,8 +545,8 @@ export default function BorclarPage() {
                 </div>
               ) : (
                 <>
-                  <div className="overflow-x-auto -mx-3 sm:mx-0">
-                    <Table>
+                  <div className="-mx-3 sm:mx-0">
+                    <Table className="min-w-[640px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="whitespace-nowrap">Borc Veren</TableHead>
@@ -565,9 +566,8 @@ export default function BorclarPage() {
                           const isExpanded = expandedDebtId === debt.id;
 
                           return (
-                            <>
+                            <React.Fragment key={debt.id}>
                               <TableRow
-                                key={debt.id}
                                 className="cursor-pointer hover:bg-muted/50"
                                 onClick={() => handleToggleRow(debt.id)}
                               >
@@ -692,7 +692,7 @@ export default function BorclarPage() {
                                   </TableCell>
                                 </TableRow>
                               )}
-                            </>
+                            </React.Fragment>
                           );
                         })}
                       </TableBody>
@@ -750,7 +750,7 @@ export default function BorclarPage() {
               ) : (
                 <>
                   <div className="overflow-x-auto -mx-3 sm:mx-0">
-                    <Table>
+                    <Table className="min-w-[580px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="whitespace-nowrap">Tarih</TableHead>
@@ -852,7 +852,7 @@ export default function BorclarPage() {
                     </p>
                   </div>
                   <div className="overflow-x-auto -mx-3 sm:mx-0">
-                    <Table>
+                    <Table className="min-w-[480px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="sticky left-0 bg-white z-10 whitespace-nowrap font-semibold min-w-[120px]">

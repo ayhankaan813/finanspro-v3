@@ -101,6 +101,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { exportTransactions } from "@/lib/export-utils";
 
 // ===== TRANSACTION CONFIG & TABS =====
 
@@ -346,12 +347,13 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     if (!selectedType) return;
 
     try {
+      let result: any;
       // Logic mapping
-      if (selectedType === "DEPOSIT") await mutations.DEPOSIT.mutateAsync({ ...formData, description: formData.description || undefined });
-      else if (selectedType === "WITHDRAWAL") await mutations.WITHDRAWAL.mutateAsync({ ...formData, description: formData.description || undefined });
+      if (selectedType === "DEPOSIT") result = result = await mutations.DEPOSIT.mutateAsync({ ...formData, description: formData.description || undefined });
+      else if (selectedType === "WITHDRAWAL") result = result = await mutations.WITHDRAWAL.mutateAsync({ ...formData, description: formData.description || undefined });
       else if (selectedType === "PAYMENT") {
         if (!formData.source_type) throw new Error("Kaynak tipi seçin");
-        await mutations.PAYMENT.mutateAsync({
+        result = await mutations.PAYMENT.mutateAsync({
           source_type: formData.source_type,
           source_id: formData.source_type === "ORGANIZATION" ? undefined : formData.source_id,
           financier_id: formData.financier_id,
@@ -361,7 +363,7 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       }
       else if (selectedType === "TOP_UP") {
         if (!formData.topup_source_type) throw new Error("Kaynak tipi seçin");
-        await mutations.TOP_UP.mutateAsync({
+        result = await mutations.TOP_UP.mutateAsync({
           source_type: formData.topup_source_type,
           source_id: formData.topup_source_type === "EXTERNAL" ? undefined : formData.topup_source_id,
           financier_id: formData.financier_id,
@@ -371,23 +373,32 @@ function NewTransactionModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       }
       else if (selectedType === "DELIVERY") {
         if (!formData.delivery_type_id) throw new Error("Teslimat türü seçin");
-        await mutations.DELIVERY.mutateAsync({ ...formData, delivery_type_id: formData.delivery_type_id, description: formData.description || undefined });
+        result = await mutations.DELIVERY.mutateAsync({ ...formData, delivery_type_id: formData.delivery_type_id, description: formData.description || undefined });
       }
-      else if (selectedType === "FINANCIER_TRANSFER") await mutations.FINANCIER_TRANSFER.mutateAsync({ ...formData, description: formData.description || undefined });
-      else if (selectedType === "EXTERNAL_DEBT_IN") await mutations.EXTERNAL_DEBT_IN.mutateAsync({ ...formData, direction: "in", description: formData.description || undefined });
-      else if (selectedType === "EXTERNAL_DEBT_OUT") await mutations.EXTERNAL_DEBT_IN.mutateAsync({ ...formData, direction: "out", description: formData.description || undefined }); // Using same mutation hook but logic handles it
-      else if (selectedType === "EXTERNAL_PAYMENT") await mutations.EXTERNAL_PAYMENT.mutateAsync({ ...formData, description: formData.description || undefined });
-      else if (selectedType === "PARTNER_PAYMENT") await mutations.PARTNER_PAYMENT.mutateAsync({ partner_id: formData.partner_id, financier_id: formData.financier_id, amount: formData.amount, description: formData.description || undefined });
-      else if (selectedType === "ORG_EXPENSE") await mutations.ORG_EXPENSE.mutateAsync({ ...formData, description: formData.description || undefined });
-      else if (selectedType === "ORG_INCOME") await mutations.ORG_INCOME.mutateAsync({ ...formData, description: formData.description || undefined });
-      else if (selectedType === "ORG_WITHDRAW") await mutations.ORG_WITHDRAW.mutateAsync({ ...formData, description: formData.description || undefined });
+      else if (selectedType === "FINANCIER_TRANSFER") result = await mutations.FINANCIER_TRANSFER.mutateAsync({ ...formData, description: formData.description || undefined });
+      else if (selectedType === "EXTERNAL_DEBT_IN") result = await mutations.EXTERNAL_DEBT_IN.mutateAsync({ ...formData, direction: "in", description: formData.description || undefined });
+      else if (selectedType === "EXTERNAL_DEBT_OUT") result = await mutations.EXTERNAL_DEBT_IN.mutateAsync({ ...formData, direction: "out", description: formData.description || undefined }); // Using same mutation hook but logic handles it
+      else if (selectedType === "EXTERNAL_PAYMENT") result = await mutations.EXTERNAL_PAYMENT.mutateAsync({ ...formData, description: formData.description || undefined });
+      else if (selectedType === "PARTNER_PAYMENT") result = await mutations.PARTNER_PAYMENT.mutateAsync({ partner_id: formData.partner_id, financier_id: formData.financier_id, amount: formData.amount, description: formData.description || undefined });
+      else if (selectedType === "ORG_EXPENSE") result = await mutations.ORG_EXPENSE.mutateAsync({ ...formData, description: formData.description || undefined });
+      else if (selectedType === "ORG_INCOME") result = await mutations.ORG_INCOME.mutateAsync({ ...formData, description: formData.description || undefined });
+      else if (selectedType === "ORG_WITHDRAW") result = await mutations.ORG_WITHDRAW.mutateAsync({ ...formData, description: formData.description || undefined });
 
       setSuccess(true);
-      toast({
-        title: "İşlem Başarılı ✓",
-        description: `${currentAction?.name || "İşlem"} başarıyla oluşturuldu.`,
-        variant: "success",
-      });
+      
+      // Check if the result indicates a pending transaction (OPERATOR/PARTNER → approval queue)
+      if (result && (result as any).__pending) {
+        toast({
+          title: "Talep Oluşturuldu 📋",
+          description: "İşlem talebi oluşturuldu, admin onayı bekleniyor.",
+        });
+      } else {
+        toast({
+          title: "İşlem Başarılı ✓",
+          description: `${currentAction?.name || "İşlem"} başarıyla oluşturuldu.`,
+          variant: "success",
+        });
+      }
       setTimeout(onClose, 1500);
     } catch (err: any) {
       setError(err.message || "İşlem başarısız");
@@ -827,7 +838,18 @@ function TransactionsPageContent() {
           )}
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="h-9 sm:h-10 border-twilight-200 text-twilight-700 hover:bg-twilight-50 text-xs sm:text-sm px-3">
+          <Button
+            variant="outline"
+            className="h-9 sm:h-10 border-twilight-200 text-twilight-700 hover:bg-twilight-50 text-xs sm:text-sm px-3"
+            onClick={() => {
+              if (transactionsData?.items?.length) {
+                const dateLabel = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+                exportTransactions(transactionsData.items, dateLabel);
+              } else {
+                toast({ title: "Uyarı", description: "Dışa aktarılacak işlem bulunamadı.", variant: "destructive" });
+              }
+            }}
+          >
             <Download className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Dışa Aktar
           </Button>
@@ -904,8 +926,8 @@ function TransactionsPageContent() {
 
       {/* Transactions List */}
       <Card className="border-0 shadow-xl shadow-twilight-100/50 bg-white rounded-3xl overflow-hidden ring-1 ring-twilight-100">
-        <div className="overflow-hidden">
-          <table className="w-full table-fixed sm:table-auto">
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed sm:table-auto min-w-[480px]">
             <thead>
               <tr className="border-b border-twilight-100 bg-twilight-50/50">
                 <th className="text-left py-3 pl-3 pr-1 sm:py-4 sm:px-4 text-[9px] sm:text-xs font-semibold text-twilight-500 uppercase tracking-wider w-[72px] sm:w-auto">Islem</th>

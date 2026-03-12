@@ -104,6 +104,13 @@ None - no external service configuration required.
   - FDET-03: Quick-action Borc Ver/Al button and dialog (07-02)
 - No blockers for milestone v1.1 completion
 
+## Self-Check: PASSED
+
+- FOUND: apps/frontend/src/app/(dashboard)/financiers/[id]/page.tsx
+- FOUND: .planning/phases/07-finansor-detay-entegrasyonu/07-02-SUMMARY.md
+- FOUND: commit 74d215a (feat task commit)
+- FOUND: commit 565be07 (docs metadata commit)
+
 ---
 *Phase: 07-finansor-detay-entegrasyonu*
 *Completed: 2026-03-02*

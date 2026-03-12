@@ -13,8 +13,10 @@ import {
   Globe,
   Scale,
   Landmark,
+  Download,
 } from "lucide-react";
 import { useDashboardStats, useExternalParties, useOrganizationAccount } from "@/hooks/use-api";
+import { exportToExcel, toNumber, formatDateForExport } from "@/lib/export-utils";
 import { motion } from "framer-motion";
 
 export default function ReconciliationPage() {
@@ -72,14 +74,48 @@ export default function ReconciliationPage() {
               <p className="text-slate-300 text-sm mt-0.5">Varlık ve Yükümlülük Dengesi</p>
             </div>
           </div>
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs sm:text-sm h-9 sm:h-10"
-          >
-            <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            Verileri Yenile
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                const today = formatDateForExport(new Date());
+                exportToExcel([
+                  {
+                    name: "Mutabakat",
+                    data: [
+                      { kalem: "VARLIKLAR", deger: "" },
+                      { kalem: "Finansör Bakiyeleri (Kasa)", deger: totalFinancierBalance },
+                      { kalem: "", deger: "" },
+                      { kalem: "YÜKÜMLÜLÜKLER", deger: "" },
+                      { kalem: "Site Borçları", deger: totalSiteBalance },
+                      { kalem: "Partner Hak Edişleri", deger: totalPartnerBalance },
+                      { kalem: "Dış Kişi Bakiyesi", deger: totalExternalBalance },
+                      { kalem: "Organizasyon Bakiyesi", deger: orgBalance },
+                      { kalem: "", deger: "" },
+                      { kalem: "TOPLAM YÜKÜMLÜLÜK", deger: totalLiabilities },
+                      { kalem: "TAHMİNİ ÖZKAYNAK", deger: estimatedEquity },
+                    ],
+                    columns: [
+                      { header: "Kalem", key: "kalem", width: 30 },
+                      { header: `Tutar (₺) - ${today}`, key: "deger", width: 20 },
+                    ],
+                  },
+                ], `mutabakat_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`);
+              }}
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs sm:text-sm h-9 sm:h-10"
+            >
+              <Download className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Excel
+            </Button>
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs sm:text-sm h-9 sm:h-10"
+            >
+              <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Yenile
+            </Button>
+          </div>
         </div>
       </div>
 

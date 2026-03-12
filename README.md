@@ -21,7 +21,6 @@ FinansPro v3, site, partner, finansor ve organizasyon arasindaki finansal akisla
 - **Decimal Precision:** Finansal hesaplamalarda %100 dogruluk (Decimal.js)
 - **Islem Onay Sistemi:** Role-based approval workflow
 - **Bildirim Sistemi:** Panel ici bildirimler
-- **Dark Mode:** Tum rapor sayfalari dark mode uyumlu
 - **Mobil Uyumlu:** Responsive tasarim, tum cihazlarda calisiyor
 
 ---
@@ -289,13 +288,11 @@ Total: ~30,000 lines of TypeScript
 - Dis kisi yonetimi (detay + kasa defteri)
 - Bulk import
 - Kasa raporu, mutabakat, analiz raporlari
-- Dark mode (rapor sayfalari)
 - Mobil optimizasyon
 - Turkey timezone (GMT+3)
 - Admin transaction edit (Undo & Recreate)
 
 ### Devam Ediyor
-- Dark mode (tum sayfalar)
 - Test coverage artirma
 - Performance optimization
 

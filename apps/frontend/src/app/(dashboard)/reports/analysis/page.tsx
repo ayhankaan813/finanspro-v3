@@ -12,8 +12,10 @@ import {
   Users,
   Lock,
   TrendingUp,
+  Download,
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/use-api";
+import { exportToExcel, formatDateForExport } from "@/lib/export-utils";
 import { motion } from "framer-motion";
 
 export default function AnalysisPage() {
@@ -88,14 +90,76 @@ export default function AnalysisPage() {
               <p className="text-slate-300 text-sm mt-0.5">Performans ve dağılım analizi</p>
             </div>
           </div>
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs sm:text-sm h-9 sm:h-10"
-          >
-            <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            Verileri Yenile
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                const today = formatDateForExport(new Date());
+                exportToExcel([
+                  {
+                    name: "Genel Özet",
+                    data: [
+                      { kalem: "Toplam Kasa (Finansör)", deger: totalCash },
+                      { kalem: "Site Borçları", deger: siteDebt },
+                      { kalem: "Partner Hak Edişleri", deger: partnerBalance },
+                      { kalem: "Bloke Tutar", deger: blockedAmount },
+                    ],
+                    columns: [
+                      { header: "Kalem", key: "kalem", width: 28 },
+                      { header: `Tutar (₺) - ${today}`, key: "deger", width: 20 },
+                    ],
+                  },
+                  {
+                    name: "Site Sıralaması",
+                    data: topSites.map((s: any, i: number) => ({ sira: i + 1, ad: s.name, bakiye: s.balance })),
+                    columns: [
+                      { header: "#", key: "sira", width: 6 },
+                      { header: "Site Adı", key: "ad", width: 20 },
+                      { header: "Bakiye (₺)", key: "bakiye", width: 18 },
+                    ],
+                  },
+                  {
+                    name: "Partner Sıralaması",
+                    data: topPartners.map((p: any, i: number) => ({ sira: i + 1, ad: p.name, bakiye: p.balance })),
+                    columns: [
+                      { header: "#", key: "sira", width: 6 },
+                      { header: "Partner Adı", key: "ad", width: 20 },
+                      { header: "Hak Ediş (₺)", key: "bakiye", width: 18 },
+                    ],
+                  },
+                  {
+                    name: "Finansör Kullanımı",
+                    data: financierUtilization.map((f: any) => ({
+                      ad: f.name,
+                      toplam: f.balance,
+                      bloke: f.blocked,
+                      musait: f.available,
+                      kullanim: `%${f.utilizationRate.toFixed(1)}`,
+                    })),
+                    columns: [
+                      { header: "Finansör Adı", key: "ad", width: 20 },
+                      { header: "Toplam (₺)", key: "toplam", width: 16 },
+                      { header: "Bloke (₺)", key: "bloke", width: 16 },
+                      { header: "Müsait (₺)", key: "musait", width: 16 },
+                      { header: "Kullanım", key: "kullanim", width: 12 },
+                    ],
+                  },
+                ], `analiz_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`);
+              }}
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs sm:text-sm h-9 sm:h-10"
+            >
+              <Download className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Excel
+            </Button>
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs sm:text-sm h-9 sm:h-10"
+            >
+              <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Yenile
+            </Button>
+          </div>
         </div>
       </div>
 

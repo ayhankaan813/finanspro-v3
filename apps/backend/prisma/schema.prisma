@@ -21,6 +21,11 @@ model User {
   is_active     Boolean   @default(true)
   last_login_at DateTime?
 
+  // Rol bazlı bağlantılar
+  partner_id    String?   // PARTNER rolü için: hangi partner'a bağlı
+  partner       Partner?  @relation("PartnerUser", fields: [partner_id], references: [id])
+  allowed_sites Json?     // Admin'in belirlediği erişilebilir site ID'leri ["site-id-1", "site-id-2"]
+
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
@@ -31,14 +36,22 @@ model User {
   adjustments_reviewed Adjustment[]   @relation("AdjustmentReviewedBy")
   notifications        Notification[]
 
+  // Pending transaction relations
+  pending_requested  PendingTransaction[] @relation("PendingTransactionRequester")
+  pending_reviewed   PendingTransaction[] @relation("PendingTransactionReviewer")
+
   @@index([email])
   @@index([is_active])
+  @@index([partner_id])
   @@map("users")
 }
 
 enum UserRole {
   ADMIN
-  USER
+  OPERATOR
+  PARTNER
+  VIEWER
+  USER // legacy — eski kullanıcılar, OPERATOR gibi davranır
 }
 
 // ==================== SITE (Casino) ====================
@@ -81,6 +94,7 @@ model Partner {
   site_partners    SitePartner[]
   commission_rates CommissionRate[]
   transactions     Transaction[]
+  users            User[]          @relation("PartnerUser")
 
   // Account relation
   account Account?
@@ -648,16 +662,32 @@ enum AdjustmentStatus {
 model AuditLog {
   id String @id @default(uuid())
 
-  action      String // CREATE, UPDATE, DELETE, APPROVE, REJECT, LOGIN
-  entity_type String
+  // Ne yapıldı?
+  action      String   // CREATE, UPDATE, DELETE, APPROVE, REJECT, LOGIN, LOGOUT, VIEW, EXPORT
+  entity_type String   // transaction, partner, site, financier, debt, user, settings...
   entity_id   String?
+  description String?  // İnsan okunur açıklama: "50.000 TL yatırım oluşturuldu"
 
-  old_data Json?
-  new_data Json?
+  // Veri değişikliği (JSON diff)
+  old_values  Json?    // Önceki değerler
+  new_values  Json?    // Sonraki değerler
 
+  // Kim yaptı?
   user_id    String
   user_email String
-  ip_address String?
+  user_role  String?   // ADMIN, OPERATOR, PARTNER, VIEWER
+
+  // Nereden yaptı? (Kritik takip)
+  ip_address    String?   // X-Forwarded-For + req.ip
+  user_agent    String?   // Tarayıcı / cihaz bilgisi
+  fingerprint   String?   // Client fingerprint (tarayıcı parmak izi)
+  session_id    String?   // JWT session veya token ID
+
+  // HTTP detayları
+  request_method String?  // GET, POST, PUT, DELETE
+  request_path   String?  // /api/transactions/deposit
+  status_code    Int?     // 200, 400, 500...
+  duration_ms    Int?     // İşlem süresi (ms)
 
   // Relations
   user User @relation(fields: [user_id], references: [id])
@@ -666,6 +696,8 @@ model AuditLog {
 
   @@index([entity_type, entity_id])
   @@index([user_id, created_at])
+  @@index([action, created_at])
+  @@index([ip_address])
   @@index([created_at])
   @@map("audit_logs")
 }
@@ -845,4 +877,44 @@ model DebtPayment {
   @@index([debt_id])
   @@index([created_at])
   @@map("debt_payments")
+}
+
+// ==================== PENDING TRANSACTIONS (Onay Bekleyen İşlemler) ====================
+
+enum PendingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PendingTransaction {
+  id String @id @default(uuid())
+
+  // İşlem detayları
+  transaction_type String    // deposit, withdrawal, delivery, payment, top-up, etc.
+  payload          Json      // İşlem parametreleri (input objesi)
+  description      String?   // İnsan-okunur açıklama
+
+  // Talep eden
+  requested_by    String
+  requester_role  String    // OPERATOR, PARTNER
+  requester       User     @relation("PendingTransactionRequester", fields: [requested_by], references: [id])
+
+  // Onay/Red
+  status         PendingStatus @default(PENDING)
+  reviewed_by    String?
+  reviewer       User?    @relation("PendingTransactionReviewer", fields: [reviewed_by], references: [id])
+  review_note    String?  // Admin'in not/açıklaması
+  reviewed_at    DateTime?
+
+  // Sonuç: Onaylanırsa oluşturulan transaction ID
+  result_transaction_id String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([status, created_at])
+  @@index([requested_by])
+  @@index([transaction_type])
+  @@map("pending_transactions")
 }

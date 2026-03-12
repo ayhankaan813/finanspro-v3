@@ -62,7 +62,7 @@ export class PartnerService {
           action: 'CREATE',
           entity_type: 'Partner',
           entity_id: newPartner.id,
-          new_data: newPartner as unknown as Prisma.JsonObject,
+          new_values: newPartner as unknown as Prisma.JsonObject,
           user_id: createdBy,
           user_email: '',
         },
@@ -178,8 +178,8 @@ export class PartnerService {
           action: 'UPDATE',
           entity_type: 'Partner',
           entity_id: id,
-          old_data: existing as unknown as Prisma.JsonObject,
-          new_data: updated as unknown as Prisma.JsonObject,
+          old_values: existing as unknown as Prisma.JsonObject,
+          new_values: updated as unknown as Prisma.JsonObject,
           user_id: updatedBy,
           user_email: '',
         },
@@ -223,7 +223,7 @@ export class PartnerService {
           action: 'DELETE',
           entity_type: 'Partner',
           entity_id: id,
-          old_data: existing as unknown as Prisma.JsonObject,
+          old_values: existing as unknown as Prisma.JsonObject,
           user_id: deletedBy,
           user_email: '',
         },
@@ -437,7 +437,7 @@ export class PartnerService {
 
       // DEBIT entries decrease partner balance (payments or topups)
       if (entry.entry_type === 'DEBIT') {
-        if (tx.type === 'PARTNER_PAYMENT') {
+        if (tx.type === 'PARTNER_PAYMENT' || (tx.type === 'PAYMENT' && tx.source_type === 'PARTNER')) {
           monthlyData[month].payment_received = monthlyData[month].payment_received.plus(amount);
         } else if (tx.type === 'TOP_UP') {
           monthlyData[month].topup_made = monthlyData[month].topup_made.plus(amount);
@@ -538,7 +538,7 @@ export class PartnerService {
 
       // DEBIT entries decrease partner balance (payments or topups)
       if (entry.entry_type === 'DEBIT') {
-        if (tx.type === 'PARTNER_PAYMENT') {
+        if (tx.type === 'PARTNER_PAYMENT' || (tx.type === 'PAYMENT' && tx.source_type === 'PARTNER')) {
           dailyData[dayIndex].payment_received = dailyData[dayIndex].payment_received.plus(amount);
         } else if (tx.type === 'TOP_UP') {
           dailyData[dayIndex].topup_made = dailyData[dayIndex].topup_made.plus(amount);

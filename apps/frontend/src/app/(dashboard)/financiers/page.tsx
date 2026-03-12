@@ -1069,7 +1069,7 @@ export default function FinanciersPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data?.items.map((financier) => {
                 const balance = parseFloat(financier.account?.balance || "0");
                 const blocked = parseFloat(financier.account?.blocked_amount || "0");
@@ -1083,154 +1083,85 @@ export default function FinanciersPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Card className="group h-full border-0 shadow-lg shadow-twilight-100/50 hover:shadow-2xl hover:shadow-amber-500/10 transition-all duration-300 bg-white overflow-hidden rounded-3xl ring-1 ring-twilight-100 hover:ring-amber-500/50">
-                      <CardHeader className="p-0">
-                        {/* Card Banner */}
-                        <div className={`h-24 relative overflow-hidden ${hasBlocks
-                          ? "bg-gradient-to-r from-amber-50 to-orange-50"
-                          : "bg-gradient-to-r from-amber-50 to-yellow-50"
-                          }`}>
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
-
-                          <div className="absolute top-4 right-4 flex gap-2">
-                            {financier.is_active ? (
-                              <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-green-600 shadow-sm border border-green-100 flex items-center gap-1.5">
-                                <CheckCircle className="h-3 w-3" />
-                                AKTİF
-                              </div>
-                            ) : (
-                              <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-red-500 shadow-sm border border-red-100 flex items-center gap-1.5">
-                                <XCircle className="h-3 w-3" />
-                                PASİF
-                              </div>
-                            )}
+                    <Card className="group h-full border shadow-sm hover:shadow-md transition-all duration-200 bg-white overflow-hidden rounded-xl ring-1 ring-twilight-100/50">
+                      <CardContent className="p-4">
+                        {/* Header Row */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-white shrink-0 ${hasBlocks ? "bg-gradient-to-br from-amber-500 to-orange-600" : "bg-gradient-to-br from-amber-400 to-yellow-500"}`}>
+                            {hasBlocks ? <Lock className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
                           </div>
-                        </div>
-
-                        <div className="px-4 sm:px-6 flex gap-3 sm:gap-4 -mt-8 sm:-mt-10">
-                          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-                            <div className={`h-full w-full rounded-xl flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-inner ${hasBlocks
-                              ? "bg-gradient-to-br from-amber-500 to-orange-600"
-                              : "bg-gradient-to-br from-amber-400 to-yellow-500"
-                              }`}>
-                              {hasBlocks ? <Lock className="h-6 w-6 sm:h-8 sm:w-8" /> : <Wallet className="h-6 w-6 sm:h-8 sm:w-8" />}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-twilight-900 truncate">{financier.name}</h3>
+                            <div className="flex items-center gap-2 text-xs text-twilight-400">
+                              <span className="font-mono">{financier.code}</span>
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${financier.is_active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${financier.is_active ? "bg-emerald-500" : "bg-gray-400"}`} />
+                                {financier.is_active ? "Aktif" : "Pasif"}
+                              </span>
                             </div>
                           </div>
-                          <div className="pt-9 sm:pt-11 flex-1 min-w-0">
-                            <h3 className="font-bold text-base sm:text-lg text-twilight-900 truncate group-hover:text-amber-700 transition-colors">
-                              {financier.name}
-                            </h3>
-                            <div className="flex items-center gap-2 text-xs font-mono text-twilight-400">
-                              <div className="h-1.5 w-1.5 rounded-full bg-twilight-300" />
-                              {financier.code}
-                            </div>
-                          </div>
-                          <div className="relative mt-11">
+                          <div className="relative shrink-0">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-twilight-400 hover:text-twilight-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(openMenuId === financier.id ? null : financier.id);
-                              }}
+                              className="h-8 w-8 text-twilight-400 hover:text-twilight-600"
+                              onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === financier.id ? null : financier.id); }}
                             >
-                              <MoreVertical className="h-5 w-5" />
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
                             {openMenuId === financier.id && (
-                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-twilight-100 py-2 z-50">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingFinancier(financier);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm text-twilight-700 hover:bg-twilight-50 flex items-center gap-2"
-                                >
-                                  <Settings className="h-4 w-4" />
-                                  Düzenle
+                              <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-xl border border-twilight-100 py-1 z-50">
+                                <button onClick={(e) => { e.stopPropagation(); setEditingFinancier(financier); setOpenMenuId(null); }} className="w-full px-3 py-2 text-left text-sm text-twilight-700 hover:bg-twilight-50 flex items-center gap-2">
+                                  <Settings className="h-3.5 w-3.5" /> Düzenle
                                 </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingFinancier(financier);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  Sil
+                                <button onClick={(e) => { e.stopPropagation(); setDeletingFinancier(financier); setOpenMenuId(null); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                  <Trash2 className="h-3.5 w-3.5" /> Sil
                                 </button>
                               </div>
                             )}
                           </div>
                         </div>
-                      </CardHeader>
 
-                      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                         {/* Balance Grid */}
-                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-twilight-50/50 border border-twilight-100/50">
-                            <p className="text-[10px] sm:text-xs font-bold text-twilight-400 uppercase tracking-widest mb-1 sm:mb-1.5">Toplam</p>
-                            <p className="text-base sm:text-lg font-bold text-twilight-900 font-amount">{formatMoney(balance)}</p>
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <div className="p-2.5 rounded-lg bg-twilight-50/50 border border-twilight-100/50">
+                            <p className="text-[10px] font-semibold text-twilight-400 uppercase tracking-wider mb-0.5">Toplam</p>
+                            <p className="text-sm font-bold text-twilight-900 font-mono truncate" title={formatMoney(balance)}>{formatMoney(balance)}</p>
                           </div>
-                          <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50/30 border border-emerald-100/30">
-                            <p className="text-[10px] sm:text-xs font-bold text-emerald-600/70 uppercase tracking-widest mb-1 sm:mb-1.5">Müsait</p>
-                            <p className={`text-base sm:text-lg font-bold font-amount ${available > 0 ? "text-emerald-600" : "text-twilight-400"}`}>
-                              {formatMoney(available)}
-                            </p>
+                          <div className="p-2.5 rounded-lg bg-emerald-50/30 border border-emerald-100/30">
+                            <p className="text-[10px] font-semibold text-emerald-600/70 uppercase tracking-wider mb-0.5">Müsait</p>
+                            <p className={`text-sm font-bold font-mono truncate ${available > 0 ? "text-emerald-600" : "text-twilight-400"}`} title={formatMoney(available)}>{formatMoney(available)}</p>
                           </div>
                         </div>
 
                         {/* Blocked Warning */}
                         <AnimatePresence>
                           {hasBlocks && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              className="rounded-xl bg-orange-50 p-3 border border-orange-100 flex items-start gap-3"
-                            >
-                              <div className="p-1.5 bg-orange-100 rounded-lg shrink-0 mt-0.5">
-                                <AlertTriangle className="h-4 w-4 text-orange-600" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-orange-800 text-sm">
-                                  {financier.active_blocks_count > 0
-                                    ? `${financier.active_blocks_count} Aktif Bloke`
-                                    : "Sistem Blokajı"}
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="rounded-lg bg-orange-50 p-2.5 border border-orange-100 flex items-center gap-2 mb-3">
+                              <AlertTriangle className="h-4 w-4 text-orange-600 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="font-semibold text-orange-800 text-xs">
+                                  {financier.active_blocks_count > 0 ? `${financier.active_blocks_count} Aktif Bloke` : "Sistem Blokajı"}
                                 </p>
-                                <p className="text-orange-600 text-xs mt-0.5">{formatMoney(blocked)} blokeli tutar</p>
+                                <p className="text-orange-600 text-[10px]">{formatMoney(blocked)} blokeli</p>
                               </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
 
-                        {financier.description && (
-                          <p className="text-xs text-twilight-400 line-clamp-2 px-1">
-                            {financier.description}
-                          </p>
-                        )}
-
-                        <div className="flex gap-3 pt-2">
-                          <Button
-                            variant="outline"
-                            className="flex-1 h-10 rounded-xl border-twilight-200 text-twilight-600 hover:border-amber-200 hover:text-amber-700 hover:bg-amber-50/50 font-semibold text-xs"
-                            onClick={() => setCommissionFinancier(financier)}
-                          >
-                            <Percent className="mr-2 h-3.5 w-3.5" />
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <Button variant="outline" className="flex-1 h-8 rounded-lg border-twilight-200 text-twilight-600 hover:border-amber-200 hover:text-amber-700 hover:bg-amber-50/50 font-medium text-xs" onClick={() => setCommissionFinancier(financier)}>
+                            <Percent className="mr-1.5 h-3 w-3" />
                             Komisyon
                           </Button>
-                          <Button
-                            variant="outline"
-                            className="flex-1 h-10 rounded-xl border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 hover:bg-red-50/50 font-semibold text-xs"
-                            onClick={() => setBlockFinancier(financier)}
-                          >
-                            <ShieldAlert className="mr-2 h-3.5 w-3.5" />
+                          <Button variant="outline" className="flex-1 h-8 rounded-lg border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 hover:bg-red-50/50 font-medium text-xs" onClick={() => setBlockFinancier(financier)}>
+                            <ShieldAlert className="mr-1.5 h-3 w-3" />
                             Bloke
                           </Button>
-                          <Button className="flex-1 h-10 rounded-xl bg-twilight-900 text-white hover:bg-twilight-800 shadow-lg shadow-twilight-900/10 font-semibold text-xs" asChild>
+                          <Button className="flex-1 h-8 rounded-lg bg-twilight-900 text-white hover:bg-twilight-800 font-medium text-xs" asChild>
                             <Link href={`/financiers/${financier.id}`}>
-                              <Eye className="mr-2 h-3.5 w-3.5" />
+                              <Eye className="mr-1.5 h-3 w-3" />
                               Detay
                             </Link>
                           </Button>

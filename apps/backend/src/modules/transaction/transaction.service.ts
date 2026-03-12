@@ -200,7 +200,7 @@ export class TransactionService {
           action: 'CREATE_TRANSACTION',
           entity_type: 'Transaction',
           entity_id: transaction.id,
-          new_data: {
+          new_values: {
             type: 'DEPOSIT',
             amount: amount.toString(),
             site: site.name,
@@ -352,7 +352,7 @@ export class TransactionService {
           action: 'CREATE_TRANSACTION',
           entity_type: 'Transaction',
           entity_id: transaction.id,
-          new_data: {
+          new_values: {
             type: 'WITHDRAWAL',
             amount: amount.toString(),
             site: site.name,
@@ -400,13 +400,13 @@ export class TransactionService {
     const user = await prisma.user.findUnique({ where: { id: createdBy } });
     if (!user) throw new NotFoundError('User', createdBy);
 
-    const needsApproval = approvalService.requiresApproval(TransactionType.SITE_DELIVERY, user.role);
+    const needsApproval = approvalService.requiresApproval(TransactionType.DELIVERY, user.role);
     const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
 
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
-          type: TransactionType.SITE_DELIVERY,
+          type: TransactionType.DELIVERY,
           status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
@@ -493,19 +493,21 @@ export class TransactionService {
     const user = await prisma.user.findUnique({ where: { id: createdBy } });
     if (!user) throw new NotFoundError('User', createdBy);
 
-    const needsApproval = approvalService.requiresApproval(TransactionType.PARTNER_PAYMENT, user.role);
+    const needsApproval = approvalService.requiresApproval(TransactionType.PAYMENT, user.role);
     const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
 
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
-          type: TransactionType.PARTNER_PAYMENT,
+          type: TransactionType.PAYMENT,
           status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           partner_id: input.partner_id,
           financier_id: input.financier_id,
-          description: input.description,
+          source_type: 'PARTNER',
+          source_id: input.partner_id,
+          description: input.description || `Partner ödemesi: ${partner.name}`,
           transaction_date: input.transaction_date ? new Date(input.transaction_date) : new Date(),
           created_by: createdBy,
         },
@@ -651,7 +653,7 @@ export class TransactionService {
           action: 'CREATE_TRANSACTION',
           entity_type: 'Transaction',
           entity_id: transaction.id,
-          new_data: {
+          new_values: {
             type: 'FINANCIER_TRANSFER',
             amount: amount.toString(),
             from: fromFinancier.name,
@@ -880,18 +882,20 @@ export class TransactionService {
     const user = await prisma.user.findUnique({ where: { id: createdBy } });
     if (!user) throw new NotFoundError('User', createdBy);
 
-    const needsApproval = approvalService.requiresApproval(TransactionType.EXTERNAL_PAYMENT, user.role);
+    const needsApproval = approvalService.requiresApproval(TransactionType.PAYMENT, user.role);
     const transactionStatus = needsApproval ? TransactionStatus.PENDING : TransactionStatus.COMPLETED;
 
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
-          type: TransactionType.EXTERNAL_PAYMENT,
+          type: TransactionType.PAYMENT,
           status: transactionStatus,
           gross_amount: amount,
           net_amount: amount,
           external_party_id: input.external_party_id,
           financier_id: input.financier_id,
+          source_type: 'EXTERNAL_PARTY',
+          source_id: input.external_party_id,
           description: input.description || `Ödeme: ${externalParty.name}'a`,
           transaction_date: input.transaction_date ? new Date(input.transaction_date) : new Date(),
           created_by: createdBy,
@@ -1718,8 +1722,8 @@ export class TransactionService {
           action: 'REVERSE_TRANSACTION',
           entity_type: 'Transaction',
           entity_id: transactionId,
-          old_data: { status: original.status } as unknown as Prisma.JsonObject,
-          new_data: {
+          old_values: { status: original.status } as unknown as Prisma.JsonObject,
+          new_values: {
             status: 'REVERSED',
             reversal_id: reversal.id,
             reason: input.reason,
@@ -1992,7 +1996,7 @@ export class TransactionService {
             break;
           }
 
-          case TransactionType.SITE_DELIVERY: {
+          case TransactionType.DELIVERY: {
             const site = await tx.site.findUnique({ where: { id: newSiteId!, deleted_at: null } });
             if (!site) throw new NotFoundError('Site', newSiteId!);
             const financier = await tx.financier.findUnique({ where: { id: newFinancierId!, deleted_at: null } });
@@ -2021,7 +2025,7 @@ export class TransactionService {
             break;
           }
 
-          case TransactionType.PARTNER_PAYMENT: {
+          case 'PARTNER_PAYMENT' as any: {
             const targetPartnerId = newPartnerId || original.partner_id;
             const partner = await tx.partner.findUnique({ where: { id: targetPartnerId!, deleted_at: null } });
             if (!partner) throw new NotFoundError('Partner', targetPartnerId!);
@@ -2149,7 +2153,7 @@ export class TransactionService {
             break;
           }
 
-          case TransactionType.EXTERNAL_PAYMENT: {
+          case 'EXTERNAL_PAYMENT' as any: {
             const extPartyId = newExternalPartyId || original.external_party_id;
             const externalParty = await tx.externalParty.findUnique({ where: { id: extPartyId!, deleted_at: null } });
             if (!externalParty) throw new NotFoundError('Dış Kişi', extPartyId!);
@@ -2474,8 +2478,8 @@ export class TransactionService {
           action: 'EDIT_TRANSACTION',
           entity_type: 'Transaction',
           entity_id: transactionId,
-          old_data: oldData as unknown as Prisma.JsonObject,
-          new_data: {
+          old_values: oldData as unknown as Prisma.JsonObject,
+          new_values: {
             ...updateData,
             ...(financialFieldsChanged ? {
               gross_amount: newAmount.toString(),
@@ -2553,6 +2557,22 @@ export class TransactionService {
     if (query.site_id) where.site_id = query.site_id;
     if (query.partner_id) where.partner_id = query.partner_id;
     if (query.financier_id) where.financier_id = query.financier_id;
+
+    // PARTNER filtresi: sadece kendi siteleri veya partner'ıyla ilişkili işlemler
+    const partnerSiteIds = (query as any).partner_site_ids as string[] | undefined;
+    const partnerFilterId = (query as any).partner_filter_id as string | undefined;
+    if (partnerSiteIds || partnerFilterId) {
+      const partnerOrConditions: Prisma.TransactionWhereInput[] = [];
+      if (partnerSiteIds && partnerSiteIds.length > 0) {
+        partnerOrConditions.push({ site_id: { in: partnerSiteIds } });
+      }
+      if (partnerFilterId) {
+        partnerOrConditions.push({ partner_id: partnerFilterId });
+      }
+      if (partnerOrConditions.length > 0) {
+        andConditions.push({ OR: partnerOrConditions });
+      }
+    }
 
     if (query.date_from || query.date_to) {
       where.transaction_date = {};
@@ -2748,9 +2768,9 @@ export class TransactionService {
       id: log.id,
       edited_by: log.user,
       edited_at: log.created_at,
-      old_data: log.old_data as Record<string, any> | null,
-      new_data: log.new_data as Record<string, any> | null,
-      reason: (log.new_data as Record<string, any>)?.reason || null,
+      old_values: log.old_values as Record<string, any> | null,
+      new_values: log.new_values as Record<string, any> | null,
+      reason: (log.new_values as Record<string, any>)?.reason || null,
     }));
   }
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "9d969ba1",
+    "label": "backend",
+    "command": "cd /Users/emreyilmaz/Desktop/finanspro\\ v3/apps/backend && npm run dev",
+    "cwd": "/Users/emreyilmaz/Desktop/finanspro v3",
+    "startedAt": 1773310528458,
+    "processType": "server",
+    "group": null,
+    "readyPattern": null,
+    "readyPort": 3001,
+    "pid": 43500
+  },
+  {
+    "id": "e319f878",
+    "label": "frontend",
+    "command": "cd /Users/emreyilmaz/Desktop/finanspro\\ v3/apps/frontend && npm run dev",
+    "cwd": "/Users/emreyilmaz/Desktop/finanspro v3",
+    "startedAt": 1773353129486,
+    "processType": "server",
+    "group": null,
+    "readyPattern": null,
+    "readyPort": 3000,
+    "pid": 66266
+  }
+]

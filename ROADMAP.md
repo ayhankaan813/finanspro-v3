@@ -1,7 +1,7 @@
 # FinansPro v3 - Development Roadmap
 
-**Son Guncelleme:** 22 Subat 2026
-**Mevcut Versiyon:** 3.2.0
+**Son Guncelleme:** 12 Mart 2026
+**Mevcut Versiyon:** 3.4.0
 
 ---
 
@@ -10,11 +10,15 @@
 ```
 Temel Altyapi      : %100
 Muhasebe Sistemi   : %100
-Frontend UI        : %95
+Onay & Bildirim    : %100
+Duzeltme Sistemi   : %100
+Rol Bazli Erisim   : %100
+Operator Onay      : %100
+Partner Akisi      : %95
+Frontend UI        : %98
 Mobil Uyum         : %90
-Dark Mode          : %40 (rapor sayfalari tamamlandi)
 Test & QA          : %30
-Dokumantasyon      : %85
+Dokumantasyon      : %90
 ```
 
 ### Sistem
@@ -43,6 +47,7 @@ Dokumantasyon      : %85
 | settings | Tamamlandi | Komisyon oranlari |
 | approval | Tamamlandi | Islem onay workflow |
 | notification | Tamamlandi | Panel ici bildirimler |
+| adjustment | Tamamlandi | Duzeltme talep/onay sistemi |
 | personnel | Tamamlandi | Personel, maas, avans |
 | report | Tamamlandi | Rapor uretimi |
 
@@ -114,6 +119,22 @@ Toplam:       %12
 - Dis kisi detay sayfasi + kasa defteri
 - Bulk import iyilestirmeleri
 
+### 11 Mart - Duzeltme (Adjustment) Sistemi
+- Adjustment backend servisi (tutar, tarih, silme talepleri)
+- Adjustment routes (/api/adjustments/*)
+- Frontend Onay Merkezi: tab yapisi (Islem Onaylari + Duzeltme Talepleri)
+- Adjustment approve/reject dialog'lari
+- Frontend hooks (useRequestAmountChange, useRequestDateChange, useRequestDelete, useApproveAdjustment, useRejectAdjustment)
+- E2E test: USER talep → ADMIN onay → uygulanma → bildirim
+
+### 11 Mart - Onay & Bildirim Sistemi Tamamlama
+- Approval controller {success, data} format duzeltmesi
+- Notification controller format duzeltmesi
+- Stats field name uyumlulugu
+- Approval service ledger entry olusturma (14 islem tipi)
+- UUID validasyon duzeltmeleri
+- Finansor hesap kayitlari
+
 ### 11-12 Subat - Muhasebe & Onay Sistemi
 - Muhasebe mantigi yeniden yazildi
 - Site → LIABILITY siniflandirmasi
@@ -127,8 +148,7 @@ Toplam:       %12
 ## Yapilacaklar
 
 ### Yuksek Oncelik
-- [ ] Tum sayfalara dark mode
-- [ ] Manuel test - muhasebe sistemi
+- [x] Manuel test - muhasebe sistemi (14/14 islem tipi, ledger dengeli, 2 bug fix)
 - [ ] Production deployment hazirligi
 
 ### Orta Oncelik
@@ -154,8 +174,9 @@ Toplam:       %12
 - `apps/backend/src/modules/transaction/commission.service.ts` - Komisyon hesaplama + validasyon
 - `apps/backend/src/modules/ledger/ledger.service.ts` - Ledger entries, bakiye hesaplama
 
-### Onay Sistemi
-- `apps/backend/src/modules/approval/approval.service.ts` - Onay workflow
+### Onay & Duzeltme Sistemi
+- `apps/backend/src/modules/approval/approval.service.ts` - Islem onay workflow
+- `apps/backend/src/modules/adjustment/adjustment.service.ts` - Duzeltme talep/onay
 - `apps/backend/src/modules/notification/notification.service.ts` - Bildirim servisi
 
 ### Frontend Hooks
@@ -183,5 +204,5 @@ amount.div(count)        // YOK
 
 ---
 
-**Son Guncelleme:** 22 Subat 2026
-**Versiyon:** 3.2.0
+**Son Guncelleme:** 11 Mart 2026
+**Versiyon:** 3.3.0

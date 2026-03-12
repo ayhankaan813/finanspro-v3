@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { TransactionType, TransactionStatus } from '@prisma/client';
 
 export const createDepositSchema = z.object({
-  site_id: z.string().uuid('Geçersiz site ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  site_id: z.string().min(1, 'Site ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -13,8 +13,8 @@ export const createDepositSchema = z.object({
 });
 
 export const createWithdrawalSchema = z.object({
-  site_id: z.string().uuid('Geçersiz site ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  site_id: z.string().min(1, 'Site ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -24,20 +24,20 @@ export const createWithdrawalSchema = z.object({
 });
 
 export const createSitePaymentSchema = z.object({
-  site_id: z.string().uuid('Geçersiz site ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  site_id: z.string().min(1, 'Site ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
-  category_id: z.string().uuid().optional(),
+  category_id: z.string().min(1).optional(),
   delivery_type_id: z.string().min(1).optional(),
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
 });
 
 export const createSiteDeliverySchema = z.object({
-  site_id: z.string().uuid('Geçersiz site ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  site_id: z.string().min(1, 'Site ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -47,8 +47,8 @@ export const createSiteDeliverySchema = z.object({
 });
 
 export const createPartnerPaymentSchema = z.object({
-  partner_id: z.string().uuid('Geçersiz partner ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  partner_id: z.string().min(1, 'Partner ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -57,8 +57,8 @@ export const createPartnerPaymentSchema = z.object({
 });
 
 export const createFinancierTransferSchema = z.object({
-  from_financier_id: z.string().uuid('Geçersiz kaynak finansör ID'),
-  to_financier_id: z.string().uuid('Geçersiz hedef finansör ID'),
+  from_financier_id: z.string().min(1, 'Kaynak finansör ID gerekli'),
+  to_financier_id: z.string().min(1, 'Hedef finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -67,8 +67,8 @@ export const createFinancierTransferSchema = z.object({
 });
 
 export const createExternalDebtSchema = z.object({
-  external_party_id: z.string().uuid('Geçersiz dış kişi ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  external_party_id: z.string().min(1, 'Dış kişi ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -78,8 +78,8 @@ export const createExternalDebtSchema = z.object({
 });
 
 export const createExternalPaymentSchema = z.object({
-  external_party_id: z.string().uuid('Geçersiz dış kişi ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  external_party_id: z.string().min(1, 'Dış kişi ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -88,27 +88,27 @@ export const createExternalPaymentSchema = z.object({
 });
 
 export const createOrgExpenseSchema = z.object({
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
-  category_id: z.string().uuid().optional(),
+  category_id: z.string().min(1).optional(),
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
 });
 
 export const createOrgIncomeSchema = z.object({
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
-  category_id: z.string().uuid().optional(),
+  category_id: z.string().min(1).optional(),
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
 });
 
 export const createOrgWithdrawSchema = z.object({
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Tutar pozitif bir sayı olmalı',
   }),
@@ -123,10 +123,10 @@ export const createPaymentSchema = z.object({
   source_type: z.enum(['SITE', 'PARTNER', 'EXTERNAL_PARTY', 'ORGANIZATION'], {
     message: 'Kaynak tipi geçersiz',
   }),
-  source_id: z.string().uuid('Geçersiz kaynak ID').optional(), // Org için opsiyonel
+  source_id: z.string().min(1, 'Kaynak ID gerekli').optional(), // Org için opsiyonel
 
   // Hangi kasadan?
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
 
   // Tutar
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
@@ -134,7 +134,7 @@ export const createPaymentSchema = z.object({
   }),
 
   // Kategori (Maaş, Reklam, Kira, vs.)
-  category_id: z.string().uuid().optional(),
+  category_id: z.string().min(1).optional(),
 
   description: z.string().max(500).optional(),
   transaction_date: z.string().datetime().optional(),
@@ -147,10 +147,10 @@ export const createTopUpSchema = z.object({
   source_type: z.enum(['PARTNER', 'ORGANIZATION', 'EXTERNAL'], {
     message: 'Kaynak tipi geçersiz',
   }),
-  source_id: z.string().uuid('Geçersiz kaynak ID').optional(), // External için opsiyonel
+  source_id: z.string().min(1, 'Kaynak ID gerekli').optional(), // External için opsiyonel
 
   // Hangi kasaya?
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
 
   // Tutar
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
@@ -164,8 +164,8 @@ export const createTopUpSchema = z.object({
 // ==================== YENİ: TESLİM (Delivery) ====================
 // Site'ye para teslimi - KOMİSYONLU
 export const createDeliverySchema = z.object({
-  site_id: z.string().uuid('Geçersiz site ID'),
-  financier_id: z.string().uuid('Geçersiz finansör ID'),
+  site_id: z.string().min(1, 'Site ID gerekli'),
+  financier_id: z.string().min(1, 'Finansör ID gerekli'),
 
   // Brüt tutar (komisyon dahil)
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
@@ -191,13 +191,13 @@ export const editTransactionSchema = z.object({
   }).optional(),
 
   // Entity değişiklikleri
-  site_id: z.string().uuid('Geçersiz site ID').optional(),
-  financier_id: z.string().uuid('Geçersiz finansör ID').optional(),
-  partner_id: z.string().uuid('Geçersiz partner ID').optional(),
-  external_party_id: z.string().uuid('Geçersiz dış kişi ID').optional(),
+  site_id: z.string().min(1, 'Site ID gerekli').optional(),
+  financier_id: z.string().min(1, 'Finansör ID gerekli').optional(),
+  partner_id: z.string().min(1, 'Partner ID gerekli').optional(),
+  external_party_id: z.string().min(1, 'Dış kişi ID gerekli').optional(),
 
   // Transfer tipi için
-  to_financier_id: z.string().uuid('Geçersiz hedef finansör ID').optional(),
+  to_financier_id: z.string().min(1, 'Hedef finansör ID gerekli').optional(),
 
   // Teslimat tipi için
   delivery_type_id: z.string().min(1, 'Teslimat türü seçin').optional(),
@@ -206,13 +206,13 @@ export const editTransactionSchema = z.object({
   description: z.string().max(500).optional(),
   reference_id: z.string().max(100).optional().nullable(),
   transaction_date: z.string().datetime().optional(),
-  category_id: z.string().uuid().optional().nullable(),
+  category_id: z.string().min(1).optional().nullable(),
 
   // Payment/TopUp source
   source_type: z.enum(['SITE', 'PARTNER', 'EXTERNAL_PARTY', 'ORGANIZATION']).optional(),
-  source_id: z.string().uuid().optional().nullable(),
+  source_id: z.string().min(1).optional().nullable(),
   topup_source_type: z.enum(['PARTNER', 'ORGANIZATION', 'EXTERNAL']).optional(),
-  topup_source_id: z.string().uuid().optional().nullable(),
+  topup_source_id: z.string().min(1).optional().nullable(),
 
   // Komisyon override
   override_commissions: z.boolean().optional(),
@@ -238,9 +238,9 @@ export const transactionQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
   type: z.nativeEnum(TransactionType).optional(),
   status: z.nativeEnum(TransactionStatus).optional(),
-  site_id: z.string().uuid().optional(),
-  partner_id: z.string().uuid().optional(),
-  financier_id: z.string().uuid().optional(),
+  site_id: z.string().min(1).optional(),
+  partner_id: z.string().min(1).optional(),
+  financier_id: z.string().min(1).optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   search: z.string().max(200).optional(),

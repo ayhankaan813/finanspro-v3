@@ -107,6 +107,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import { useRole } from "@/hooks/use-role";
 
 // Stats will come from real API data - no mock values
 
@@ -123,6 +124,7 @@ function SortableSiteCard({
   onEditName,
   onToggleActive,
   onDelete,
+  canManage = true,
 }: {
   site: Site;
   setCommissionSite: (site: Site) => void;
@@ -130,6 +132,7 @@ function SortableSiteCard({
   onEditName: (site: Site) => void;
   onToggleActive: (site: Site) => void;
   onDelete: (site: Site) => void;
+  canManage?: boolean;
 }) {
   const {
     attributes,
@@ -170,81 +173,83 @@ function SortableSiteCard({
 
   return (
     <div ref={setNodeRef} style={style} className={`relative ${isDragging ? "shadow-2xl scale-105" : ""}`}>
-      <Card className={`group border-0 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden rounded-3xl ring-1 ${isInactive ? "ring-gray-200 bg-gray-50 opacity-60" : "ring-twilight-100 bg-white"
+      <Card className={`group border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden rounded-xl ring-1 ${isInactive ? "ring-gray-200 bg-gray-50 opacity-60" : "ring-twilight-100/50 bg-white"
         }`}>
         <CardHeader className="p-0 relative">
-          <div className={`h-1.5 sm:h-2 bg-gradient-to-r ${isInactive ? "from-gray-300 to-gray-400" : "from-twilight-400 to-twilight-600"
+          <div className={`h-1 bg-gradient-to-r ${isInactive ? "from-gray-300 to-gray-400" : "from-twilight-400 to-twilight-600"
             }`}></div>
-          <div className="px-4 pt-4 pb-2 sm:px-6 sm:pt-5 flex justify-between items-start">
-            <div className="flex items-center gap-3 sm:gap-4">
+          <div className="px-4 pt-3 pb-1 flex justify-between items-start">
+            <div className="flex items-center gap-2">
               <div
                 {...attributes}
                 {...listeners}
-                className="cursor-move p-1.5 sm:p-2 -ml-2 text-twilight-300 hover:text-twilight-600 hover:bg-twilight-50 rounded-lg transition-colors"
+                className="cursor-move p-1 -ml-1 text-twilight-300 hover:text-twilight-600 hover:bg-twilight-50 rounded transition-colors"
                 title="Sıralamak için sürükleyin"
               >
-                <GripVertical className="h-4 w-4 sm:h-5 sm:w-5" />
+                <GripVertical className="h-4 w-4" />
               </div>
 
-              <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-lg sm:text-xl shadow-inner ${isInactive ? "bg-gray-100 text-gray-400" : "bg-twilight-50 text-twilight-700"
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center font-bold text-sm ${isInactive ? "bg-gray-100 text-gray-400" : "bg-twilight-50 text-twilight-700"
                 }`}>
                 {site.name.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <h3 className={`font-bold text-base sm:text-lg transition-colors ${isInactive ? "text-gray-400 line-through" : "text-twilight-900 group-hover:text-twilight-600"
+                <h3 className={`font-semibold text-sm transition-colors ${isInactive ? "text-gray-400 line-through" : "text-twilight-900"
                   }`}>
                   {site.name}
                 </h3>
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1.5">
                   <BadgeCode code={site.code} />
-                  {site.is_active && <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse"></div>}
-                  {isInactive && <span className="text-[9px] sm:text-[10px] text-red-400 font-semibold uppercase">Pasif</span>}
+                  {site.is_active && <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>}
+                  {isInactive && <span className="text-[9px] text-red-400 font-semibold uppercase">Pasif</span>}
                 </div>
               </div>
             </div>
 
-            {/* Three Dot Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-twilight-300 hover:text-twilight-600">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => onEditName(site)}>
-                  <Pencil className="mr-2 h-4 w-4" /> İsim Düzenle
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onToggleActive(site)}>
-                  {site.is_active ? (
-                    <><PowerOff className="mr-2 h-4 w-4 text-amber-500" /> Pasife Al</>
-                  ) : (
-                    <><Power className="mr-2 h-4 w-4 text-emerald-500" /> Aktif Et</>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onDelete(site)} className="text-red-600 focus:text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" /> Sil
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Three Dot Menu — only for ADMIN/OPERATOR */}
+            {canManage && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-twilight-300 hover:text-twilight-600">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => onEditName(site)}>
+                    <Pencil className="mr-2 h-4 w-4" /> İsim Düzenle
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onToggleActive(site)}>
+                    {site.is_active ? (
+                      <><PowerOff className="mr-2 h-4 w-4 text-amber-500" /> Pasife Al</>
+                    ) : (
+                      <><Power className="mr-2 h-4 w-4 text-emerald-500" /> Aktif Et</>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onDelete(site)} className="text-red-600 focus:text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" /> Sil
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </CardHeader>
-        <CardContent className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+        <CardContent className="px-4 pb-3 pt-1">
           {/* Main Balance */}
-          <div className={`py-3 sm:py-4 text-center rounded-xl sm:rounded-2xl mb-3 sm:mb-4 border ${isInactive ? "bg-gray-100/50 border-gray-200/50" : "bg-twilight-50/50 border-twilight-100/50"
+          <div className={`py-2 text-center rounded-lg mb-2.5 border ${isInactive ? "bg-gray-100/50 border-gray-200/50" : "bg-twilight-50/50 border-twilight-100/50"
             }`}>
-            <p className={`text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-0.5 sm:mb-1 ${isInactive ? "text-gray-400" : "text-twilight-400"
+            <p className={`text-[10px] font-semibold uppercase tracking-wider mb-0.5 ${isInactive ? "text-gray-400" : "text-twilight-400"
               }`}>Mevcut Bakiye</p>
-            <p className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${isInactive ? "text-gray-400" : displayBalance >= 0 ? "text-emerald-600" : "text-rose-600"
+            <p className={`text-lg font-bold font-mono tracking-tight truncate px-2 ${isInactive ? "text-gray-400" : displayBalance >= 0 ? "text-emerald-600" : "text-rose-600"
               }`}>
               {formatMoney(displayBalance)}
             </p>
           </div>
 
           {/* Mini Stats Grid */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <MiniStat
-              label="Aylık Yatırım"
+              label="Yatırım"
               val={formatMoney(totalDeposit)}
               trend="up"
               icon={ArrowDownToLine}
@@ -252,7 +257,7 @@ function SortableSiteCard({
               bg={isInactive ? "bg-gray-50" : "bg-emerald-50"}
             />
             <MiniStat
-              label="Aylık Çekim"
+              label="Çekim"
               val={formatMoney(totalWithdrawal)}
               trend="down"
               icon={ArrowUpFromLine}
@@ -260,7 +265,7 @@ function SortableSiteCard({
               bg={isInactive ? "bg-gray-50" : "bg-rose-50"}
             />
             <MiniStat
-              label="Komisyon"
+              label="Kom."
               val={formatMoney(totalCommission)}
               trend="neutral"
               icon={Percent}
@@ -270,17 +275,18 @@ function SortableSiteCard({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-twilight-50">
-            <div className="flex-1 text-xs text-twilight-400 font-medium flex items-center gap-1">
-              Komisyon:
-              <span className="text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded ml-1" title="Yatırım">{formatRate(depositRate)}</span> /
-              <span className="text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded" title="Çekim">{formatRate(withdrawalRate)}</span>
+          <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-twilight-50">
+            <div className="flex-1 min-w-0 text-[10px] text-twilight-400 font-medium flex items-center gap-1">
+              <span className="shrink-0">Kom:</span>
+              <span className="text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded shrink-0" title="Yatırım">{formatRate(depositRate)}</span>
+              <span className="shrink-0">/</span>
+              <span className="text-rose-600 font-bold bg-rose-50 px-1 py-0.5 rounded shrink-0" title="Çekim">{formatRate(withdrawalRate)}</span>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setCommissionSite(site)} className="rounded-xl h-9 text-xs border-twilight-200 text-twilight-600">
+            <div className="flex gap-1.5 shrink-0">
+              <Button size="sm" variant="outline" onClick={() => setCommissionSite(site)} className="rounded-lg h-7 text-[10px] px-2 border-twilight-200 text-twilight-600">
                 Komisyon
               </Button>
-              <Button size="sm" asChild className="rounded-xl h-9 text-xs bg-twilight-900 text-white hover:bg-twilight-800 shadow-md shadow-twilight-900/10">
+              <Button size="sm" asChild className="rounded-lg h-7 text-[10px] px-2 bg-twilight-900 text-white hover:bg-twilight-800">
                 <Link href={`/sites/${site.id}`}>Detay</Link>
               </Button>
             </div>
@@ -679,6 +685,8 @@ export default function SitesPage() {
   const [deleteSiteTarget, setDeleteSiteTarget] = useState<Site | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  const { role } = useRole();
+  const canManageSites = role === "ADMIN" || role === "OPERATOR";
   const { toast } = useToast();
 
   const dateRange = {
@@ -819,13 +827,15 @@ export default function SitesPage() {
                 Site Yönetimi
               </h1>
             </div>
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-white text-twilight-900 hover:bg-twilight-50 font-bold px-4 py-4 sm:px-6 sm:py-6 rounded-xl sm:rounded-2xl shadow-xl transition-transform hover:scale-105 text-sm sm:text-base w-full sm:w-auto"
-            >
-              <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-              Yeni Site Ekle
-            </Button>
+            {canManageSites && (
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-white text-twilight-900 hover:bg-twilight-50 font-bold px-4 py-4 sm:px-6 sm:py-6 rounded-xl sm:rounded-2xl shadow-xl transition-transform hover:scale-105 text-sm sm:text-base w-full sm:w-auto"
+              >
+                <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                Yeni Site Ekle
+              </Button>
+            )}
           </div>
 
           {/* Glass Stats Cards Overlay */}
@@ -938,7 +948,7 @@ export default function SitesPage() {
             items={orderedSites.map(s => s.id)}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {orderedSites.map(site => (
                 <SortableSiteCard
                   key={site.id}
@@ -948,6 +958,7 @@ export default function SitesPage() {
                   onEditName={(s) => { setEditSite(s); setEditName(s.name); }}
                   onToggleActive={handleToggleActive}
                   onDelete={setDeleteSiteTarget}
+                  canManage={canManageSites}
                 />
               ))}
             </div>
@@ -1033,12 +1044,12 @@ function BadgeCode({ code }: { code: string }) {
 
 function MiniStat({ label, val, trend, icon: Icon, color, bg }: any) {
   return (
-    <div className={`flex flex-col p-2 sm:p-3 rounded-lg sm:rounded-xl border border-transparent hover:border-twilight-100 transition-colors ${bg}`}>
+    <div className={`flex flex-col p-2 sm:p-3 rounded-lg sm:rounded-xl border border-transparent hover:border-twilight-100 transition-colors overflow-hidden min-w-0 ${bg}`}>
       <div className="flex items-center justify-between mb-1 sm:mb-2">
-        <span className="text-[9px] sm:text-[10px] font-bold text-twilight-500 uppercase">{label}</span>
-        <Icon className={`h-2.5 w-2.5 sm:h-3 sm:w-3 ${color}`} />
+        <span className="text-[9px] sm:text-[10px] font-bold text-twilight-500 uppercase leading-tight truncate">{label}</span>
+        <Icon className={`h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 ml-1 ${color}`} />
       </div>
-      <span className={`text-xs sm:text-sm font-bold font-mono ${color}`}>{val}</span>
+      <span className={`text-xs sm:text-sm font-bold font-mono leading-tight whitespace-nowrap ${color}`} title={val}>{val}</span>
     </div>
   );
 }

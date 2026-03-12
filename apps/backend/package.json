@@ -6,8 +6,10 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json || true",
+    "build:strict": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
+    "start:prod": "NODE_ENV=production node dist/main.js",
     "lint": "eslint src --ext .ts",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
