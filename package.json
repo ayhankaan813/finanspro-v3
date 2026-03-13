@@ -4,8 +4,8 @@
   "private": true,
   "description": "FinansPro V3 - Financial Gateway System",
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
+    "dev": "cd apps/frontend && npm run dev",
+    "build": "cd apps/frontend && npm install && npm run build",
     "lint": "turbo lint",
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
@@ -25,5 +25,10 @@
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.0.0",
+  "dependencies": {
+    "next": "15.0.8",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  }
 }
